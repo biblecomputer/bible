@@ -5,7 +5,7 @@ use leptos_router::path;
 use leptos_router::components::{Router, Route, Routes};
 use crate::types::*;
 use crate::sidebar::Sidebar;
-use crate::chapter_view::ChapterView;
+use crate::chapter_view::ChapterDetail;
 
 mod types;
 mod chapter_view;
@@ -32,8 +32,11 @@ fn App() -> impl IntoView {
                     <Route path=path!("/") view=Home />
                     <Route
                         path=path!("/:book/:chapter")
-                        view=move || view! {
-                            <ChapterView bible=bible.clone() />
+                        view=move || {
+                            let chapter = Chapter::from_url(bible.clone()).unwrap();
+                            view! {
+                                <ChapterDetail chapter=chapter />
+                            }
                         }
                     />
                 </Routes>

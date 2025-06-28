@@ -10,7 +10,6 @@ pub fn Sidebar<'a>(bible: &'a Bible) -> impl IntoView + 'a {
     view! {
         <ul>
             {bible.books.iter().flat_map(|b| b.chapters.iter().map(|c| {
-                
                 let path = c.to_path();
                 let name = c.name.clone();
                 view! {

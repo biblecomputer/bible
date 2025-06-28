@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use leptos::prelude::*;
+ use leptos_router::hooks::use_params_map;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bible {
@@ -29,6 +31,21 @@ impl Chapter {
 
         let book = name.replace(' ', "_");
         format!("{}/{}", book, self.chapter)
+    }
+
+    pub fn from_url(bible: Bible) -> Result<Self,  ParamParseError> {
+        let params = move || use_params_map();
+        let book = move || params().read().get("book").unwrap();
+        let chapter = move || {
+            params()
+                .read()
+                .get("chapter")
+                .and_then(|s| s.parse::<u32>().ok())
+                .unwrap_or(1) // fallback chapter number if parsing fails
+        };
+
+        let chapter: Chapter = bible.get_chapter(&book(), chapter()).unwrap();
+        Ok(chapter)
     }
 }
 
