@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_router::components::A;
 use leptos_router::hooks::{use_params_map};
 use leptos_router::params::Params;
 use leptos_router::path;
@@ -46,6 +47,7 @@ fn App() -> impl IntoView {
             <nav>
                 <p>github</p>
             </nav>
+            <Sidebar bible=&bible />
             <main>
                 <Routes fallback=|| "Not found.">
                     <Route path=path!("/") view=Home />
@@ -69,7 +71,19 @@ fn Home() -> impl IntoView {
 #[component]
 fn Sidebar<'a>(bible: &'a Bible) -> impl IntoView + 'a {
     view! {
-        <h1>Hello world</h1>
+        <ul>
+            {bible.books.iter().flat_map(|b| b.chapters.iter().map(|c| {
+                
+                let path = c.to_path();
+                let name = c.name.clone();
+                view! {
+                    <li>
+                        <A href={path}>{name}</A>
+                    </li>
+                }
+            }
+            ).collect_view()).collect_view()}
+        </ul>
     }
 }
 
