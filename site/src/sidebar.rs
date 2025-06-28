@@ -1,9 +1,9 @@
+use crate::Bible;
+use leptos::component;
+use leptos::prelude::*;
+use leptos::view;
 use leptos::IntoView;
 use leptos_router::components::A;
-use leptos::prelude::*;
-use crate::Bible;
-use leptos::view;
-use leptos::component;
 
 #[component]
 pub fn Sidebar<'a>(bible: &'a Bible) -> impl IntoView + 'a {

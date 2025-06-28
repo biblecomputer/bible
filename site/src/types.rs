@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use leptos::prelude::*;
- use leptos_router::hooks::use_params_map;
+use leptos_router::hooks::use_params_map;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bible {
@@ -33,7 +33,7 @@ impl Chapter {
         format!("{}/{}", book, self.chapter)
     }
 
-    pub fn from_url(bible: Bible) -> Result<Self,  ParamParseError> {
+    pub fn from_url(bible: Bible) -> Result<Self, ParamParseError> {
         let params = move || use_params_map();
         let book = move || params().read().get("book").unwrap();
         let chapter = move || {
@@ -65,12 +65,14 @@ pub enum ParamParseError {
 
 impl Bible {
     pub fn get_chapter(&self, book: &str, chapter: u32) -> Result<Chapter, ParamParseError> {
-        let book = self.books
+        let book = self
+            .books
             .iter()
             .find(|b| b.name.to_lowercase() == book.to_lowercase())
             .ok_or(ParamParseError::BookNotFound)?;
 
-        let chapter = book.chapters
+        let chapter = book
+            .chapters
             .iter()
             .find(|c| c.chapter == chapter)
             .ok_or(ParamParseError::ChapterNotFound)?;
