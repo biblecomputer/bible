@@ -27,7 +27,11 @@
         };
 
         devShells.default = pkgs.mkShell {
-          packages = [ rust-toolchain pkgs.trunk ];
+          packages = [
+            rust-toolchain
+            pkgs.rust-analyzer
+            pkgs.trunk
+          ];
         };
       });
 }
