@@ -1,111 +1,33 @@
 {
-  description = "Fast open source bible app";
+  description = "Rust flake using naersk and rust-overlay";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
-    flake-parts.url = "github:hercules-ci/flake-parts";
-    treefmt-nix.url = "github:numtide/treefmt-nix";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    flake-utils.url = "github:numtide/flake-utils";
+    naersk.url = "github:nix-community/naersk";
+    rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
-  outputs = inputs@{ self, nixpkgs, flake-parts, treefmt-nix, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin" ];
-      imports = [
-        treefmt-nix.flakeModule
-      ];
+  outputs = { self, nixpkgs, flake-utils, naersk, rust-overlay }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        overlays = [ rust-overlay.overlays.default ];
+        pkgs = import nixpkgs {
+          inherit system overlays;
+        };
 
-      perSystem = { config, self', inputs', pkgs, lib, system, ... }: {
-        packages =
-          let
-            packageJSON = lib.importJSON ./site/package.json;
-          in
-          {
-            app = pkgs.buildNpmPackage {
-              npmDepsHash = "sha256-kKjBFyF9N94A0r1nY/ZTH33+dcnI9+33nECB+e1X93I=";
-              NODE_OPTIONS = "--openssl-legacy-provider";
-              src = ./site;
-              pname = packageJSON.name;
-              inherit (packageJSON) version;
-              installPhase = ''
-                mkdir -p $out
-                cp -r ./build/* $out
-              '';
-              doCheck = false;
-              # checkPhase = ''
-              #   npm run test
-              # '';
-              doDist = false;
-            };
-            default = self'.packages.app;
-          };
-
-        apps = {
-          dev = {
-            type = "app";
-            program = pkgs.writeShellApplication {
-              name = "app-dev-server";
-              runtimeInputs = [ pkgs.nodejs ];
-              text = ''
-                cd site
-                npm install
-                npm run dev
-              '';
-            };
-          };
-          preview = {
-            type = "app";
-            program = pkgs.writeShellApplication {
-              name = "preview-app";
-              runtimeInputs = [ pkgs.miniserve ];
-              text = ''
-                miniserve --spa --index index.html --port 8080 ${self'.packages.app}
-              '';
-            };
-          };
-          default = self'.apps.preview;
+        rust-toolchain = pkgs.rust-bin.stable.latest.default.override {
+          targets = [ "wasm32-unknown-unknown" ];
+        };
+        naersk-lib = pkgs.callPackage naersk { inherit rust-toolchain; };
+      in {
+        packages.default = naersk-lib.buildPackage {
+          pname = "leptos-tutorial";
+          root = ./leptos-tutorial;
         };
 
         devShells.default = pkgs.mkShell {
-          name = "app-devshell";
-          buildInputs = with pkgs; [
-            nodejs
-            nodePackages_latest.nodejs
-            nodePackages_latest.graphqurl
-            nodePackages_latest.svelte-language-server
-            nodePackages_latest."@tailwindcss/language-server"
-            nodePackages_latest.typescript-language-server
-            nodePackages_latest.vscode-langservers-extracted
-            config.treefmt.build.wrapper
-          ];
+          packages = [ rust-toolchain pkgs.trunk ];
         };
-
-        treefmt = {
-          projectRootFile = "flake.nix";
-          programs = {
-            prettier = {
-              enable = true;
-              package = pkgs.nodePackages.prettier;
-              includes = [
-                "*.ts"
-                "*.js"
-                "*.json"
-                "*.md"
-                "*.svelte"
-                "*.html"
-                "*.css"
-              ];
-            };
-            nixpkgs-fmt = {
-              enable = true;
-              includes = [ "*.nix" ];
-            };
-          };
-        };
-      };
-
-      flake.templates.default = {
-        path = ./.;
-        description = "Reproducible Svelte app with Effect integration";
-      };
-    };
+      });
 }
