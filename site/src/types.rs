@@ -39,3 +39,25 @@ pub struct Verse {
     pub name: String,
     pub text: String,
 }
+
+#[derive(Debug)]
+pub enum ParamParseError {
+    ChapterNotFound,
+    BookNotFound,
+}
+
+impl Bible {
+    pub fn get_chapter(&self, book: &str, chapter: u32) -> Result<Chapter, ParamParseError> {
+        let book = self.books
+            .iter()
+            .find(|b| b.name.to_lowercase() == book.to_lowercase())
+            .ok_or(ParamParseError::BookNotFound)?;
+
+        let chapter = book.chapters
+            .iter()
+            .find(|c| c.chapter == chapter)
+            .ok_or(ParamParseError::ChapterNotFound)?;
+
+        Ok(chapter.clone())
+    }
+}
