@@ -64,34 +64,45 @@ pub fn CommandPalette(
                         e.prevent_default();
                         let chapters = filtered_chapters.get();
                         if !chapters.is_empty() {
-                            let current = selected_index.get().min(chapters.len().saturating_sub(1));
-                            let next = if current + 1 >= chapters.len() {
-                                0 // wrap to first
+                            let current = selected_index.get();
+                            // Always ensure we're within bounds
+                            if current >= chapters.len() {
+                                set_selected_index.set(0);
                             } else {
-                                current + 1
-                            };
-                            set_selected_index.set(next);
+                                let next = if current + 1 >= chapters.len() {
+                                    0 // wrap to first
+                                } else {
+                                    current + 1
+                                };
+                                set_selected_index.set(next);
+                            }
                         }
                     }
                     "ArrowUp" => {
                         e.prevent_default();
                         let chapters = filtered_chapters.get();
                         if !chapters.is_empty() {
-                            let current = selected_index.get().min(chapters.len().saturating_sub(1));
-                            let prev = if current == 0 {
-                                chapters.len() - 1 // wrap to last
+                            let current = selected_index.get();
+                            // Always ensure we're within bounds
+                            if current >= chapters.len() {
+                                set_selected_index.set(chapters.len() - 1);
                             } else {
-                                current - 1
-                            };
-                            set_selected_index.set(prev);
+                                let next = if current == 0 {
+                                    chapters.len() - 1 // wrap to last
+                                } else {
+                                    current - 1
+                                };
+                                set_selected_index.set(next);
+                            }
                         }
                     }
                     "Enter" => {
                         e.prevent_default();
                         let chapters = filtered_chapters.get();
                         if !chapters.is_empty() {
-                            let selected = selected_index.get().min(chapters.len().saturating_sub(1));
-                            if let Some(chapter) = chapters.get(selected) {
+                            let current = selected_index.get();
+                            let valid_index = if current >= chapters.len() { 0 } else { current };
+                            if let Some(chapter) = chapters.get(valid_index) {
                                 set_navigate_to.set(Some(chapter.to_path()));
                                 set_is_open.set(false);
                                 set_search_query.set(String::new());
@@ -108,10 +119,17 @@ pub fn CommandPalette(
         }
     });
 
-    // Reset selected index when search changes
+    // Reset selected index when search changes or palette opens
     Effect::new(move |_| {
         search_query.track();
         set_selected_index.set(0);
+    });
+    
+    // Reset selected index when palette opens
+    Effect::new(move |_| {
+        if is_open.get() {
+            set_selected_index.set(0);
+        }
     });
 
     // Handle navigation
@@ -166,59 +184,55 @@ pub fn CommandPalette(
                                 <div class="max-h-64 overflow-y-auto">
                                     {move || {
                                         let chapters = filtered_chapters.get();
-                                        let selected = selected_index.get();
+                                        let current_selected = selected_index.get();
+                                        let bounded_selected = if chapters.is_empty() { 
+                                            0 
+                                        } else { 
+                                            current_selected.min(chapters.len() - 1) 
+                                        };
                                         
-                                        if chapters.is_empty() {
-                                            view! { 
-                                                <div class="px-4 py-2 text-gray-500 text-sm">
-                                                    "No chapters found"
-                                                </div> 
-                                            }.into_any()
-                                        } else {
+                                        chapters.into_iter().enumerate().map(|(index, chapter)| {
+                                            let is_selected = index == bounded_selected;
                                             view! {
-                                                <div>
-                                                    {chapters.into_iter().enumerate().map(|(index, chapter)| {
-                                                        let is_selected = index == selected;
-                                                        let chapter_name = chapter.name.clone();
-                                                        let chapter_path = chapter.to_path();
-                                                        view! {
-                                                            <div 
-                                                                class=if is_selected { 
-                                                                    "px-4 py-3 bg-blue-500 text-white cursor-pointer flex items-center border-b border-blue-400" 
-                                                                } else { 
-                                                                    "px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center border-b border-gray-100" 
-                                                                }
-                                                                on:click={
-                                                                    let path = chapter_path.clone();
-                                                                    move |_| {
-                                                                        set_navigate_to.set(Some(path.clone()));
-                                                                        set_is_open.set(false);
-                                                                        set_search_query.set(String::new());
-                                                                        set_selected_index.set(0);
-                                                                    }
-                                                                }
-                                                            >
-                                                                <div class="flex-1">
-                                                                    <div class="font-medium">
-                                                                        {chapter_name}
-                                                                    </div>
-                                                                </div>
-                                                                {if is_selected {
-                                                                    view! {
-                                                                        <div class="text-xs opacity-75">
-                                                                            "↵"
-                                                                        </div>
-                                                                    }.into_any()
-                                                                } else {
-                                                                    view! { <div></div> }.into_any()
-                                                                }}
-                                                            </div>
+                                                <div 
+                                                    class=if is_selected { 
+                                                        "px-4 py-3 bg-blue-500 text-white cursor-pointer flex items-center border-b border-blue-400" 
+                                                    } else { 
+                                                        "px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center border-b border-gray-100" 
+                                                    }
+                                                    on:click={
+                                                        let chapter = chapter.clone();
+                                                        move |_| {
+                                                            set_navigate_to.set(Some(chapter.to_path()));
+                                                            set_is_open.set(false);
+                                                            set_search_query.set(String::new());
+                                                            set_selected_index.set(0);
                                                         }
-                                                    }).collect::<Vec<_>>()}
+                                                    }
+                                                >
+                                                    <div class="flex-1">
+                                                        <div class="font-medium">
+                                                            {chapter.name.clone()}
+                                                        </div>
+                                                    </div>
+                                                    {if is_selected {
+                                                        view! {
+                                                            <div class="text-xs opacity-75">
+                                                                "↵"
+                                                            </div>
+                                                        }.into_any()
+                                                    } else {
+                                                        view! { <div></div> }.into_any()
+                                                    }}
                                                 </div>
-                                            }.into_any()
-                                        }
+                                            }
+                                        }).collect_view()
                                     }}
+                                    <Show when=move || filtered_chapters.get().is_empty()>
+                                        <div class="px-4 py-2 text-gray-500 text-sm">
+                                            "No chapters found"
+                                        </div>
+                                    </Show>
                                 </div>
                             </Show>
                         </div>
