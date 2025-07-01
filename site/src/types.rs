@@ -69,10 +69,13 @@ pub enum ParamParseError {
 
 impl Bible {
     pub fn get_chapter(&self, book: &str, chapter: u32) -> Result<Chapter, ParamParseError> {
+        // Convert URL book name (with underscores) back to space-separated name
+        let book_name = book.replace('_', " ");
+        
         let book = self
             .books
             .iter()
-            .find(|b| b.name.to_lowercase() == book.to_lowercase())
+            .find(|b| b.name.to_lowercase() == book_name.to_lowercase())
             .ok_or(ParamParseError::BookNotFound)?;
 
         let chapter = book
