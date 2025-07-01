@@ -13,7 +13,7 @@ pub struct Book {
     pub chapters: Vec<Chapter>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Chapter {
     pub chapter: u32,
     pub name: String,
@@ -53,7 +53,7 @@ impl Chapter {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Verse {
     pub verse: u32,
     pub chapter: u32,

@@ -1,4 +1,5 @@
 use crate::chapter_view::ChapterDetail;
+use crate::command_palette::CommandPalette;
 use crate::sidebar::Sidebar;
 use crate::types::*;
 use leptos::prelude::*;
@@ -9,6 +10,7 @@ use leptos_router::path;
 use leptos::web_sys::KeyboardEvent;
 
 mod chapter_view;
+mod command_palette;
 mod sidebar;
 mod types;
 
@@ -26,12 +28,23 @@ fn App() -> impl IntoView {
         let bible_for_routes = bible.clone();
         let bible_for_sidebar = bible.clone();
         let bible_for_nav = bible.clone();
+        let bible_for_palette = bible.clone();
+        
+        // Command palette state
+        let (is_palette_open, set_is_palette_open) = signal(false);
         
         view! {
             <Router>
-                <KeyboardNavigationHandler bible=bible_for_nav />
+                <KeyboardNavigationHandler bible=bible_for_nav palette_open=is_palette_open set_palette_open=set_is_palette_open />
+                <CommandPalette bible=bible_for_palette is_open=is_palette_open set_is_open=set_is_palette_open />
+                
                 <nav class="bg-white border-b border-gray-200 px-4 py-2">
-                    <p class="text-sm text-gray-600">github</p>
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm text-gray-600">github</p>
+                        <div class="text-xs text-gray-400">
+                            Press <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Cmd+K</kbd> to search
+                        </div>
+                    </div>
                 </nav>
                 <div class="flex h-screen">
                     <aside class="w-64 bg-gray-50 border-r border-gray-200 p-3 overflow-y-auto">
@@ -60,12 +73,28 @@ fn App() -> impl IntoView {
 }
 
 #[component]
-fn KeyboardNavigationHandler(bible: Bible) -> impl IntoView {
+fn KeyboardNavigationHandler(
+    bible: Bible,
+    palette_open: ReadSignal<bool>,
+    set_palette_open: WriteSignal<bool>,
+) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
     
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
+        // Handle Cmd/Ctrl+K to open command palette
+        if e.key() == "k" && (e.meta_key() || e.ctrl_key()) {
+            e.prevent_default();
+            set_palette_open.set(true);
+            return;
+        }
+        
+        // Skip arrow key navigation if command palette is open
+        if palette_open.get() {
+            return;
+        }
+        
         let pathname = location.pathname.get();
         
         // Parse current path to get book and chapter
