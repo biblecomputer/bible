@@ -22,15 +22,19 @@ pub struct Chapter {
 
 impl Chapter {
     pub fn to_path(&self) -> String {
-        // Trim off the final " <number>" part to get the book name
-        let mut name = self.name.trim_end().to_string();
+        // Extract book name by removing the chapter number from the end
+        // Format is "Book Name X" where X is the chapter number
+        let name_parts: Vec<&str> = self.name.trim().split_whitespace().collect();
+        
+        // Remove the last part (chapter number) to get book name
+        let book_name = if name_parts.len() > 1 {
+            name_parts[..name_parts.len()-1].join(" ")
+        } else {
+            self.name.clone()
+        };
 
-        if let Some(pos) = name.rfind(' ') {
-            name.truncate(pos); // remove everything after the last space
-        }
-
-        let book = name.replace(' ', "_");
-        format!("{}/{}", book, self.chapter)
+        let book = book_name.replace(' ', "_");
+        format!("/{}/{}", book, self.chapter)
     }
 
     pub fn from_url(bible: Bible) -> Result<Self, ParamParseError> {
@@ -78,5 +82,43 @@ impl Bible {
             .ok_or(ParamParseError::ChapterNotFound)?;
 
         Ok(chapter.clone())
+    }
+
+    pub fn get_next_chapter(&self, current: &Chapter) -> Option<Chapter> {
+        // Find the current book and chapter
+        for (book_idx, book) in self.books.iter().enumerate() {
+            if let Some(chapter_idx) = book.chapters.iter().position(|c| c.chapter == current.chapter && c.name == current.name) {
+                // Try next chapter in same book
+                if chapter_idx + 1 < book.chapters.len() {
+                    return Some(book.chapters[chapter_idx + 1].clone());
+                }
+                // Try first chapter of next book
+                if book_idx + 1 < self.books.len() {
+                    return self.books[book_idx + 1].chapters.first().cloned();
+                }
+                // No next chapter
+                return None;
+            }
+        }
+        None
+    }
+
+    pub fn get_previous_chapter(&self, current: &Chapter) -> Option<Chapter> {
+        // Find the current book and chapter
+        for (book_idx, book) in self.books.iter().enumerate() {
+            if let Some(chapter_idx) = book.chapters.iter().position(|c| c.chapter == current.chapter && c.name == current.name) {
+                // Try previous chapter in same book
+                if chapter_idx > 0 {
+                    return Some(book.chapters[chapter_idx - 1].clone());
+                }
+                // Try last chapter of previous book
+                if book_idx > 0 {
+                    return self.books[book_idx - 1].chapters.last().cloned();
+                }
+                // No previous chapter
+                return None;
+            }
+        }
+        None
     }
 }
