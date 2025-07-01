@@ -6,15 +6,34 @@ use leptos::IntoView;
 #[component]
 pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     view! {
-        <div class="chapter-detail">
-            <h1 class="text-3xl font-bold mb-6 text-gray-900">{chapter.name.as_str()}</h1>
-            <div class="prose max-w-none">
+        <article class="chapter-detail max-w-2xl mx-auto px-4">
+            <header class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">{chapter.name.as_str()}</h1>
+            </header>
+            
+            <div class="verses text-lg leading-8 text-gray-800" role="main" aria-label="Chapter text">
                 {chapter.verses.iter().map(|verse| {
                     view! {
-                        <p class="mb-4 text-gray-800 leading-relaxed">{verse.text.as_str()}</p>
+                        <>
+                            <span 
+                                class="verse-number text-sm text-gray-500 font-medium mr-1 select-none align-super"
+                                tabindex="0"
+                                role="text"
+                            >
+                                {verse.verse}
+                            </span>
+                            <span 
+                                class="verse-text focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-blue-50 rounded-sm" 
+                                id=format!("verse-{}", verse.verse)
+                                tabindex="0"
+                                role="text"
+                            >
+                                {verse.text.as_str()}
+                            </span>
+                        </>
                     }
                 }).collect_view()}
             </div>
-        </div>
+        </article>
     }
 }
