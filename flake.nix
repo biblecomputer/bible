@@ -110,7 +110,10 @@
 
         devShells.default = craneLib.devShell {
           checks = self.checks.${system};
-          packages = [ pkgs.trunk ];
+          packages = [
+            pkgs.trunk
+            pkgs.cargo-leptos
+          ];
           shellHook = ''
             export CLIENT_DIST=$PWD/client/dist
           '';
