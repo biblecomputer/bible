@@ -2,10 +2,22 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
+use flate2::read::GzDecoder;
+use std::io::Read as IoRead;
 
-// Global static Bible instance - parsed once, used everywhere
+// Global static Bible instance - decompressed and parsed once, used everywhere
 pub static BIBLE: LazyLock<Bible> = LazyLock::new(|| {
-    serde_json::from_str(include_str!("../src/stv.json"))
+    // Include the compressed binary data
+    let compressed_data = include_bytes!(concat!(env!("OUT_DIR"), "/stv_compressed.bin"));
+    
+    // Decompress the data
+    let mut decoder = GzDecoder::new(&compressed_data[..]);
+    let mut json_string = String::new();
+    IoRead::read_to_string(&mut decoder, &mut json_string)
+        .expect("Failed to decompress Bible data");
+    
+    // Parse the JSON
+    serde_json::from_str(&json_string)
         .expect("Failed to parse Bible JSON")
 });
 
