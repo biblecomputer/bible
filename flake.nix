@@ -131,9 +131,58 @@
           '';
         };
 
-        apps.default = flake-utils.lib.mkApp {
-          name = "bible";
-          drv = myClient;
+        apps = {
+          default = flake-utils.lib.mkApp {
+            name = "bible";
+            drv = myClient;
+          };
+          
+          dev = flake-utils.lib.mkApp {
+            name = "dev-server";
+            drv = pkgs.writeShellScriptBin "dev-server" ''
+              set -e
+              
+              # Work in the current directory (should be the project root)
+              if [ ! -d "site" ]; then
+                echo "Error: Please run this from the project root directory"
+                exit 1
+              fi
+              
+              cd site
+              
+              # Ensure output.css exists
+              if [ ! -f "style/output.css" ]; then
+                echo "Generating initial Tailwind CSS..."
+                ${pkgs.tailwindcss}/bin/tailwindcss \
+                  -i ./style/tailwind.css \
+                  -o ./style/output.css \
+                  --config ./tailwind.config.js
+              fi
+              
+              # Start Tailwind CSS watch in background
+              echo "Starting Tailwind CSS watcher..."
+              ${pkgs.tailwindcss}/bin/tailwindcss \
+                -i ./style/tailwind.css \
+                -o ./style/output.css \
+                --config ./tailwind.config.js \
+                --watch &
+              TAILWIND_PID=$!
+              
+              # Cleanup function
+              cleanup() {
+                echo "Stopping development server..."
+                kill $TAILWIND_PID 2>/dev/null || true
+                exit 0
+              }
+              
+              # Trap cleanup
+              trap cleanup INT TERM
+              
+              # Start trunk serve
+              echo "Starting trunk development server..."
+              ${pkgs.trunk}/bin/trunk serve --open --port 8080
+            '';
+          };
         };
       }
     );
