@@ -1,7 +1,7 @@
 use crate::chapter_view::ChapterDetail;
 use crate::command_palette::CommandPalette;
 use crate::sidebar::Sidebar;
-use crate::types::*;
+use crate::types::{*, BIBLE};
 use leptos::prelude::*;
 use leptos::ev;
 use leptos_router::components::{Route, Router, Routes};
@@ -21,16 +21,13 @@ fn main() {
 
 #[component]
 fn App() -> impl IntoView {
-    let bible: Bible =
-        serde_json::from_str(include_str!("../src/stv.json")).expect("Failed to parse Bible JSON");
-        
-        // Command palette state
-        let (is_palette_open, set_is_palette_open) = signal(false);
+    // Command palette state
+    let (is_palette_open, set_is_palette_open) = signal(false);
         
         view! {
             <Router>
-                <KeyboardNavigationHandler bible=bible.clone() palette_open=is_palette_open set_palette_open=set_is_palette_open />
-                <CommandPalette bible=bible.clone() is_open=is_palette_open set_is_open=set_is_palette_open />
+                <KeyboardNavigationHandler palette_open=is_palette_open set_palette_open=set_is_palette_open />
+                <CommandPalette is_open=is_palette_open set_is_open=set_is_palette_open />
                 
                 <nav class="bg-white border-b border-gray-200 px-4 py-2">
                     <div class="flex items-center justify-between">
@@ -42,20 +39,17 @@ fn App() -> impl IntoView {
                 </nav>
                 <div class="flex h-screen">
                     <aside class="w-64 bg-gray-50 border-r border-gray-200 p-3 overflow-y-auto">
-                        <Sidebar bible=bible.clone() />
+                        <Sidebar />
                     </aside>
                     <main class="flex-1 p-6 overflow-y-auto">
                         <Routes fallback=|| "Not found.">
                             <Route path=path!("/") view=Home />
                             <Route
                                 path=path!("/:book/:chapter")
-                                view={
-                                    let bible_for_route = bible.clone();
-                                    move || {
-                                        let chapter = Chapter::from_url(bible_for_route.clone()).unwrap();
-                                        view! {
-                                            <ChapterDetail chapter=chapter />
-                                        }
+                                view=move || {
+                                    let chapter = Chapter::from_url().unwrap();
+                                    view! {
+                                        <ChapterDetail chapter=chapter />
                                     }
                                 }
                             />
@@ -68,7 +62,6 @@ fn App() -> impl IntoView {
 
 #[component]
 fn KeyboardNavigationHandler(
-    bible: Bible,
     palette_open: ReadSignal<bool>,
     set_palette_open: WriteSignal<bool>,
 ) -> impl IntoView {
@@ -96,15 +89,15 @@ fn KeyboardNavigationHandler(
         if path_parts.len() == 2 {
             let book_name = path_parts[0].replace('_', " ");
             if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
-                if let Ok(current_chapter) = bible.get_chapter(&book_name, chapter_num) {
+                if let Ok(current_chapter) = BIBLE.get_chapter(&book_name, chapter_num) {
                     match e.key().as_str() {
                         "ArrowRight" => {
-                            if let Some(next_chapter) = bible.get_next_chapter(&current_chapter) {
+                            if let Some(next_chapter) = BIBLE.get_next_chapter(&current_chapter) {
                                 navigate(&next_chapter.to_path(), Default::default());
                             }
                         }
                         "ArrowLeft" => {
-                            if let Some(prev_chapter) = bible.get_previous_chapter(&current_chapter) {
+                            if let Some(prev_chapter) = BIBLE.get_previous_chapter(&current_chapter) {
                                 navigate(&prev_chapter.to_path(), Default::default());
                             }
                         }

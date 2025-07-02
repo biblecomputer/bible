@@ -1,6 +1,13 @@
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use serde::{Deserialize, Serialize};
+use std::sync::LazyLock;
+
+// Global static Bible instance - parsed once, used everywhere
+pub static BIBLE: LazyLock<Bible> = LazyLock::new(|| {
+    serde_json::from_str(include_str!("../src/stv.json"))
+        .expect("Failed to parse Bible JSON")
+});
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bible {
@@ -37,7 +44,7 @@ impl Chapter {
         format!("/{}/{}", book, self.chapter)
     }
 
-    pub fn from_url(bible: Bible) -> Result<Self, ParamParseError> {
+    pub fn from_url() -> Result<Self, ParamParseError> {
         let params = move || use_params_map();
         let book = move || params().read().get("book").unwrap();
         let chapter = move || {
@@ -48,7 +55,7 @@ impl Chapter {
                 .unwrap_or(1) // fallback chapter number if parsing fails
         };
 
-        let chapter: Chapter = bible.get_chapter(&book(), chapter()).unwrap();
+        let chapter: Chapter = BIBLE.get_chapter(&book(), chapter()).unwrap();
         Ok(chapter)
     }
 }
