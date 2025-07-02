@@ -23,20 +23,14 @@ fn main() {
 fn App() -> impl IntoView {
     let bible: Bible =
         serde_json::from_str(include_str!("../src/stv.json")).expect("Failed to parse Bible JSON");
-
-    {
-        let bible_for_routes = bible.clone();
-        let bible_for_sidebar = bible.clone();
-        let bible_for_nav = bible.clone();
-        let bible_for_palette = bible.clone();
         
         // Command palette state
         let (is_palette_open, set_is_palette_open) = signal(false);
         
         view! {
             <Router>
-                <KeyboardNavigationHandler bible=bible_for_nav palette_open=is_palette_open set_palette_open=set_is_palette_open />
-                <CommandPalette bible=bible_for_palette is_open=is_palette_open set_is_open=set_is_palette_open />
+                <KeyboardNavigationHandler bible=bible.clone() palette_open=is_palette_open set_palette_open=set_is_palette_open />
+                <CommandPalette bible=bible.clone() is_open=is_palette_open set_is_open=set_is_palette_open />
                 
                 <nav class="bg-white border-b border-gray-200 px-4 py-2">
                     <div class="flex items-center justify-between">
@@ -48,7 +42,7 @@ fn App() -> impl IntoView {
                 </nav>
                 <div class="flex h-screen">
                     <aside class="w-64 bg-gray-50 border-r border-gray-200 p-3 overflow-y-auto">
-                        <Sidebar bible=&bible_for_sidebar />
+                        <Sidebar bible=bible.clone() />
                     </aside>
                     <main class="flex-1 p-6 overflow-y-auto">
                         <Routes fallback=|| "Not found.">
@@ -56,8 +50,9 @@ fn App() -> impl IntoView {
                             <Route
                                 path=path!("/:book/:chapter")
                                 view={
+                                    let bible_for_route = bible.clone();
                                     move || {
-                                        let chapter = Chapter::from_url(bible_for_routes.clone()).unwrap();
+                                        let chapter = Chapter::from_url(bible_for_route.clone()).unwrap();
                                         view! {
                                             <ChapterDetail chapter=chapter />
                                         }
@@ -69,7 +64,6 @@ fn App() -> impl IntoView {
                 </div>
             </Router>
         }
-    }
 }
 
 #[component]

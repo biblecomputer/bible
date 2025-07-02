@@ -24,14 +24,14 @@ pub fn CommandPalette(
             return Vec::new();
         }
 
-        let mut results: Vec<(Chapter, usize)> = bible
+        let mut results: Vec<(&Chapter, usize)> = bible
             .books
             .iter()
             .flat_map(|book| book.chapters.iter())
             .filter_map(|chapter| {
                 let score = fuzzy_score(&chapter.name.to_lowercase(), &query);
                 if score > 0 {
-                    Some((chapter.clone(), score))
+                    Some((chapter, score))
                 } else {
                     None
                 }
@@ -44,7 +44,7 @@ pub fn CommandPalette(
         results
             .into_iter()
             .take(10)
-            .map(|(chapter, _)| chapter)
+            .map(|(chapter, _)| chapter.clone())
             .collect::<Vec<Chapter>>()
     });
 
@@ -201,9 +201,9 @@ pub fn CommandPalette(
                                                         "px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center border-b border-gray-100" 
                                                     }
                                                     on:click={
-                                                        let chapter = chapter.clone();
+                                                        let chapter_path = chapter.to_path();
                                                         move |_| {
-                                                            set_navigate_to.set(Some(chapter.to_path()));
+                                                            set_navigate_to.set(Some(chapter_path.clone()));
                                                             set_is_open.set(false);
                                                             set_search_query.set(String::new());
                                                             set_selected_index.set(0);

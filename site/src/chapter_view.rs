@@ -8,11 +8,11 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     view! {
         <article class="chapter-detail max-w-2xl mx-auto px-4">
             <header class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">{chapter.name.as_str()}</h1>
+                <h1 class="text-3xl font-bold text-gray-900">{chapter.name.clone()}</h1>
             </header>
             
             <div class="verses text-lg leading-8 text-gray-800" role="main" aria-label="Chapter text">
-                {chapter.verses.iter().map(|verse| {
+                {chapter.verses.iter().cloned().map(|verse| {
                     view! {
                         <>
                             <span 
@@ -28,7 +28,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                                 tabindex="0"
                                 role="text"
                             >
-                                {verse.text.as_str()}
+                                {verse.text.clone()}
                             </span>
                         </>
                     }
