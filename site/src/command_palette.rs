@@ -1,11 +1,10 @@
-use crate::{Bible, Chapter};
+use crate::{Chapter, BIBLE};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos::web_sys::KeyboardEvent;
 
 #[component]
 pub fn CommandPalette(
-    bible: Bible,
     is_open: ReadSignal<bool>,
     set_is_open: WriteSignal<bool>,
 ) -> impl IntoView {
@@ -24,7 +23,7 @@ pub fn CommandPalette(
             return Vec::new();
         }
 
-        let mut results: Vec<(&Chapter, usize)> = bible
+        let mut results: Vec<(&Chapter, usize)> = BIBLE
             .books
             .iter()
             .flat_map(|book| book.chapters.iter())

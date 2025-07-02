@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::types::{*, BIBLE};
 use leptos::component;
 use leptos::prelude::*;
 use leptos::view;
@@ -6,14 +6,14 @@ use leptos::IntoView;
 use leptos_router::components::A;
 
 #[component]
-pub fn Sidebar(bible: Bible) -> impl IntoView {
+pub fn Sidebar() -> impl IntoView {
     let (selected_book, set_selected_book) = signal(String::from("Genesis"));
 
     view! {
         <div class="sidebar">
             <h2 class="text-lg font-bold mb-4 text-gray-800">Books</h2>
             <ul class="space-y-2">
-            {bible.books.iter().map(|b| view! {
+            {BIBLE.books.iter().map(|b| view! {
                 <BookView
                     book=b.clone()
                     selected_book=selected_book
