@@ -66,9 +66,21 @@
             pname = "trunk-workspace-client";
             cargoArtifacts = cargoArtifactsWasm;
 
-            # Fix trunk caching issues in sandbox
+            # Add tailwindcss as build input
+            nativeBuildInputs = (wasmArgs.nativeBuildInputs or []) ++ [ 
+              pkgs.tailwindcss
+            ];
+
+            # Fix trunk caching issues in sandbox and build tailwind
             preBuild = ''
               mkdir -p target/trunk-cache
+              
+              # Build tailwind CSS
+              echo "Building Tailwind CSS..."
+              ${pkgs.tailwindcss}/bin/tailwindcss \
+                -i ./style/tailwind.css \
+                -o ./style/output.css \
+                --config ./tailwind.config.js
             '';
             TRUNK_CACHE_DIR = "./target/trunk-cache";
             HOME = "./target/home";
