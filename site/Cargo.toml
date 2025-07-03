@@ -10,6 +10,7 @@ leptos_router = "0.8.2"
 serde = "1.0.219"
 serde_json = "1.0.140"
 flate2 = "1.0"
+urlencoding = "2.1"
 
 [build-dependencies]
 flate2 = "1.0"
