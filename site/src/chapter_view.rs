@@ -15,13 +15,18 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                 {chapter.verses.iter().cloned().map(|verse| {
                     view! {
                         <>
-                            <span 
-                                class="verse-number text-sm text-gray-500 font-medium mr-1 select-none align-super"
-                                tabindex="0"
-                                role="text"
+                            <Show 
+                                when=move || verse.verse != 1
+                                fallback=|| view! { <></> }
                             >
-                                {verse.verse}
-                            </span>
+                                <span 
+                                    class="verse-number text-sm text-gray-500 font-medium mr-1 select-none align-super"
+                                    tabindex="0"
+                                    role="text"
+                                >
+                                    {verse.verse}
+                                </span>
+                            </Show>
                             <span 
                                 class="verse-text focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-blue-50 rounded-sm" 
                                 id=format!("verse-{}", verse.verse)
