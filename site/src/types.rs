@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 use flate2::read::GzDecoder;
 use std::io::Read as IoRead;
+use urlencoding::{encode, decode};
 
 // Global static Bible instance - decompressed and parsed once, used everywhere
 pub static BIBLE: LazyLock<Bible> = LazyLock::new(|| {
@@ -52,8 +53,8 @@ impl Chapter {
             self.name.clone()
         };
 
-        let book = book_name.replace(' ', "_");
-        format!("/{}/{}", book, self.chapter)
+        let encoded_book = encode(&book_name);
+        format!("/{}/{}", encoded_book, self.chapter)
     }
 
     pub fn from_url() -> Result<Self, ParamParseError> {
@@ -88,8 +89,10 @@ pub enum ParamParseError {
 
 impl Bible {
     pub fn get_chapter(&self, book: &str, chapter: u32) -> Result<Chapter, ParamParseError> {
-        // Convert URL book name (with underscores) back to space-separated name
-        let book_name = book.replace('_', " ");
+        // Decode URL-encoded book name back to original name with special characters
+        let book_name = decode(book)
+            .map_err(|_| ParamParseError::BookNotFound)?
+            .into_owned();
         
         let book = self
             .books
