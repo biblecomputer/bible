@@ -28,7 +28,12 @@ fn App() -> impl IntoView {
         
         view! {
             <Router>
-                <KeyboardNavigationHandler palette_open=is_palette_open set_palette_open=set_is_palette_open />
+                <KeyboardNavigationHandler 
+                    palette_open=is_palette_open 
+                    set_palette_open=set_is_palette_open 
+                    sidebar_open=is_sidebar_open
+                    set_sidebar_open=set_is_sidebar_open
+                />
                 <CommandPalette is_open=is_palette_open set_is_open=set_is_palette_open />
                 
                 <nav class="bg-white border-b border-gray-200 px-4 py-2">
@@ -55,8 +60,13 @@ fn App() -> impl IntoView {
                                 <line x1="3" y1="15" x2="7" y2="15"/>
                             </svg>
                         </button>
-                        <div class="text-xs text-gray-400">
-                            Press <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Cmd+K</kbd> to search
+                        <div class="text-xs text-gray-400 flex items-center gap-3">
+                            <span>
+                                Press <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Cmd+K</kbd> to search
+                            </span>
+                            <span>
+                                <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Ctrl+B</kbd> for sidebar
+                            </span>
                         </div>
                         <a 
                             href="https://github.com/sempruijs/bible" 
@@ -111,6 +121,8 @@ fn App() -> impl IntoView {
 fn KeyboardNavigationHandler(
     palette_open: ReadSignal<bool>,
     set_palette_open: WriteSignal<bool>,
+    sidebar_open: ReadSignal<bool>,
+    set_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -121,6 +133,13 @@ fn KeyboardNavigationHandler(
         if e.key() == "k" && (e.meta_key() || e.ctrl_key()) {
             e.prevent_default();
             set_palette_open.set(true);
+            return;
+        }
+        
+        // Handle Ctrl+B to toggle sidebar
+        if e.key() == "b" && e.ctrl_key() {
+            e.prevent_default();
+            set_sidebar_open.update(|open| *open = !*open);
             return;
         }
         
