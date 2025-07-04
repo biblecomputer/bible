@@ -4,10 +4,13 @@ use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
 use leptos_router::components::A;
+use leptos_router::hooks::use_location;
+use leptos_router::location::Location;
 
 #[component]
 pub fn Sidebar() -> impl IntoView {
     let (selected_book, set_selected_book) = signal(String::from("Genesis"));
+    let location = use_location();
 
     view! {
         <div class="sidebar">
@@ -18,6 +21,7 @@ pub fn Sidebar() -> impl IntoView {
                     book=b.clone()
                     selected_book=selected_book
                     set_selected_book=set_selected_book
+                    location=location.clone()
                 />
             }).collect_view()}
             </ul>
@@ -30,6 +34,7 @@ fn BookView(
     book: Book,
     selected_book: ReadSignal<String>,
     set_selected_book: WriteSignal<String>,
+    location: Location,
 ) -> impl IntoView {
 
     view! {
@@ -58,12 +63,24 @@ fn BookView(
                 fallback=|| view! { <></> }
             >
             <div class="ml-4 mt-2 grid grid-cols-5 gap-1">
-            {book.chapters.iter().cloned().map(|c| view! {
-                <div class="text-center px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-150">
-                    <A href=c.to_path()>
-                        {c.chapter}
-                    </A>
-                </div>
+            {book.chapters.iter().cloned().map(|c| {
+                let current_path = location.pathname.get();
+                let chapter_path = c.to_path();
+                let is_current = current_path == chapter_path;
+                
+                view! {
+                    <div class={
+                        if is_current {
+                            "text-center px-2 py-1 text-xs bg-blue-500 text-white rounded transition-colors duration-150"
+                        } else {
+                            "text-center px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-150"
+                        }
+                    }>
+                        <A href=chapter_path>
+                            {c.chapter}
+                        </A>
+                    </div>
+                }
             }).collect_view()}
             </div>
             </Show>
