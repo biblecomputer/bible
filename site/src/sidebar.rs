@@ -6,11 +6,28 @@ use leptos::IntoView;
 use leptos_router::components::A;
 use leptos_router::hooks::use_location;
 use leptos_router::location::Location;
+use urlencoding;
 
 #[component]
 pub fn Sidebar() -> impl IntoView {
-    let (selected_book, set_selected_book) = signal(String::from("Genesis"));
     let location = use_location();
+    
+    // Extract book name from current URL and auto-expand it
+    let current_book = Memo::new(move |_| {
+        let pathname = location.pathname.get();
+        let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
+        
+        if path_parts.len() >= 2 {
+            // Decode the URL-encoded book name and convert underscores back to spaces
+            if let Ok(decoded) = urlencoding::decode(path_parts[0]) {
+                return decoded.into_owned();
+            }
+        }
+        
+        String::new() // Return empty string if no valid book found
+    });
+    
+    let (selected_book, set_selected_book) = signal(String::new());
 
     view! {
         <div class="sidebar">
@@ -19,6 +36,7 @@ pub fn Sidebar() -> impl IntoView {
             {BIBLE.books.iter().map(|b| view! {
                 <BookView
                     book=b.clone()
+                    current_book=current_book
                     selected_book=selected_book
                     set_selected_book=set_selected_book
                     location=location.clone()
@@ -32,6 +50,7 @@ pub fn Sidebar() -> impl IntoView {
 #[component]
 fn BookView(
     book: Book,
+    current_book: Memo<String>,
     selected_book: ReadSignal<String>,
     set_selected_book: WriteSignal<String>,
     location: Location,
@@ -58,7 +77,12 @@ fn BookView(
             <Show
                 when={
                     let book_name = book.name.clone();
-                    move || selected_book.get() == book_name
+                    move || {
+                        let current = current_book.get();
+                        let selected = selected_book.get();
+                        // Show if it's the current book from URL OR manually selected
+                        book_name == current || book_name == selected
+                    }
                 }
                 fallback=|| view! { <></> }
             >
