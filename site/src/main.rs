@@ -7,7 +7,7 @@ use leptos::ev;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::path;
-use leptos::web_sys::KeyboardEvent;
+use leptos::web_sys::{KeyboardEvent, window};
 
 mod chapter_view;
 mod command_palette;
@@ -31,9 +31,10 @@ fn App() -> impl IntoView {
                 <KeyboardNavigationHandler 
                     palette_open=is_palette_open 
                     set_palette_open=set_is_palette_open 
-                    sidebar_open=is_sidebar_open
+                    _sidebar_open=is_sidebar_open
                     set_sidebar_open=set_is_sidebar_open
                 />
+                <SidebarAutoHide set_sidebar_open=set_is_sidebar_open />
                 <CommandPalette is_open=is_palette_open set_is_open=set_is_palette_open />
                 
                 <nav class="bg-white border-b border-gray-200 px-4 py-2">
@@ -60,7 +61,7 @@ fn App() -> impl IntoView {
                                 <line x1="3" y1="15" x2="7" y2="15"/>
                             </svg>
                         </button>
-                        <div class="text-xs text-gray-400 flex items-center gap-3">
+                        <div class="text-xs text-gray-400 flex items-center gap-3 hidden md:flex">
                             <span>
                                 Press <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Cmd+K</kbd> to search
                             </span>
@@ -89,16 +90,39 @@ fn App() -> impl IntoView {
                         </a>
                     </div>
                 </nav>
-                <div class="flex h-screen">
+                <div class="flex h-screen relative">
                     <Show
                         when=move || is_sidebar_open.get()
                         fallback=|| view! { <></> }
                     >
-                        <aside class="w-64 bg-gray-50 border-r border-gray-200 p-3 overflow-y-auto">
-                            <Sidebar />
+                        <aside class="w-64 bg-gray-50 border-r border-gray-200 p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto">
+                            <Sidebar set_sidebar_open=set_is_sidebar_open />
                         </aside>
                     </Show>
-                    <main class="flex-1 p-6 overflow-y-auto">
+                    
+                    <Show
+                        when=move || {
+                            is_sidebar_open.get() && {
+                                // Only show backdrop on mobile
+                                if let Some(window) = window() {
+                                    if let Ok(width) = window.inner_width() {
+                                        if let Some(width_num) = width.as_f64() {
+                                            return width_num < 768.0;
+                                        }
+                                    }
+                                }
+                                false
+                            }
+                        }
+                        fallback=|| view! { <></> }
+                    >
+                        <div 
+                            class="fixed inset-0 bg-black bg-opacity-50 z-40"
+                            on:click=move |_| set_is_sidebar_open.set(false)
+                        />
+                    </Show>
+                    
+                    <main class="flex-1 p-4 md:p-6 overflow-y-auto">
                         <Routes fallback=|| "Not found.">
                             <Route path=path!("/") view=Home />
                             <Route
@@ -118,10 +142,40 @@ fn App() -> impl IntoView {
 }
 
 #[component]
+fn SidebarAutoHide(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
+    let location = use_location();
+    
+    // Auto-hide sidebar on mobile when navigating to a chapter
+    Effect::new(move |_| {
+        let pathname = location.pathname.get();
+        let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
+        
+        // If we're on a chapter page and screen is mobile-sized, hide sidebar
+        if path_parts.len() == 2 && !path_parts[0].is_empty() && !path_parts[1].is_empty() {
+            // Check if we're on a mobile device by checking window width
+            if let Some(window) = window() {
+                if let Ok(width) = window.inner_width() {
+                    if let Some(width_num) = width.as_f64() {
+                        if width_num < 768.0 { // md breakpoint in Tailwind
+                            set_sidebar_open.set(false);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    view! {
+        // This component renders nothing, it just handles auto-hide logic
+        <></>
+    }
+}
+
+#[component]
 fn KeyboardNavigationHandler(
     palette_open: ReadSignal<bool>,
     set_palette_open: WriteSignal<bool>,
-    sidebar_open: ReadSignal<bool>,
+    _sidebar_open: ReadSignal<bool>,
     set_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
