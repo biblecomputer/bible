@@ -66,10 +66,10 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                     view! {
                         <div class="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                             <A href=path>
-                                Next
                                 <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
+                                Next
                             </A>
                         </div>
                     }.into_any()
