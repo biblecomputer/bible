@@ -6,11 +6,13 @@ use leptos::IntoView;
 use leptos_router::components::A;
 use leptos_router::hooks::use_location;
 use leptos_router::location::Location;
+use leptos::web_sys::window;
 use urlencoding;
 
 #[component]
-pub fn Sidebar() -> impl IntoView {
+pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
     let location = use_location();
+    
     
     // Extract book name from current URL and auto-expand it
     let current_book = Memo::new(move |_| {
@@ -40,6 +42,7 @@ pub fn Sidebar() -> impl IntoView {
                     selected_book=selected_book
                     set_selected_book=set_selected_book
                     location=location.clone()
+                    set_sidebar_open=set_sidebar_open
                 />
             }).collect_view()}
             </ul>
@@ -54,6 +57,7 @@ fn BookView(
     selected_book: ReadSignal<String>,
     set_selected_book: WriteSignal<String>,
     location: Location,
+    set_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
 
     view! {
@@ -100,7 +104,21 @@ fn BookView(
                             "text-center px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-150"
                         }
                     }>
-                        <A href=chapter_path>
+                        <A 
+                            href=chapter_path
+                            on:click=move |_| {
+                                // Close sidebar on mobile when chapter is selected
+                                if let Some(window) = window() {
+                                    if let Ok(width) = window.inner_width() {
+                                        if let Some(width_num) = width.as_f64() {
+                                            if width_num < 768.0 {
+                                                set_sidebar_open.set(false);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        >
                             {c.chapter}
                         </A>
                     </div>
