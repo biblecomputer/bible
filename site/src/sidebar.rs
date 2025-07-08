@@ -7,7 +7,7 @@ use leptos_router::components::A;
 use leptos_router::hooks::use_location;
 use leptos_router::location::Location;
 use leptos::web_sys::window;
-use urlencoding;
+use urlencoding::decode;
 
 #[component]
 pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
@@ -21,7 +21,7 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
         
         if path_parts.len() >= 2 {
             // Decode the URL-encoded book name and convert underscores back to spaces
-            if let Ok(decoded) = urlencoding::decode(path_parts[0]) {
+            if let Ok(decoded) = decode(path_parts[0]) {
                 return decoded.into_owned();
             }
         }
