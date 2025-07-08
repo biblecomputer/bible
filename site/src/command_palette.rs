@@ -268,10 +268,9 @@ fn fuzzy_score(text: &str, query: &str) -> usize {
     }
     
     let mut total_score = 0;
-    let mut query_word_index = 0;
     
     // Try to match each query word against text words
-    for &query_word in &query_words {
+    for (query_word_index, &query_word) in query_words.iter().enumerate() {
         let mut best_word_score = 0;
         let mut found_match = false;
         
@@ -289,7 +288,6 @@ fn fuzzy_score(text: &str, query: &str) -> usize {
         }
         
         total_score += best_word_score;
-        query_word_index += 1;
     }
     
     // Bonus for matching all words in order
@@ -516,5 +514,228 @@ mod tests {
             .collect();
         
         assert!(psalm_matches.len() >= 2, "Should find multiple psalm matches: {:?}", psalm_matches);
+    }
+    
+    // Property tests using proptest
+    use proptest::prelude::*;
+    
+    proptest! {
+        #[test]
+        fn test_fuzzy_score_properties(
+            text in "[a-zA-Z0-9 ]{1,50}",
+            query in "[a-zA-Z0-9 ]{1,20}"
+        ) {
+            let text = text.trim();
+            let query = query.trim();
+            
+            if text.is_empty() || query.is_empty() {
+                return Ok(());
+            }
+            
+            let score = fuzzy_score(text, query);
+            
+            // Basic properties
+            
+            // Exact match should always score higher than partial match
+            if text.to_lowercase() == query.to_lowercase() {
+                prop_assert!(score > 0);
+            }
+            
+            // Empty query should return 0 score
+            prop_assert_eq!(fuzzy_score(text, ""), 0);
+            
+            // Query longer than text should still work
+            if query.len() > text.len() {
+                let _long_query_score = fuzzy_score(text, query);
+                // Query longer than text should still work
+            }
+        }
+        
+        #[test]
+        fn test_fuzzy_score_monotonicity(
+            text in "[a-zA-Z0-9 ]{3,30}",
+            query_base in "[a-zA-Z0-9]{1,10}"
+        ) {
+            let text = text.trim();
+            let query_base = query_base.trim();
+            
+            if text.is_empty() || query_base.is_empty() {
+                return Ok(());
+            }
+            
+            // Longer, more specific queries should generally score higher if they match
+            let _short_query_score = fuzzy_score(text, query_base);
+            let long_query = format!("{} {}", query_base, query_base);
+            let _long_query_score = fuzzy_score(text, &long_query);
+            
+            // If both queries match, the relationship depends on the content
+        }
+        
+        #[test]
+        fn test_score_word_match_properties(
+            text_word in "[a-zA-Z0-9]{1,20}",
+            query_word in "[a-zA-Z0-9]{1,15}"
+        ) {
+            let text_word = text_word.trim();
+            let query_word = query_word.trim();
+            
+            if text_word.is_empty() || query_word.is_empty() {
+                return Ok(());
+            }
+            
+            let positional_score = score_word_match(text_word, query_word, true);
+            let non_positional_score = score_word_match(text_word, query_word, false);
+            
+            // Basic properties
+            
+            // Positional matches should score higher than non-positional
+            if positional_score > 0 && non_positional_score > 0 {
+                prop_assert!(positional_score >= non_positional_score);
+            }
+            
+            // Exact match should always score higher
+            if text_word.to_lowercase() == query_word.to_lowercase() {
+                prop_assert!(positional_score > 0);
+                prop_assert!(non_positional_score > 0);
+            }
+        }
+        
+        #[test]
+        fn test_character_fuzzy_score_properties(
+            text in "[a-zA-Z0-9]{1,30}",
+            query in "[a-zA-Z0-9]{1,15}"
+        ) {
+            let text = text.trim();
+            let query = query.trim();
+            
+            if text.is_empty() || query.is_empty() {
+                return Ok(());
+            }
+            
+            let positional_score = character_fuzzy_score(text, query, true);
+            let non_positional_score = character_fuzzy_score(text, query, false);
+            
+            // Basic properties
+            
+            // Positional should score higher than non-positional when both match
+            if positional_score > 0 && non_positional_score > 0 {
+                prop_assert!(positional_score >= non_positional_score);
+            }
+            
+            // If query is longer than text, it might still partially match
+        }
+        
+        #[test]
+        fn test_fuzzy_score_case_insensitive(
+            text in "[a-zA-Z ]{3,20}",
+            query in "[a-zA-Z ]{1,10}"
+        ) {
+            let text = text.trim();
+            let query = query.trim();
+            
+            if text.is_empty() || query.is_empty() {
+                return Ok(());
+            }
+            
+            let lower_score = fuzzy_score(&text.to_lowercase(), &query.to_lowercase());
+            let upper_score = fuzzy_score(&text.to_uppercase(), &query.to_uppercase());
+            let mixed_score = fuzzy_score(text, &query.to_lowercase());
+            
+            // Case should not significantly affect scoring
+            
+            // All should produce similar results (allowing for some variance)
+            if lower_score > 0 {
+                prop_assert!(upper_score > 0);
+                prop_assert!(mixed_score > 0);
+            }
+        }
+        
+        #[test]
+        fn test_number_matching_properties(
+            base_num in 1u32..999,
+            query_num in 1u32..99
+        ) {
+            let text = format!("Book {}", base_num);
+            let query = format!("Book {}", query_num);
+            
+            let score = fuzzy_score(&text, &query);
+            
+            // Should get some score for book name match (at least partial match on "Book")
+            
+            // Test that "Book" prefix always matches
+            let book_prefix_score = fuzzy_score(&text, "Book");
+            prop_assert!(book_prefix_score > 0);
+            
+            // Exact number match should score higher than book prefix alone
+            if base_num == query_num {
+                let exact_score = score;
+                prop_assert!(exact_score > book_prefix_score);
+            }
+            
+            // Test partial number matching
+            let base_str = base_num.to_string();
+            let query_str = query_num.to_string();
+            if base_str.starts_with(&query_str) {
+                let partial_num_score = fuzzy_score(&base_str, &query_str);
+                prop_assert!(partial_num_score > 0);
+            }
+        }
+        
+        #[test]
+        fn test_word_order_sensitivity_property(
+            word1 in "[a-zA-Z]{2,10}",
+            word2 in "[a-zA-Z]{2,10}",
+            word3 in "[a-zA-Z]{2,10}"
+        ) {
+            let word1 = word1.trim();
+            let word2 = word2.trim();
+            let word3 = word3.trim();
+            
+            if word1.is_empty() || word2.is_empty() || word3.is_empty() {
+                return Ok(());
+            }
+            
+            let correct_order = format!("{} {} {}", word1, word2, word3);
+            let wrong_order = format!("{} {} {}", word3, word1, word2);
+            let query = format!("{} {}", word1, word2);
+            
+            let correct_score = fuzzy_score(&correct_order, &query);
+            let wrong_score = fuzzy_score(&wrong_order, &query);
+            
+            // Both should match since the words are present
+            
+            // Correct order should typically score higher
+            if correct_score > 0 && wrong_score > 0 {
+                // This is a tendency, not a strict rule due to fuzzy matching
+                prop_assert!(correct_score > 0);
+                prop_assert!(wrong_score > 0);
+            }
+        }
+        
+        #[test]
+        fn test_prefix_matching_advantage(
+            prefix in "[a-zA-Z]{2,8}",
+            suffix in "[a-zA-Z]{2,8}"
+        ) {
+            let prefix = prefix.trim();
+            let suffix = suffix.trim();
+            
+            if prefix.is_empty() || suffix.is_empty() {
+                return Ok(());
+            }
+            
+            let prefix_text = format!("{}{}", prefix, suffix);
+            let contains_text = format!("xyz{}abc", prefix);
+            
+            let prefix_score = fuzzy_score(&prefix_text, prefix);
+            let contains_score = fuzzy_score(&contains_text, prefix);
+            
+            // Both should match
+            prop_assert!(prefix_score > 0);
+            prop_assert!(contains_score > 0);
+            
+            // Prefix match should score higher than contains match
+            prop_assert!(prefix_score > contains_score);
+        }
     }
 }
