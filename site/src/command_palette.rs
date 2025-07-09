@@ -178,7 +178,7 @@ pub fn CommandPalette(
                         <div class="py-2">
                             <Show
                                 when=move || !search_query.get().is_empty()
-                                fallback=|| view! { <div class="px-4 py-2 text-gray-700">"Start typing to search chapters..."</div> }
+                                fallback=|| view! { <div class="px-4 py-2 text-black">"Start typing to search chapters..."</div> }
                             >
                                 <div class="max-h-64 overflow-y-auto">
                                     {move || {
@@ -228,7 +228,7 @@ pub fn CommandPalette(
                                         }).collect_view()
                                     }}
                                     <Show when=move || filtered_chapters.get().is_empty()>
-                                        <div class="px-4 py-2 text-gray-700 text-sm">
+                                        <div class="px-4 py-2 text-black text-sm">
                                             "No chapters found"
                                         </div>
                                     </Show>
@@ -238,7 +238,7 @@ pub fn CommandPalette(
                     </div>
 
                     // Footer with hint
-                    <div class="px-4 py-2 border-t border-gray-200 text-xs text-gray-700">
+                    <div class="px-4 py-2 border-t border-gray-200 text-xs text-black">
                         Use up/down arrows to navigate, Enter to select, Esc to close
                     </div>
                 </div>

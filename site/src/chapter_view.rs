@@ -14,10 +14,10 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     view! {
         <article class="chapter-detail max-w-2xl mx-auto px-4">
             <header class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">{chapter.name.clone()}</h1>
+                <h1 class="text-3xl font-bold text-black">{chapter.name.clone()}</h1>
             </header>
             
-            <div class="verses text-lg leading-8 text-gray-800" role="main" aria-label="Chapter text">
+            <div class="verses text-lg leading-8 text-black" role="main" aria-label="Chapter text">
                 {chapter.verses.iter().cloned().map(|verse| {
                     view! {
                         <>
@@ -26,18 +26,15 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                                 fallback=|| view! { <></> }
                             >
                                 <span 
-                                    class="verse-number text-sm text-gray-700 font-medium mr-1 select-none align-super"
-                                    tabindex="0"
+                                    class="verse-number text-sm text-black font-medium mr-1 select-none align-super"
                                     role="text"
                                 >
                                     {verse.verse}
                                 </span>
                             </Show>
                             <span 
-                                class="verse-text focus:outline-none focus:ring-2 focus:ring-blue-200 focus:bg-blue-50 rounded-sm" 
+                                class="verse-text" 
                                 id=format!("verse-{}", verse.verse)
-                                tabindex="0"
-                                role="text"
                             >
                                 {verse.text.clone()}
                             </span>
@@ -49,7 +46,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
             <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
                 {if let Some(path) = prev_path {
                     view! {
-                        <div class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                        <div class="flex items-center px-4 py-2 text-sm font-medium text-black hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                             <A href=path>
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -64,7 +61,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                 
                 {if let Some(path) = next_path {
                     view! {
-                        <div class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                        <div class="flex items-center px-4 py-2 text-sm font-medium text-black hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                             <A href=path>
                                 <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
