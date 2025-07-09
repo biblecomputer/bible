@@ -1,6 +1,7 @@
 use crate::chapter_view::ChapterDetail;
 use crate::command_palette::CommandPalette;
 use crate::sidebar::Sidebar;
+use crate::shortcuts_help::ShortcutsHelp;
 use crate::types::{*, BIBLE};
 use leptos::prelude::*;
 use leptos::ev;
@@ -11,6 +12,7 @@ use leptos::web_sys::{KeyboardEvent, window};
 
 mod chapter_view;
 mod command_palette;
+mod shortcuts_help;
 mod sidebar;
 mod types;
 
@@ -61,14 +63,6 @@ fn App() -> impl IntoView {
                                 <line x1="3" y1="15" x2="7" y2="15"/>
                             </svg>
                         </button>
-                        <div class="text-xs text-gray-600 flex items-center gap-3 hidden md:flex">
-                            <span>
-                                Press <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Cmd+K</kbd> to search
-                            </span>
-                            <span>
-                                <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs">Ctrl+B</kbd> for sidebar
-                            </span>
-                        </div>
                         <a 
                             href="https://github.com/sempruijs/bible" 
                             target="_blank" 
@@ -137,6 +131,7 @@ fn App() -> impl IntoView {
                         </Routes>
                     </main>
                 </div>
+                <ShortcutsHelp />
             </Router>
         }
 }
