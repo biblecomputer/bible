@@ -33,7 +33,7 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
 
     view! {
         <div class="sidebar">
-            <h2 class="text-lg font-bold mb-4 text-gray-800">Books</h2>
+            <h2 class="text-lg font-bold mb-4 text-black">Books</h2>
             <ul class="space-y-2">
             {BIBLE.books.iter().map(|b| view! {
                 <BookView
@@ -63,7 +63,7 @@ fn BookView(
     view! {
         <li>
             <button 
-                class="w-full text-left px-3 py-2 rounded-md hover:bg-gray-200 transition-colors duration-150 font-medium text-gray-700"
+                class="w-full text-left px-3 py-2 rounded-md hover:bg-gray-200 transition-colors duration-150 font-medium text-black"
                 on:click={
                     let book_name = book.name.clone();
                     move |_| {

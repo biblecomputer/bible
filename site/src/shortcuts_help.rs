@@ -23,9 +23,9 @@ pub fn ShortcutsHelp() -> impl IntoView {
             <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                 <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-lg font-bold text-gray-900">Keyboard Shortcuts</h2>
+                        <h2 class="text-lg font-bold text-black">Keyboard Shortcuts</h2>
                         <button
-                            class="text-gray-700 hover:text-gray-900 transition-colors"
+                            class="text-black hover:text-gray-600 transition-colors"
                             on:click=move |_| set_is_open.set(false)
                         >
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,35 +36,35 @@ pub fn ShortcutsHelp() -> impl IntoView {
                     
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-700">Open Quick Switcher</span>
+                            <span class="text-black">Open Quick Switcher</span>
                             <div class="flex items-center gap-1">
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Cmd</kbd>
-                                <span class="text-gray-700">+</span>
+                                <span class="text-black">+</span>
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">K</kbd>
                             </div>
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-700">Toggle Sidebar</span>
+                            <span class="text-black">Toggle Sidebar</span>
                             <div class="flex items-center gap-1">
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Ctrl</kbd>
-                                <span class="text-gray-700">+</span>
+                                <span class="text-black">+</span>
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">B</kbd>
                             </div>
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-700">Previous Chapter</span>
+                            <span class="text-black">Previous Chapter</span>
                             <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Left Arrow</kbd>
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-700">Next Chapter</span>
+                            <span class="text-black">Next Chapter</span>
                             <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Right Arrow</kbd>
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-700">Show This Help</span>
+                            <span class="text-black">Show This Help</span>
                             <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">?</kbd>
                         </div>
                     </div>
