@@ -89,7 +89,7 @@ fn App() -> impl IntoView {
                         when=move || is_sidebar_open.get()
                         fallback=|| view! { <></> }
                     >
-                        <aside class="w-64 bg-gray-50 border-r border-gray-200 p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto">
+                        <aside class="w-64 bg-white border-r border-black p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto">
                             <Sidebar set_sidebar_open=set_is_sidebar_open />
                         </aside>
                     </Show>
