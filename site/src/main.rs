@@ -38,7 +38,6 @@ fn App() -> impl IntoView {
                 />
                 <SidebarAutoHide set_sidebar_open=set_is_sidebar_open />
                 <CommandPalette is_open=is_palette_open set_is_open=set_is_palette_open />
-                
                 <nav class="bg-white border-b border-gray-200 px-4 py-2">
                     <div class="flex items-center justify-between">
                         <button
@@ -111,7 +110,7 @@ fn App() -> impl IntoView {
                         fallback=|| view! { <></> }
                     >
                         <div 
-                            class="fixed inset-0 bg-black bg-opacity-50 z-40"
+                            class="fixed inset-0 bg-black bg-opacity-50 z-30"
                             on:click=move |_| set_is_sidebar_open.set(false)
                         />
                     </Show>
@@ -182,6 +181,16 @@ fn KeyboardNavigationHandler(
         if e.key() == "k" && (e.meta_key() || e.ctrl_key()) {
             e.prevent_default();
             set_palette_open.set(true);
+            // Close sidebar on mobile when command palette opens
+            if let Some(window) = window() {
+                if let Ok(width) = window.inner_width() {
+                    if let Some(width_num) = width.as_f64() {
+                        if width_num < 768.0 { // md breakpoint in Tailwind
+                            set_sidebar_open.set(false);
+                        }
+                    }
+                }
+            }
             return;
         }
         

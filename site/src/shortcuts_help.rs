@@ -20,7 +20,7 @@ pub fn ShortcutsHelp() -> impl IntoView {
 
     view! {
         <Show when=move || is_open.get() fallback=|| view! { <></> }>
-            <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
                 <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="text-lg font-bold text-black">Keyboard Shortcuts</h2>

@@ -153,7 +153,7 @@ pub fn CommandPalette(
         <Show when=move || is_open.get() fallback=|| ()>
             // Backdrop
             <div 
-                class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-start justify-center pt-20"
+                class="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-start justify-center pt-20"
                 on:click=move |_| set_is_open.set(false)
             >
                 // Command Palette Modal
