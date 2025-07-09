@@ -26,7 +26,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                                 fallback=|| view! { <></> }
                             >
                                 <span 
-                                    class="verse-number text-sm text-gray-500 font-medium mr-1 select-none align-super"
+                                    class="verse-number text-sm text-gray-700 font-medium mr-1 select-none align-super"
                                     tabindex="0"
                                     role="text"
                                 >
@@ -49,7 +49,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
             <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
                 {if let Some(path) = prev_path {
                     view! {
-                        <div class="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                        <div class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                             <A href=path>
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -64,7 +64,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                 
                 {if let Some(path) = next_path {
                     view! {
-                        <div class="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
+                        <div class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
                             <A href=path>
                                 <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>

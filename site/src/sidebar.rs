@@ -103,7 +103,7 @@ fn BookView(
                             if current_path == chapter_path_for_class {
                                 "text-center px-2 py-1 text-xs bg-blue-500 text-white rounded transition-colors duration-150"
                             } else {
-                                "text-center px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-150"
+                                "text-center px-2 py-1 text-xs text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-150"
                             }
                         }
                     }>
