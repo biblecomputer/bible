@@ -63,7 +63,7 @@ fn BookView(
     view! {
         <li>
             <button 
-                class="w-full text-left px-3 py-2 rounded-md hover:bg-gray-200 transition-colors duration-150 font-medium text-black"
+                class="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors duration-150 font-medium text-black"
                 on:click={
                     let book_name = book.name.clone();
                     move |_| {
