@@ -3,8 +3,7 @@ use leptos::component;
 use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
-use leptos_router::components::A;
-use leptos_router::hooks::use_location;
+use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::location::Location;
 use leptos::web_sys::window;
 use urlencoding::decode;
@@ -59,6 +58,7 @@ fn BookView(
     location: Location,
     set_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
+    let navigate = use_navigate();
 
     view! {
         <li>
@@ -97,19 +97,22 @@ fn BookView(
                 let location = location.clone();
                 
                 view! {
-                    <div class={
-                        move || {
-                            let current_path = location.pathname.get();
-                            if current_path == chapter_path_for_class {
-                                "text-center px-2 py-1 text-xs bg-blue-500 text-white rounded transition-colors duration-150"
-                            } else {
-                                "text-center px-2 py-1 text-xs text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-150"
+                    <button 
+                        class={
+                            move || {
+                                let current_path = location.pathname.get();
+                                if current_path == chapter_path_for_class {
+                                    "w-full text-center px-3 py-2 text-xs bg-blue-500 text-white rounded transition-colors duration-150"
+                                } else {
+                                    "w-full text-center px-3 py-2 text-xs text-black hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-150"
+                                }
                             }
                         }
-                    }>
-                        <A 
-                            href=chapter_path
-                            on:click=move |_| {
+                        on:click={
+                            let navigate = navigate.clone();
+                            let nav_path = chapter_path.clone();
+                            move |_| {
+                                navigate(&nav_path, Default::default());
                                 // Close sidebar on mobile when chapter is selected
                                 if let Some(window) = window() {
                                     if let Ok(width) = window.inner_width() {
@@ -121,10 +124,10 @@ fn BookView(
                                     }
                                 }
                             }
-                        >
-                            {c.chapter}
-                        </A>
-                    </div>
+                        }
+                    >
+                        {c.chapter}
+                    </button>
                 }
             }).collect_view()}
             </div>
