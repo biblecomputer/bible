@@ -1,10 +1,10 @@
 use leptos::prelude::*;
 use leptos::ev;
-use leptos::web_sys::{KeyboardEvent, window};
+use leptos::web_sys::KeyboardEvent;
 
 #[component]
 pub fn ShortcutsHelp() -> impl IntoView {
-    let (is_open, set_is_open) = create_signal(false);
+    let (is_open, set_is_open) = signal(false);
     
     // Listen for keyboard events on window
     window_event_listener(ev::keydown, move |evt: KeyboardEvent| {
