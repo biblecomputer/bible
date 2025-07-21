@@ -1,4 +1,4 @@
-use crate::{Chapter, BIBLE};
+use crate::{Chapter, get_bible};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos::web_sys::KeyboardEvent;
@@ -23,7 +23,7 @@ pub fn CommandPalette(
             return Vec::new();
         }
 
-        let mut results: Vec<(&Chapter, usize)> = BIBLE
+        let mut results: Vec<(&Chapter, usize)> = get_bible()
             .books
             .iter()
             .flat_map(|book| book.chapters.iter())

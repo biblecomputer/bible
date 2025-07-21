@@ -1,4 +1,4 @@
-use crate::{Chapter, BIBLE};
+use crate::{Chapter, get_bible};
 use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
@@ -6,8 +6,8 @@ use leptos_router::components::A;
 
 #[component]
 pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
-    let prev_chapter = BIBLE.get_previous_chapter(&chapter);
-    let next_chapter = BIBLE.get_next_chapter(&chapter);
+    let prev_chapter = get_bible().get_previous_chapter(&chapter);
+    let next_chapter = get_bible().get_next_chapter(&chapter);
     let prev_path = prev_chapter.as_ref().map(|ch| ch.to_path());
     let next_path = next_chapter.as_ref().map(|ch| ch.to_path());
     
