@@ -1,26 +1,67 @@
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use serde::{Deserialize, Serialize};
-use std::sync::LazyLock;
-use flate2::read::GzDecoder;
-use std::io::Read as IoRead;
+use std::sync::OnceLock;
 use urlencoding::{encode, decode};
+use gloo_net::http::Request;
 
-// Global static Bible instance - decompressed and parsed once, used everywhere
-pub static BIBLE: LazyLock<Bible> = LazyLock::new(|| {
-    // Include the compressed binary data
-    let compressed_data = include_bytes!(concat!(env!("OUT_DIR"), "/stv_compressed.bin"));
+// Global static Bible instance - fetched from API once, used everywhere
+pub static BIBLE: OnceLock<Bible> = OnceLock::new();
+
+// Function to initialize the Bible data
+pub async fn init_bible() -> Result<(), Box<dyn std::error::Error>> {
+    if BIBLE.get().is_some() {
+        return Ok(());
+    }
+
+    // Try multiple CORS proxy services in case one is down
+    let proxy_urls = [
+        "https://corsproxy.io/?https://gw.iagon.com/api/v2/storage/shareable/link/Njg2ZDFjNDgwOGQ0M2UzNTUyNTdhYmRh:MTJjOTRlYTBmNzM2YWZiZDE2NzdkMzU3NzA3MjBmMTRmZGZkMWYzNWVkYWVlNTU1Y2RjYTA1NzYzZmE1YmEzNA",
+        "https://api.allorigins.win/get?url=https://gw.iagon.com/api/v2/storage/shareable/link/Njg2ZDFjNDgwOGQ0M2UzNTUyNTdhYmRh:MTJjOTRlYTBmNzM2YWZiZDE2NzdkMzU3NzA3MjBmMTRmZGZkMWYzNWVkYWVlNTU1Y2RjYTA1NzYzZmE1YmEzNA",
+    ];
+
+    let mut last_error = None;
+
+    for proxy_url in &proxy_urls {
+        match try_fetch_bible(proxy_url).await {
+            Ok(bible) => {
+                BIBLE.set(bible).map_err(|_| "Failed to set Bible data")?;
+                return Ok(());
+            }
+            Err(e) => {
+                last_error = Some(e);
+                continue;
+            }
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| "All proxy attempts failed".into()))
+}
+
+async fn try_fetch_bible(url: &str) -> Result<Bible, Box<dyn std::error::Error>> {
+    let response = Request::get(url)
+        .send()
+        .await?;
     
-    // Decompress the data
-    let mut decoder = GzDecoder::new(&compressed_data[..]);
-    let mut json_string = String::new();
-    IoRead::read_to_string(&mut decoder, &mut json_string)
-        .expect("Failed to decompress Bible data");
+    let json_string = if url.contains("allorigins.win") {
+        // allorigins.win wraps the response in a JSON object
+        let wrapped: serde_json::Value = response.json().await?;
+        wrapped["contents"]
+            .as_str()
+            .ok_or("Failed to extract contents from allorigins response")?
+            .to_string()
+    } else {
+        response.text().await?
+    };
     
-    // Parse the JSON
-    serde_json::from_str(&json_string)
-        .expect("Failed to parse Bible JSON")
-});
+    let bible: Bible = serde_json::from_str(&json_string)?;
+    Ok(bible)
+}
+
+// Helper function to get Bible data (panics if not initialized)
+pub fn get_bible() -> &'static Bible {
+    BIBLE.get().expect("Bible not initialized - call init_bible() first")
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bible {
@@ -68,7 +109,7 @@ impl Chapter {
                 .unwrap_or(1) // fallback chapter number if parsing fails
         };
 
-        let chapter: Chapter = BIBLE.get_chapter(&book(), chapter()).unwrap();
+        let chapter: Chapter = get_bible().get_chapter(&book(), chapter()).unwrap();
         Ok(chapter)
     }
 }

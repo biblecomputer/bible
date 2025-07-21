@@ -1,4 +1,4 @@
-use crate::types::{*, BIBLE};
+use crate::types::{*, get_bible};
 use leptos::component;
 use leptos::prelude::*;
 use leptos::view;
@@ -34,7 +34,7 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
         <div class="sidebar">
             <h2 class="text-lg font-bold mb-4 text-black">Books</h2>
             <ul class="space-y-2">
-            {BIBLE.books.iter().map(|b| view! {
+            {get_bible().books.iter().map(|b| view! {
                 <BookView
                     book=b.clone()
                     current_book=current_book

@@ -2,13 +2,14 @@ use crate::chapter_view::ChapterDetail;
 use crate::command_palette::CommandPalette;
 use crate::sidebar::Sidebar;
 use crate::shortcuts_help::ShortcutsHelp;
-use crate::types::{*, BIBLE};
+use crate::types::{*, get_bible, init_bible};
 use leptos::prelude::*;
 use leptos::ev;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::path;
 use leptos::web_sys::{KeyboardEvent, window};
+use wasm_bindgen_futures::spawn_local;
 
 mod chapter_view;
 mod command_palette;
@@ -23,6 +24,50 @@ fn main() {
 
 #[component]
 fn App() -> impl IntoView {
+    // Bible data loading state
+    let (is_bible_loaded, set_is_bible_loaded) = signal(false);
+    let (loading_error, set_loading_error) = signal::<Option<String>>(None);
+
+    // Initialize Bible data on mount
+    Effect::new(move |_| {
+        spawn_local(async move {
+            match init_bible().await {
+                Ok(()) => set_is_bible_loaded.set(true),
+                Err(err) => {
+                    set_loading_error.set(Some(format!("Failed to load Bible data: {}", err)));
+                }
+            }
+        });
+    });
+
+    view! {
+        <Show 
+            when=move || is_bible_loaded.get()
+            fallback=move || view! {
+                <div class="flex items-center justify-center min-h-screen">
+                    <Show
+                        when=move || loading_error.get().is_none()
+                        fallback=move || view! {
+                            <div class="text-red-600">
+                                {loading_error.get().unwrap_or_default()}
+                            </div>
+                        }
+                    >
+                        <div class="text-center">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                            <p class="text-gray-600">"Loading Bible data..."</p>
+                        </div>
+                    </Show>
+                </div>
+            }
+        >
+            <BibleApp />
+        </Show>
+    }
+}
+
+#[component]
+fn BibleApp() -> impl IntoView {
     // Command palette state
     let (is_palette_open, set_is_palette_open) = signal(false);
     // Sidebar visibility state
@@ -213,15 +258,15 @@ fn KeyboardNavigationHandler(
         if path_parts.len() == 2 {
             let book_name = path_parts[0].replace('_', " ");
             if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
-                if let Ok(current_chapter) = BIBLE.get_chapter(&book_name, chapter_num) {
+                if let Ok(current_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
                     match e.key().as_str() {
                         "ArrowRight" => {
-                            if let Some(next_chapter) = BIBLE.get_next_chapter(&current_chapter) {
+                            if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
                                 navigate(&next_chapter.to_path(), Default::default());
                             }
                         }
                         "ArrowLeft" => {
-                            if let Some(prev_chapter) = BIBLE.get_previous_chapter(&current_chapter) {
+                            if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
                                 navigate(&prev_chapter.to_path(), Default::default());
                             }
                         }
