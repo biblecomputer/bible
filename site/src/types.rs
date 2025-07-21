@@ -4,16 +4,148 @@ use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use urlencoding::{encode, decode};
 use gloo_net::http::Request;
+use rexie::{Rexie, ObjectStore, TransactionMode};
 
 // Global static Bible instance - fetched from API once, used everywhere
 pub static BIBLE: OnceLock<Bible> = OnceLock::new();
 
 // Function to initialize the Bible data
-pub async fn init_bible() -> Result<(), Box<dyn std::error::Error>> {
+pub async fn init_bible() -> std::result::Result<(), Box<dyn std::error::Error>> {
     if BIBLE.get().is_some() {
         return Ok(());
     }
 
+    // Try to load from browser cache first
+    if let Ok(cached_bible) = load_bible_from_cache().await {
+        BIBLE.set(cached_bible).map_err(|_| "Failed to set cached Bible data")?;
+        return Ok(());
+    }
+
+    // If not in cache, fetch from API
+    let bible = fetch_bible_from_api().await?;
+    
+    // Save to cache for future use
+    save_bible_to_cache(&bible).await?;
+    
+    BIBLE.set(bible).map_err(|_| "Failed to set Bible data")?;
+    Ok(())
+}
+
+// Load Bible data from IndexedDB
+async fn load_bible_from_cache() -> std::result::Result<Bible, Box<dyn std::error::Error>> {
+    const CACHE_VERSION: &str = "v1";
+    
+    // Open IndexedDB
+    let rexie = Rexie::builder("BibleCache")
+        .version(1)
+        .add_object_store(ObjectStore::new("bible_data"))
+        .build()
+        .await
+        .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
+    
+    let transaction = rexie.transaction(&["bible_data"], TransactionMode::ReadOnly)
+        .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
+    let store = transaction.store("bible_data")
+        .map_err(|e| format!("Failed to get store: {:?}", e))?;
+    
+    // Check cache version first
+    let version_result = store.get("cache_version".into()).await;
+    match version_result {
+        Ok(Some(version_value)) => {
+            if let Some(version_str) = version_value.as_string() {
+                if version_str != CACHE_VERSION {
+                    // Version mismatch, clear cache
+                    drop(transaction);
+                    clear_bible_cache().await
+                        .map_err(|e| format!("Failed to clear cache: {:?}", e))?;
+                    return Err("Cache version mismatch".into());
+                }
+            } else {
+                return Err("Invalid cache version format".into());
+            }
+        }
+        Ok(None) => return Err("No cache version found".into()),
+        Err(_) => return Err("Failed to read cache version".into()),
+    }
+    
+    // Get the cached Bible data
+    let data_result = store.get("bible_json".into()).await;
+    match data_result {
+        Ok(Some(data_value)) => {
+            if let Some(json_str) = data_value.as_string() {
+                let bible: Bible = serde_json::from_str(&json_str)
+                    .map_err(|e| format!("Failed to parse cached data: {:?}", e))?;
+                Ok(bible)
+            } else {
+                Err("Invalid cached data format".into())
+            }
+        }
+        Ok(None) => Err("No cached Bible data found".into()),
+        Err(_) => Err("Failed to read cached data".into()),
+    }
+}
+
+// Save Bible data to IndexedDB
+async fn save_bible_to_cache(bible: &Bible) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    const CACHE_VERSION: &str = "v1";
+    
+    // Open IndexedDB
+    let rexie = Rexie::builder("BibleCache")
+        .version(1)
+        .add_object_store(ObjectStore::new("bible_data"))
+        .build()
+        .await
+        .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
+    
+    let transaction = rexie.transaction(&["bible_data"], TransactionMode::ReadWrite)
+        .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
+    let store = transaction.store("bible_data")
+        .map_err(|e| format!("Failed to get store: {:?}", e))?;
+    
+    // Serialize the Bible data
+    let json_data = serde_json::to_string(bible)
+        .map_err(|e| format!("Failed to serialize Bible data: {:?}", e))?;
+    
+    // Save both the data and version
+    store.put(&json_data.into(), Some(&"bible_json".into())).await
+        .map_err(|e| format!("Failed to save Bible data: {:?}", e))?;
+    store.put(&CACHE_VERSION.into(), Some(&"cache_version".into())).await
+        .map_err(|e| format!("Failed to save cache version: {:?}", e))?;
+    
+    transaction.commit().await
+        .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
+    Ok(())
+}
+
+// Clear Bible data from cache (useful for debugging or forcing refresh)
+#[allow(dead_code)]
+pub async fn clear_bible_cache() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    // Open IndexedDB
+    let rexie = Rexie::builder("BibleCache")
+        .version(1)
+        .add_object_store(ObjectStore::new("bible_data"))
+        .build()
+        .await
+        .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
+    
+    let transaction = rexie.transaction(&["bible_data"], TransactionMode::ReadWrite)
+        .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
+    let store = transaction.store("bible_data")
+        .map_err(|e| format!("Failed to get store: {:?}", e))?;
+    
+    // Delete both the data and version
+    store.delete("bible_json".into()).await
+        .map_err(|e| format!("Failed to delete Bible data: {:?}", e))?;
+    store.delete("cache_version".into()).await
+        .map_err(|e| format!("Failed to delete cache version: {:?}", e))?;
+    
+    transaction.commit().await
+        .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
+    Ok(())
+}
+
+// Fetch Bible data from API with fallback proxies
+async fn fetch_bible_from_api() -> std::result::Result<Bible, Box<dyn std::error::Error>> {
     // Try multiple CORS proxy services in case one is down
     let proxy_urls = [
         "https://corsproxy.io/?https://gw.iagon.com/api/v2/storage/shareable/link/Njg2ZDFjNDgwOGQ0M2UzNTUyNTdhYmRh:MTJjOTRlYTBmNzM2YWZiZDE2NzdkMzU3NzA3MjBmMTRmZGZkMWYzNWVkYWVlNTU1Y2RjYTA1NzYzZmE1YmEzNA",
@@ -24,10 +156,7 @@ pub async fn init_bible() -> Result<(), Box<dyn std::error::Error>> {
 
     for proxy_url in &proxy_urls {
         match try_fetch_bible(proxy_url).await {
-            Ok(bible) => {
-                BIBLE.set(bible).map_err(|_| "Failed to set Bible data")?;
-                return Ok(());
-            }
+            Ok(bible) => return Ok(bible),
             Err(e) => {
                 last_error = Some(e);
                 continue;
@@ -38,7 +167,7 @@ pub async fn init_bible() -> Result<(), Box<dyn std::error::Error>> {
     Err(last_error.unwrap_or_else(|| "All proxy attempts failed".into()))
 }
 
-async fn try_fetch_bible(url: &str) -> Result<Bible, Box<dyn std::error::Error>> {
+async fn try_fetch_bible(url: &str) -> std::result::Result<Bible, Box<dyn std::error::Error>> {
     let response = Request::get(url)
         .send()
         .await?;
@@ -98,7 +227,7 @@ impl Chapter {
         format!("/{}/{}", encoded_book, self.chapter)
     }
 
-    pub fn from_url() -> Result<Self, ParamParseError> {
+    pub fn from_url() -> std::result::Result<Self, ParamParseError> {
         let params = move || use_params_map();
         let book = move || params().read().get("book").unwrap();
         let chapter = move || {
@@ -129,7 +258,7 @@ pub enum ParamParseError {
 }
 
 impl Bible {
-    pub fn get_chapter(&self, book: &str, chapter: u32) -> Result<Chapter, ParamParseError> {
+    pub fn get_chapter(&self, book: &str, chapter: u32) -> std::result::Result<Chapter, ParamParseError> {
         // Decode URL-encoded book name back to original name with special characters
         let book_name = decode(book)
             .map_err(|_| ParamParseError::BookNotFound)?
