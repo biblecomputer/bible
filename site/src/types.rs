@@ -6,8 +6,23 @@ use urlencoding::{encode, decode};
 use gloo_net::http::Request;
 use rexie::{Rexie, ObjectStore, TransactionMode};
 
+// Constants
+const MOBILE_BREAKPOINT: f64 = 768.0;
+
 // Global static Bible instance - fetched from API once, used everywhere
 pub static BIBLE: OnceLock<Bible> = OnceLock::new();
+
+// Helper function to check if screen is mobile-sized
+pub fn is_mobile_screen() -> bool {
+    if let Some(window) = leptos::web_sys::window() {
+        if let Ok(width) = window.inner_width() {
+            if let Some(width_num) = width.as_f64() {
+                return width_num < MOBILE_BREAKPOINT;
+            }
+        }
+    }
+    false
+}
 
 // Function to initialize the Bible data
 pub async fn init_bible() -> std::result::Result<(), Box<dyn std::error::Error>> {
@@ -15,20 +30,26 @@ pub async fn init_bible() -> std::result::Result<(), Box<dyn std::error::Error>>
         return Ok(());
     }
 
-    // Try to load from browser cache first
-    if let Ok(cached_bible) = load_bible_from_cache().await {
-        BIBLE.set(cached_bible).map_err(|_| "Failed to set cached Bible data")?;
-        return Ok(());
-    }
-
-    // If not in cache, fetch from API
-    let bible = fetch_bible_from_api().await?;
-    
-    // Save to cache for future use
-    save_bible_to_cache(&bible).await?;
-    
+    let bible = load_or_fetch_bible().await?;
     BIBLE.set(bible).map_err(|_| "Failed to set Bible data")?;
     Ok(())
+}
+
+// Consolidated function to load from cache or fetch from API
+async fn load_or_fetch_bible() -> std::result::Result<Bible, Box<dyn std::error::Error>> {
+    // Try to load from browser cache first
+    match load_bible_from_cache().await {
+        Ok(cached_bible) => return Ok(cached_bible),
+        Err(_) => {
+            // If not in cache, fetch from API
+            let bible = fetch_bible_from_api().await?;
+            
+            // Save to cache for future use (ignore errors)
+            let _ = save_bible_to_cache(&bible).await;
+            
+            Ok(bible)
+        }
+    }
 }
 
 // Load Bible data from IndexedDB
