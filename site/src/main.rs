@@ -2,13 +2,13 @@ use crate::chapter_view::ChapterDetail;
 use crate::command_palette::CommandPalette;
 use crate::sidebar::Sidebar;
 use crate::shortcuts_help::ShortcutsHelp;
-use crate::types::{*, get_bible, init_bible};
+use crate::types::{*, get_bible, init_bible, is_mobile_screen};
 use leptos::prelude::*;
 use leptos::ev;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::path;
-use leptos::web_sys::{KeyboardEvent, window};
+use leptos::web_sys::KeyboardEvent;
 use wasm_bindgen_futures::spawn_local;
 
 mod chapter_view;
@@ -140,17 +140,7 @@ fn BibleApp() -> impl IntoView {
                     
                     <Show
                         when=move || {
-                            is_sidebar_open.get() && {
-                                // Only show backdrop on mobile
-                                if let Some(window) = window() {
-                                    if let Ok(width) = window.inner_width() {
-                                        if let Some(width_num) = width.as_f64() {
-                                            return width_num < 768.0;
-                                        }
-                                    }
-                                }
-                                false
-                            }
+                            is_sidebar_open.get() && is_mobile_screen()
                         }
                         fallback=|| view! { <></> }
                     >
@@ -191,15 +181,8 @@ fn SidebarAutoHide(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
         
         // If we're on a chapter page and screen is mobile-sized, hide sidebar
         if path_parts.len() == 2 && !path_parts[0].is_empty() && !path_parts[1].is_empty() {
-            // Check if we're on a mobile device by checking window width
-            if let Some(window) = window() {
-                if let Ok(width) = window.inner_width() {
-                    if let Some(width_num) = width.as_f64() {
-                        if width_num < 768.0 { // md breakpoint in Tailwind
-                            set_sidebar_open.set(false);
-                        }
-                    }
-                }
+            if is_mobile_screen() {
+                set_sidebar_open.set(false);
             }
         }
     });
@@ -227,14 +210,8 @@ fn KeyboardNavigationHandler(
             e.prevent_default();
             set_palette_open.set(true);
             // Close sidebar on mobile when command palette opens
-            if let Some(window) = window() {
-                if let Ok(width) = window.inner_width() {
-                    if let Some(width_num) = width.as_f64() {
-                        if width_num < 768.0 { // md breakpoint in Tailwind
-                            set_sidebar_open.set(false);
-                        }
-                    }
-                }
+            if is_mobile_screen() {
+                set_sidebar_open.set(false);
             }
             return;
         }

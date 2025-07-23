@@ -1,11 +1,10 @@
-use crate::types::{*, get_bible};
+use crate::types::{*, get_bible, is_mobile_screen};
 use leptos::component;
 use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::location::Location;
-use leptos::web_sys::window;
 use urlencoding::decode;
 
 #[component]
@@ -114,14 +113,8 @@ fn BookView(
                             move |_| {
                                 navigate(&nav_path, Default::default());
                                 // Close sidebar on mobile when chapter is selected
-                                if let Some(window) = window() {
-                                    if let Ok(width) = window.inner_width() {
-                                        if let Some(width_num) = width.as_f64() {
-                                            if width_num < 768.0 {
-                                                set_sidebar_open.set(false);
-                                            }
-                                        }
-                                    }
+                                if is_mobile_screen() {
+                                    set_sidebar_open.set(false);
                                 }
                             }
                         }
