@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use crate::types::{
     Translation, get_selected_translation, set_selected_translation, 
-    is_translation_downloaded, download_translation, switch_bible_translation
+    is_translation_downloaded, download_translation, switch_bible_translation, uninstall_translation
 };
 use crate::translations::get_translations;
 use wasm_bindgen_futures::spawn_local;
@@ -10,7 +10,9 @@ use wasm_bindgen_futures::spawn_local;
 pub fn TranslationManager() -> impl IntoView {
     let (selected_translation, set_selected_translation_signal) = signal(get_selected_translation().unwrap_or_else(|| "sv".to_string()));
     let (downloading_states, set_downloading_states) = signal::<Vec<(String, bool)>>(vec![]); // (translation_short_name, is_downloading)
+    let (uninstalling_states, set_uninstalling_states) = signal::<Vec<(String, bool)>>(vec![]); // (translation_short_name, is_uninstalling)
     let (download_error, set_download_error) = signal::<Option<String>>(None);
+    let (uninstall_error, set_uninstall_error) = signal::<Option<String>>(None);
     
     let translations = get_translations();
     
@@ -68,6 +70,48 @@ pub fn TranslationManager() -> impl IntoView {
         }
     };
 
+    let handle_uninstall = {
+        let set_uninstalling_states = set_uninstalling_states.clone();
+        let set_uninstall_error = set_uninstall_error.clone();
+        let set_selected_translation_signal = set_selected_translation_signal.clone();
+        move |translation_short_name: String| {
+            // Set uninstalling state
+            set_uninstalling_states.update(|states| {
+                if let Some(pos) = states.iter().position(|(name, _)| name == &translation_short_name) {
+                    states[pos].1 = true;
+                } else {
+                    states.push((translation_short_name.clone(), true));
+                }
+            });
+            
+            set_uninstall_error.set(None);
+            
+            spawn_local(async move {
+                match uninstall_translation(&translation_short_name).await {
+                    Ok(_) => {
+                        // Uninstall successful, remove from uninstalling states
+                        set_uninstalling_states.update(|states| {
+                            states.retain(|(name, _)| name != &translation_short_name);
+                        });
+                        
+                        // Update selected translation if it was uninstalled
+                        let current_selected = get_selected_translation().unwrap_or_else(|| "sv".to_string());
+                        set_selected_translation_signal.set(current_selected);
+                    }
+                    Err(e) => {
+                        // Uninstall failed
+                        set_uninstalling_states.update(|states| {
+                            if let Some(pos) = states.iter().position(|(name, _)| name == &translation_short_name) {
+                                states[pos].1 = false;
+                            }
+                        });
+                        set_uninstall_error.set(Some(format!("Failed to uninstall {}: {}", translation_short_name, e)));
+                    }
+                }
+            });
+        }
+    };
+
     view! {
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">"Bible Translations"</h2>
@@ -81,6 +125,15 @@ pub fn TranslationManager() -> impl IntoView {
                 </div>
             </Show>
             
+            <Show
+                when=move || uninstall_error.get().is_some()
+                fallback=|| view! { <></> }
+            >
+                <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                    {move || uninstall_error.get().unwrap_or_default()}
+                </div>
+            </Show>
+            
             <div class="space-y-4">
 {
                     translations.into_iter().map(|translation| {
@@ -88,11 +141,14 @@ pub fn TranslationManager() -> impl IntoView {
                         
                         let handle_translation_change_clone = handle_translation_change.clone();
                         let handle_download_clone = handle_download.clone();
+                        let handle_uninstall_clone = handle_uninstall.clone();
                         let translation_for_change = translation.clone();
                         let translation_for_download = translation.clone();
                         let translation_short_name_for_class = translation.short_name.clone();
                         let translation_short_name_for_radio = translation.short_name.clone();
                         let translation_short_name_for_download = translation.short_name.clone();
+                        let translation_short_name_for_uninstall_condition = translation.short_name.clone();
+                        let translation_short_name_for_uninstall_button = translation.short_name.clone();
                         
                         view! {
                             <div class=move || {
@@ -192,6 +248,61 @@ pub fn TranslationManager() -> impl IntoView {
                                                                     <path class="opacity-75" fill="currentColor" d="m12 2a10 10 0 0 1 10 10h-2a8 8 0 0 0-8-8v-2z"></path>
                                                                 </svg>
                                                                 "Downloading..."
+                                                            </div>
+                                                        </button>
+                                                    </Show>
+                                                }
+                                            }
+                                        </Show>
+                                        
+                                        // Uninstall button for downloaded translations (but not if it's the only one or currently selected)
+                                        <Show
+                                            when=move || {
+                                                is_downloaded && 
+                                                translation_short_name_for_uninstall_condition != "sv" && // Don't allow uninstalling Staten vertaling
+                                                selected_translation.get() != translation_short_name_for_uninstall_condition // Don't allow uninstalling currently selected
+                                            }
+                                            fallback=|| view! { <></> }
+                                        >
+                                            {
+                                                let handle_uninstall_clone = handle_uninstall_clone.clone();
+                                                let translation_short_name_for_uninstall_state = translation_short_name_for_uninstall_button.clone();
+                                                let translation_short_name_for_uninstall_click = translation_short_name_for_uninstall_button.clone();
+                                                
+                                                view! {
+                                                    <Show
+                                                        when=move || {
+                                                            uninstalling_states.get().iter()
+                                                                .find(|(name, _)| name == &translation_short_name_for_uninstall_state)
+                                                                .map(|(_, uninstalling)| *uninstalling)
+                                                                .unwrap_or(false)
+                                                        }
+                                                        fallback=move || {
+                                                            let handle_uninstall_clone = handle_uninstall_clone.clone();
+                                                            let translation_short_name_clone = translation_short_name_for_uninstall_click.clone();
+                                                            view! {
+                                                                <button 
+                                                                    class="px-3 py-1 text-xs bg-red-100 text-red-700 rounded border border-red-300 hover:bg-red-200 transition-colors ml-2"
+                                                                    on:click=move |_| {
+                                                                        handle_uninstall_clone(translation_short_name_clone.clone());
+                                                                    }
+                                                                    title="Remove this translation from your device"
+                                                                >
+                                                                    "Uninstall"
+                                                                </button>
+                                                            }
+                                                        }
+                                                    >
+                                                        <button 
+                                                            class="px-3 py-1 text-xs bg-red-200 text-red-800 rounded border border-red-300 cursor-not-allowed ml-2"
+                                                            disabled=true
+                                                        >
+                                                            <div class="flex items-center">
+                                                                <svg class="animate-spin w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24">
+                                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                    <path class="opacity-75" fill="currentColor" d="m12 2a10 10 0 0 1 10 10h-2a8 8 0 0 0-8-8v-2z"></path>
+                                                                </svg>
+                                                                "Uninstalling..."
                                                             </div>
                                                         </button>
                                                     </Show>
