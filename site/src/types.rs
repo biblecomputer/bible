@@ -5,12 +5,14 @@ use std::sync::OnceLock;
 use urlencoding::{encode, decode};
 use gloo_net::http::Request;
 use rexie::{Rexie, ObjectStore, TransactionMode};
+use gloo_storage::{LocalStorage, Storage};
 
 // Constants
 const MOBILE_BREAKPOINT: f64 = 768.0;
 
 // Global static Bible instance - fetched from API once, used everywhere
 pub static BIBLE: OnceLock<Bible> = OnceLock::new();
+static CURRENT_BIBLE_SIGNAL: OnceLock<RwSignal<Option<Bible>>> = OnceLock::new();
 
 // Helper function to check if screen is mobile-sized
 pub fn is_mobile_screen() -> bool {
@@ -31,12 +33,46 @@ pub async fn init_bible() -> std::result::Result<(), Box<dyn std::error::Error>>
     }
 
     let bible = load_or_fetch_bible().await?;
-    BIBLE.set(bible).map_err(|_| "Failed to set Bible data")?;
+    
+    // Set both the static and signal versions
+    BIBLE.set(bible.clone()).map_err(|_| "Failed to set Bible data")?;
+    let bible_signal = init_bible_signal();
+    bible_signal.set(Some(bible));
+    
+    Ok(())
+}
+
+pub fn init_bible_signal() -> RwSignal<Option<Bible>> {
+    *CURRENT_BIBLE_SIGNAL.get_or_init(|| RwSignal::new(None))
+}
+
+// Function to switch to a different translation
+pub async fn switch_bible_translation(translation_short_name: &str) -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let bible = if is_translation_downloaded(translation_short_name) {
+        load_downloaded_translation(translation_short_name).await?
+    } else {
+        return Err("Translation not downloaded".into());
+    };
+    
+    // Update the signal
+    let bible_signal = init_bible_signal();
+    bible_signal.set(Some(bible));
+    
     Ok(())
 }
 
 // Consolidated function to load from cache or fetch from API
 async fn load_or_fetch_bible() -> std::result::Result<Bible, Box<dyn std::error::Error>> {
+    // Check if user has a selected translation that's downloaded
+    if let Some(selected_translation) = get_selected_translation() {
+        if is_translation_downloaded(&selected_translation) {
+            if let Ok(bible) = load_downloaded_translation(&selected_translation).await {
+                return Ok(bible);
+            }
+        }
+    }
+    
+    // Fall back to default behavior (Staten vertaling)
     // Try to load from browser cache first
     match load_bible_from_cache().await {
         Ok(cached_bible) => return Ok(cached_bible),
@@ -211,6 +247,12 @@ async fn try_fetch_bible(url: &str) -> std::result::Result<Bible, Box<dyn std::e
 // Helper function to get Bible data (panics if not initialized)
 pub fn get_bible() -> &'static Bible {
     BIBLE.get().expect("Bible not initialized - call init_bible() first")
+}
+
+// Helper function to get the current Bible from signal (for reactivity)
+pub fn get_current_bible() -> Option<Bible> {
+    let bible_signal = init_bible_signal();
+    bible_signal.get()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -560,6 +602,7 @@ mod tests {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Translation {
     pub name: String,
     pub short_name: String,
@@ -570,7 +613,126 @@ pub struct Translation {
     pub wikipedia: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum Language {
     Dutch,
     English,
+}
+
+const SELECTED_TRANSLATION_KEY: &str = "selected_translation";
+const DOWNLOADED_TRANSLATIONS_KEY: &str = "downloaded_translations";
+
+pub fn get_selected_translation() -> Option<String> {
+    LocalStorage::get(SELECTED_TRANSLATION_KEY).ok()
+}
+
+pub fn set_selected_translation(translation_short_name: &str) -> Result<(), gloo_storage::errors::StorageError> {
+    LocalStorage::set(SELECTED_TRANSLATION_KEY, translation_short_name)
+}
+
+pub fn get_downloaded_translations() -> Vec<String> {
+    LocalStorage::get::<Vec<String>>(DOWNLOADED_TRANSLATIONS_KEY).unwrap_or_default()
+}
+
+pub fn add_downloaded_translation(translation_short_name: &str) -> Result<(), gloo_storage::errors::StorageError> {
+    let mut downloaded = get_downloaded_translations();
+    if !downloaded.contains(&translation_short_name.to_string()) {
+        downloaded.push(translation_short_name.to_string());
+        LocalStorage::set(DOWNLOADED_TRANSLATIONS_KEY, &downloaded)?;
+    }
+    Ok(())
+}
+
+pub fn is_translation_downloaded(translation_short_name: &str) -> bool {
+    get_downloaded_translations().contains(&translation_short_name.to_string())
+}
+
+pub async fn download_translation(translation: &Translation) -> Result<Bible, Box<dyn std::error::Error>> {
+    let bible = fetch_translation_from_url(&translation.iagon).await?;
+    
+    let translation_cache_key = format!("translation_{}", translation.short_name);
+    save_translation_to_cache(&translation_cache_key, &bible).await?;
+    
+    add_downloaded_translation(&translation.short_name)?;
+    
+    Ok(bible)
+}
+
+pub async fn load_downloaded_translation(translation_short_name: &str) -> Result<Bible, Box<dyn std::error::Error>> {
+    let translation_cache_key = format!("translation_{}", translation_short_name);
+    load_translation_from_cache(&translation_cache_key).await
+}
+
+async fn fetch_translation_from_url(url: &str) -> Result<Bible, Box<dyn std::error::Error>> {
+    let proxy_urls = [
+        format!("https://corsproxy.io/?{}", url),
+        format!("https://api.allorigins.win/get?url={}", url),
+    ];
+
+    let mut last_error = None;
+
+    for proxy_url in &proxy_urls {
+        match try_fetch_bible(proxy_url).await {
+            Ok(bible) => return Ok(bible),
+            Err(e) => {
+                last_error = Some(e);
+                continue;
+            }
+        }
+    }
+
+    Err(last_error.unwrap_or_else(|| "All proxy attempts failed".into()))
+}
+
+async fn save_translation_to_cache(cache_key: &str, bible: &Bible) -> Result<(), Box<dyn std::error::Error>> {
+    let rexie = Rexie::builder("TranslationCache")
+        .version(1)
+        .add_object_store(ObjectStore::new("translations"))
+        .build()
+        .await
+        .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
+    
+    let transaction = rexie.transaction(&["translations"], TransactionMode::ReadWrite)
+        .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
+    let store = transaction.store("translations")
+        .map_err(|e| format!("Failed to get store: {:?}", e))?;
+    
+    let json_data = serde_json::to_string(bible)
+        .map_err(|e| format!("Failed to serialize Bible data: {:?}", e))?;
+    
+    store.put(&json_data.into(), Some(&cache_key.into())).await
+        .map_err(|e| format!("Failed to save translation data: {:?}", e))?;
+    
+    transaction.commit().await
+        .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
+    Ok(())
+}
+
+async fn load_translation_from_cache(cache_key: &str) -> Result<Bible, Box<dyn std::error::Error>> {
+    let rexie = Rexie::builder("TranslationCache")
+        .version(1)
+        .add_object_store(ObjectStore::new("translations"))
+        .build()
+        .await
+        .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
+    
+    let transaction = rexie.transaction(&["translations"], TransactionMode::ReadOnly)
+        .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
+    let store = transaction.store("translations")
+        .map_err(|e| format!("Failed to get store: {:?}", e))?;
+    
+    let data_result = store.get(cache_key.into()).await;
+    match data_result {
+        Ok(Some(data_value)) => {
+            if let Some(json_str) = data_value.as_string() {
+                let bible: Bible = serde_json::from_str(&json_str)
+                    .map_err(|e| format!("Failed to parse cached translation: {:?}", e))?;
+                Ok(bible)
+            } else {
+                Err("Invalid cached translation format".into())
+            }
+        }
+        Ok(None) => Err("Translation not found in cache".into()),
+        Err(_) => Err("Failed to read cached translation".into()),
+    }
 }
