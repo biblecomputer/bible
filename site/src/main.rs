@@ -1,7 +1,9 @@
 use crate::chapter_view::ChapterDetail;
 use crate::command_palette::CommandPalette;
+use crate::home_translation_picker::HomeTranslationPicker;
 use crate::sidebar::Sidebar;
 use crate::shortcuts_help::ShortcutsHelp;
+use crate::translation_manager::TranslationManager;
 use crate::types::{*, get_bible, init_bible, is_mobile_screen};
 use leptos::prelude::*;
 use leptos::ev;
@@ -13,8 +15,11 @@ use wasm_bindgen_futures::spawn_local;
 
 mod chapter_view;
 mod command_palette;
+mod home_translation_picker;
 mod shortcuts_help;
 mod sidebar;
+mod translation_manager;
+mod translations;
 mod types;
 
 fn main() {
@@ -153,6 +158,7 @@ fn BibleApp() -> impl IntoView {
                     <main class="flex-1 p-4 md:p-6 overflow-y-auto">
                         <Routes fallback=|| "Not found.">
                             <Route path=path!("/") view=Home />
+                            <Route path=path!("/translations") view=TranslationManager />
                             <Route
                                 path=path!("/:book/:chapter")
                                 view=move || {
@@ -266,6 +272,6 @@ fn KeyboardNavigationHandler(
 #[component]
 fn Home() -> impl IntoView {
     view! {
-        <h1>Bijbel</h1>
+        <HomeTranslationPicker />
     }
 }
