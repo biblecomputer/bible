@@ -124,7 +124,7 @@ fn BibleWithSidebar() -> impl IntoView {
                                 </svg>
                             </button>
                             <a 
-                                href="/" 
+                                href="/?choose=true" 
                                 class="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
                                 aria-label="Kies vertaling"
                                 title="Terug naar vertalingskeuze"
@@ -291,6 +291,41 @@ fn KeyboardNavigationHandler(
 
 #[component]
 fn Home() -> impl IntoView {
+    use crate::types::{get_selected_translation, is_translation_downloaded, get_current_bible};
+    use leptos_router::hooks::{use_navigate, use_location};
+    use urlencoding::encode;
+    
+    let navigate = use_navigate();
+    let location = use_location();
+    
+    // Check if user has a selected translation that's downloaded
+    Effect::new(move |_| {
+        // Check if user explicitly wants to choose a translation (bypass auto-redirect)
+        let search_params = location.search.get();
+        if search_params.contains("choose=true") {
+            return; // Don't auto-redirect if user explicitly wants to choose
+        }
+        
+        if let Some(selected_translation) = get_selected_translation() {
+            if is_translation_downloaded(&selected_translation) {
+                // Get the current Bible to find Genesis 1
+                if let Some(bible) = get_current_bible() {
+                    if let Some(genesis_book) = bible.books.first() {
+                        if let Some(first_chapter) = genesis_book.chapters.first() {
+                            let encoded_book = encode(&genesis_book.name);
+                            let path = format!("/{}/{}", encoded_book, first_chapter.chapter);
+                            navigate(&path, Default::default());
+                            return;
+                        }
+                    }
+                }
+                
+                // Fallback: try to navigate to a standard Genesis path
+                navigate("/Genesis/1", Default::default());
+            }
+        }
+    });
+    
     view! {
         <div class="min-h-screen bg-gray-50">
             <HomeTranslationPicker />
