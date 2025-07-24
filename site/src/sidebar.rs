@@ -1,4 +1,4 @@
-use crate::types::{*, get_bible, is_mobile_screen};
+use crate::types::{*, get_bible, init_bible_signal, is_mobile_screen};
 use leptos::component;
 use leptos::prelude::*;
 use leptos::view;
@@ -10,7 +10,7 @@ use urlencoding::decode;
 #[component]
 pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
     let location = use_location();
-    
+    let bible_signal = init_bible_signal();
     
     // Extract book name from current URL and auto-expand it
     let current_book = Memo::new(move |_| {
@@ -29,11 +29,20 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
     
     let (selected_book, set_selected_book) = signal(String::new());
 
+    // Create reactive books list
+    let books = Memo::new(move |_| {
+        if let Some(bible) = bible_signal.get() {
+            bible.books
+        } else {
+            get_bible().books.clone()
+        }
+    });
+
     view! {
         <div class="sidebar">
             <h2 class="text-lg font-bold mb-4 text-black">Books</h2>
             <ul class="space-y-2">
-            {get_bible().books.iter().map(|b| view! {
+            {move || books.get().iter().map(|b| view! {
                 <BookView
                     book=b.clone()
                     current_book=current_book
@@ -42,7 +51,7 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
                     location=location.clone()
                     set_sidebar_open=set_sidebar_open
                 />
-            }).collect_view()}
+            }).collect::<Vec<_>>()}
             </ul>
         </div>
     }

@@ -260,7 +260,7 @@ pub struct Bible {
     pub books: Vec<Book>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Book {
     pub name: String,
     pub chapters: Vec<Chapter>,
