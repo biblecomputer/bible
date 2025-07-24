@@ -647,6 +647,31 @@ pub fn is_translation_downloaded(translation_short_name: &str) -> bool {
     get_downloaded_translations().contains(&translation_short_name.to_string())
 }
 
+pub fn remove_downloaded_translation(translation_short_name: &str) -> Result<(), gloo_storage::errors::StorageError> {
+    let mut downloaded = get_downloaded_translations();
+    downloaded.retain(|name| name != translation_short_name);
+    LocalStorage::set(DOWNLOADED_TRANSLATIONS_KEY, &downloaded)
+}
+
+pub async fn uninstall_translation(translation_short_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // Remove from downloaded translations list
+    remove_downloaded_translation(translation_short_name)?;
+    
+    // Remove from IndexedDB cache
+    let translation_cache_key = format!("translation_{}", translation_short_name);
+    remove_translation_from_cache(&translation_cache_key).await?;
+    
+    // If this was the selected translation, reset to default
+    if let Some(selected) = get_selected_translation() {
+        if selected == translation_short_name {
+            // Reset to Staten vertaling (sv) as default
+            let _ = set_selected_translation("sv");
+        }
+    }
+    
+    Ok(())
+}
+
 pub async fn download_translation(translation: &Translation) -> Result<Bible, Box<dyn std::error::Error>> {
     let bible = fetch_translation_from_url(&translation.iagon).await?;
     
@@ -735,4 +760,25 @@ async fn load_translation_from_cache(cache_key: &str) -> Result<Bible, Box<dyn s
         Ok(None) => Err("Translation not found in cache".into()),
         Err(_) => Err("Failed to read cached translation".into()),
     }
+}
+
+async fn remove_translation_from_cache(cache_key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let rexie = Rexie::builder("TranslationCache")
+        .version(1)
+        .add_object_store(ObjectStore::new("translations"))
+        .build()
+        .await
+        .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
+    
+    let transaction = rexie.transaction(&["translations"], TransactionMode::ReadWrite)
+        .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
+    let store = transaction.store("translations")
+        .map_err(|e| format!("Failed to get store: {:?}", e))?;
+    
+    store.delete(cache_key.into()).await
+        .map_err(|e| format!("Failed to delete translation from cache: {:?}", e))?;
+    
+    transaction.commit().await
+        .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
+    Ok(())
 }

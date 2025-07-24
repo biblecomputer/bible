@@ -3,7 +3,6 @@ use crate::command_palette::CommandPalette;
 use crate::home_translation_picker::HomeTranslationPicker;
 use crate::sidebar::Sidebar;
 use crate::shortcuts_help::ShortcutsHelp;
-use crate::translation_manager::TranslationManager;
 use crate::types::{*, get_bible, init_bible, is_mobile_screen};
 use leptos::prelude::*;
 use leptos::ev;
@@ -73,45 +72,69 @@ fn App() -> impl IntoView {
 
 #[component]
 fn BibleApp() -> impl IntoView {
+    view! {
+        <Router>
+            <Routes fallback=|| "Not found.">
+                <Route path=path!("/") view=Home />
+                <Route path=path!("/*any") view=BibleWithSidebar />
+            </Routes>
+        </Router>
+    }
+}
+
+#[component]
+fn BibleWithSidebar() -> impl IntoView {
     // Command palette state
     let (is_palette_open, set_is_palette_open) = signal(false);
     // Sidebar visibility state
     let (is_sidebar_open, set_is_sidebar_open) = signal(true);
         
         view! {
-            <Router>
-                <KeyboardNavigationHandler 
-                    palette_open=is_palette_open 
-                    set_palette_open=set_is_palette_open 
-                    _sidebar_open=is_sidebar_open
-                    set_sidebar_open=set_is_sidebar_open
-                />
-                <SidebarAutoHide set_sidebar_open=set_is_sidebar_open />
-                <CommandPalette is_open=is_palette_open set_is_open=set_is_palette_open />
+            <KeyboardNavigationHandler 
+                palette_open=is_palette_open 
+                set_palette_open=set_is_palette_open 
+                _sidebar_open=is_sidebar_open
+                set_sidebar_open=set_is_sidebar_open
+            />
+            <SidebarAutoHide set_sidebar_open=set_is_sidebar_open />
+            <CommandPalette is_open=is_palette_open set_is_open=set_is_palette_open />
                 <nav class="bg-white border-b border-gray-200 px-4 py-2">
                     <div class="flex items-center justify-between">
-                        <button
-                            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                            on:click=move |_| set_is_sidebar_open.update(|open| *open = !*open)
-                            aria-label=move || if is_sidebar_open.get() { "Hide sidebar" } else { "Show sidebar" }
-                            title=move || if is_sidebar_open.get() { "Hide sidebar" } else { "Show sidebar" }
-                        >
-                            <svg 
-                                width="24" 
-                                height="24" 
-                                viewBox="0 0 24 24" 
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                aria-hidden="true"
+                        <div class="flex items-center space-x-2">
+                            <button
+                                class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                                on:click=move |_| set_is_sidebar_open.update(|open| *open = !*open)
+                                aria-label=move || if is_sidebar_open.get() { "Hide sidebar" } else { "Show sidebar" }
+                                title=move || if is_sidebar_open.get() { "Hide sidebar" } else { "Show sidebar" }
                             >
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="9" y1="9" x2="21" y2="9"/>
-                                <line x1="9" y1="15" x2="21" y2="15"/>
-                                <line x1="3" y1="9" x2="7" y2="9"/>
-                                <line x1="3" y1="15" x2="7" y2="15"/>
-                            </svg>
-                        </button>
+                                <svg 
+                                    width="24" 
+                                    height="24" 
+                                    viewBox="0 0 24 24" 
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    aria-hidden="true"
+                                >
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <line x1="9" y1="9" x2="21" y2="9"/>
+                                    <line x1="9" y1="15" x2="21" y2="15"/>
+                                    <line x1="3" y1="9" x2="7" y2="9"/>
+                                    <line x1="3" y1="15" x2="7" y2="15"/>
+                                </svg>
+                            </button>
+                            <a 
+                                href="/" 
+                                class="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                                aria-label="Kies vertaling"
+                                title="Terug naar vertalingskeuze"
+                            >
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                                "Kies vertaling"
+                            </a>
+                        </div>
                         <a 
                             href="https://github.com/sempruijs/bible" 
                             target="_blank" 
@@ -157,8 +180,6 @@ fn BibleApp() -> impl IntoView {
                     
                     <main class="flex-1 p-4 md:p-6 overflow-y-auto">
                         <Routes fallback=|| "Not found.">
-                            <Route path=path!("/") view=Home />
-                            <Route path=path!("/translations") view=TranslationManager />
                             <Route
                                 path=path!("/:book/:chapter")
                                 view=move || {
@@ -172,7 +193,6 @@ fn BibleApp() -> impl IntoView {
                     </main>
                 </div>
                 <ShortcutsHelp />
-            </Router>
         }
 }
 
@@ -272,6 +292,9 @@ fn KeyboardNavigationHandler(
 #[component]
 fn Home() -> impl IntoView {
     view! {
-        <HomeTranslationPicker />
+        <div class="min-h-screen bg-gray-50">
+            <HomeTranslationPicker />
+        </div>
     }
 }
+
