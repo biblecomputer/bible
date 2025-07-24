@@ -65,7 +65,7 @@ pub fn HomeTranslationPicker() -> impl IntoView {
                                                 if is_downloaded {
                                                     view! {
                                                         <button
-                                                            class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+                                                            class="px-6 py-2 bg-blue-600 text-black rounded-md hover:bg-blue-700 transition-colors font-medium"
                                                             disabled=is_switching.get()
                                                             on:click=move |_| {
                                                                 if !is_switching.get() {
@@ -97,7 +97,7 @@ pub fn HomeTranslationPicker() -> impl IntoView {
                                                 } else if is_downloading {
                                                     view! {
                                                         <button
-                                                            class="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed font-medium"
+                                                            class="px-6 py-2 bg-gray-400 text-black rounded-md cursor-not-allowed font-medium"
                                                             disabled=true
                                                         >
                                                             <div class="flex items-center">
@@ -112,7 +112,7 @@ pub fn HomeTranslationPicker() -> impl IntoView {
                                                 } else {
                                                     view! {
                                                         <button
-                                                            class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+                                                            class="px-6 py-2 bg-green-600 text-black rounded-md hover:bg-green-700 transition-colors font-medium"
                                                             on:click=move |_| {
                                                                 set_downloading_translation.set(Some(translation_short_name.clone()));
                                                                 set_download_error.set(None);
