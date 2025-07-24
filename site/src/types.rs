@@ -559,3 +559,18 @@ mod tests {
         }
     }
 }
+
+pub struct Translation {
+    pub name: String,
+    pub short_name: String,
+    pub description: String,
+    pub release_year: u16,
+    pub iagon: String,
+    pub languages: Vec<Language>,
+    pub wikipedia: String,
+}
+
+pub enum Language {
+    Dutch,
+    English,
+}
