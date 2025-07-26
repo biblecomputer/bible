@@ -1,4 +1,4 @@
-use crate::types::{BibleTranslation, Language};
+use crate::translation_storage::{BibleTranslation, Language};
 
 pub fn get_translations() -> Vec<BibleTranslation> {
     vec![

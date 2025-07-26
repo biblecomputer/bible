@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use crate::types::{
+use crate::translation_storage::{
     get_selected_translation, get_downloaded_translations,
     switch_bible_translation, set_selected_translation
 };
