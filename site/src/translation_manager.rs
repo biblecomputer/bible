@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 use crate::types::{
-    Translation, get_selected_translation, set_selected_translation, 
+    BibleTranslation, get_selected_translation, set_selected_translation, 
     is_translation_downloaded, download_translation, switch_bible_translation, uninstall_translation
 };
 use crate::translations::get_translations;
@@ -34,7 +34,7 @@ pub fn TranslationManager() -> impl IntoView {
     let handle_download = {
         let set_downloading_states = set_downloading_states.clone();
         let set_download_error = set_download_error.clone();
-        move |translation: Translation| {
+        move |translation: BibleTranslation| {
             let translation_short_name = translation.short_name.clone();
             
             // Set downloading state

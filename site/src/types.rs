@@ -1,11 +1,11 @@
+use gloo_net::http::Request;
+use gloo_storage::{LocalStorage, Storage};
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
+use rexie::{ObjectStore, Rexie, TransactionMode};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
-use urlencoding::{encode, decode};
-use gloo_net::http::Request;
-use rexie::{Rexie, ObjectStore, TransactionMode};
-use gloo_storage::{LocalStorage, Storage};
+use urlencoding::{decode, encode};
 
 // Constants
 const MOBILE_BREAKPOINT: f64 = 768.0;
@@ -33,12 +33,14 @@ pub async fn init_bible() -> std::result::Result<(), Box<dyn std::error::Error>>
     }
 
     let bible = load_or_fetch_bible().await?;
-    
+
     // Set both the static and signal versions
-    BIBLE.set(bible.clone()).map_err(|_| "Failed to set Bible data")?;
+    BIBLE
+        .set(bible.clone())
+        .map_err(|_| "Failed to set Bible data")?;
     let bible_signal = init_bible_signal();
     bible_signal.set(Some(bible));
-    
+
     Ok(())
 }
 
@@ -47,17 +49,19 @@ pub fn init_bible_signal() -> RwSignal<Option<Bible>> {
 }
 
 // Function to switch to a different translation
-pub async fn switch_bible_translation(translation_short_name: &str) -> std::result::Result<(), Box<dyn std::error::Error>> {
+pub async fn switch_bible_translation(
+    translation_short_name: &str,
+) -> std::result::Result<(), Box<dyn std::error::Error>> {
     let bible = if is_translation_downloaded(translation_short_name) {
         load_downloaded_translation(translation_short_name).await?
     } else {
         return Err("Translation not downloaded".into());
     };
-    
+
     // Update the signal
     let bible_signal = init_bible_signal();
     bible_signal.set(Some(bible));
-    
+
     Ok(())
 }
 
@@ -71,7 +75,7 @@ async fn load_or_fetch_bible() -> std::result::Result<Bible, Box<dyn std::error:
             }
         }
     }
-    
+
     // Fall back to default behavior (Staten vertaling)
     // Try to load from browser cache first
     match load_bible_from_cache().await {
@@ -79,10 +83,10 @@ async fn load_or_fetch_bible() -> std::result::Result<Bible, Box<dyn std::error:
         Err(_) => {
             // If not in cache, fetch from API
             let bible = fetch_bible_from_api().await?;
-            
+
             // Save to cache for future use (ignore errors)
             let _ = save_bible_to_cache(&bible).await;
-            
+
             Ok(bible)
         }
     }
@@ -91,7 +95,7 @@ async fn load_or_fetch_bible() -> std::result::Result<Bible, Box<dyn std::error:
 // Load Bible data from IndexedDB
 async fn load_bible_from_cache() -> std::result::Result<Bible, Box<dyn std::error::Error>> {
     const CACHE_VERSION: &str = "v1";
-    
+
     // Open IndexedDB
     let rexie = Rexie::builder("BibleCache")
         .version(1)
@@ -99,12 +103,14 @@ async fn load_bible_from_cache() -> std::result::Result<Bible, Box<dyn std::erro
         .build()
         .await
         .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
-    
-    let transaction = rexie.transaction(&["bible_data"], TransactionMode::ReadOnly)
+
+    let transaction = rexie
+        .transaction(&["bible_data"], TransactionMode::ReadOnly)
         .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
-    let store = transaction.store("bible_data")
+    let store = transaction
+        .store("bible_data")
         .map_err(|e| format!("Failed to get store: {:?}", e))?;
-    
+
     // Check cache version first
     let version_result = store.get("cache_version".into()).await;
     match version_result {
@@ -113,7 +119,8 @@ async fn load_bible_from_cache() -> std::result::Result<Bible, Box<dyn std::erro
                 if version_str != CACHE_VERSION {
                     // Version mismatch, clear cache
                     drop(transaction);
-                    clear_bible_cache().await
+                    clear_bible_cache()
+                        .await
                         .map_err(|e| format!("Failed to clear cache: {:?}", e))?;
                     return Err("Cache version mismatch".into());
                 }
@@ -124,7 +131,7 @@ async fn load_bible_from_cache() -> std::result::Result<Bible, Box<dyn std::erro
         Ok(None) => return Err("No cache version found".into()),
         Err(_) => return Err("Failed to read cache version".into()),
     }
-    
+
     // Get the cached Bible data
     let data_result = store.get("bible_json".into()).await;
     match data_result {
@@ -145,7 +152,7 @@ async fn load_bible_from_cache() -> std::result::Result<Bible, Box<dyn std::erro
 // Save Bible data to IndexedDB
 async fn save_bible_to_cache(bible: &Bible) -> std::result::Result<(), Box<dyn std::error::Error>> {
     const CACHE_VERSION: &str = "v1";
-    
+
     // Open IndexedDB
     let rexie = Rexie::builder("BibleCache")
         .version(1)
@@ -153,23 +160,31 @@ async fn save_bible_to_cache(bible: &Bible) -> std::result::Result<(), Box<dyn s
         .build()
         .await
         .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
-    
-    let transaction = rexie.transaction(&["bible_data"], TransactionMode::ReadWrite)
+
+    let transaction = rexie
+        .transaction(&["bible_data"], TransactionMode::ReadWrite)
         .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
-    let store = transaction.store("bible_data")
+    let store = transaction
+        .store("bible_data")
         .map_err(|e| format!("Failed to get store: {:?}", e))?;
-    
+
     // Serialize the Bible data
     let json_data = serde_json::to_string(bible)
         .map_err(|e| format!("Failed to serialize Bible data: {:?}", e))?;
-    
+
     // Save both the data and version
-    store.put(&json_data.into(), Some(&"bible_json".into())).await
+    store
+        .put(&json_data.into(), Some(&"bible_json".into()))
+        .await
         .map_err(|e| format!("Failed to save Bible data: {:?}", e))?;
-    store.put(&CACHE_VERSION.into(), Some(&"cache_version".into())).await
+    store
+        .put(&CACHE_VERSION.into(), Some(&"cache_version".into()))
+        .await
         .map_err(|e| format!("Failed to save cache version: {:?}", e))?;
-    
-    transaction.commit().await
+
+    transaction
+        .commit()
+        .await
         .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
     Ok(())
 }
@@ -184,19 +199,27 @@ pub async fn clear_bible_cache() -> std::result::Result<(), Box<dyn std::error::
         .build()
         .await
         .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
-    
-    let transaction = rexie.transaction(&["bible_data"], TransactionMode::ReadWrite)
+
+    let transaction = rexie
+        .transaction(&["bible_data"], TransactionMode::ReadWrite)
         .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
-    let store = transaction.store("bible_data")
+    let store = transaction
+        .store("bible_data")
         .map_err(|e| format!("Failed to get store: {:?}", e))?;
-    
+
     // Delete both the data and version
-    store.delete("bible_json".into()).await
+    store
+        .delete("bible_json".into())
+        .await
         .map_err(|e| format!("Failed to delete Bible data: {:?}", e))?;
-    store.delete("cache_version".into()).await
+    store
+        .delete("cache_version".into())
+        .await
         .map_err(|e| format!("Failed to delete cache version: {:?}", e))?;
-    
-    transaction.commit().await
+
+    transaction
+        .commit()
+        .await
         .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
     Ok(())
 }
@@ -225,10 +248,8 @@ async fn fetch_bible_from_api() -> std::result::Result<Bible, Box<dyn std::error
 }
 
 async fn try_fetch_bible(url: &str) -> std::result::Result<Bible, Box<dyn std::error::Error>> {
-    let response = Request::get(url)
-        .send()
-        .await?;
-    
+    let response = Request::get(url).send().await?;
+
     let json_string = if url.contains("allorigins.win") {
         // allorigins.win wraps the response in a JSON object
         let wrapped: serde_json::Value = response.json().await?;
@@ -239,14 +260,16 @@ async fn try_fetch_bible(url: &str) -> std::result::Result<Bible, Box<dyn std::e
     } else {
         response.text().await?
     };
-    
+
     let bible: Bible = serde_json::from_str(&json_string)?;
     Ok(bible)
 }
 
 // Helper function to get Bible data (panics if not initialized)
 pub fn get_bible() -> &'static Bible {
-    BIBLE.get().expect("Bible not initialized - call init_bible() first")
+    BIBLE
+        .get()
+        .expect("Bible not initialized - call init_bible() first")
 }
 
 // Helper function to get the current Bible from signal (for reactivity)
@@ -278,10 +301,10 @@ impl Chapter {
         // Extract book name by removing the chapter number from the end
         // Format is "Book Name X" where X is the chapter number
         let name_parts: Vec<&str> = self.name.split_whitespace().collect();
-        
+
         // Remove the last part (chapter number) to get book name
         let book_name = if name_parts.len() > 1 {
-            name_parts[..name_parts.len()-1].join(" ")
+            name_parts[..name_parts.len() - 1].join(" ")
         } else {
             self.name.clone()
         };
@@ -321,12 +344,16 @@ pub enum ParamParseError {
 }
 
 impl Bible {
-    pub fn get_chapter(&self, book: &str, chapter: u32) -> std::result::Result<Chapter, ParamParseError> {
+    pub fn get_chapter(
+        &self,
+        book: &str,
+        chapter: u32,
+    ) -> std::result::Result<Chapter, ParamParseError> {
         // Decode URL-encoded book name back to original name with special characters
         let book_name = decode(book)
             .map_err(|_| ParamParseError::BookNotFound)?
             .into_owned();
-        
+
         let book = self
             .books
             .iter()
@@ -345,7 +372,11 @@ impl Bible {
     pub fn get_next_chapter(&self, current: &Chapter) -> Option<Chapter> {
         // Find the current book and chapter
         for (book_idx, book) in self.books.iter().enumerate() {
-            if let Some(chapter_idx) = book.chapters.iter().position(|c| c.chapter == current.chapter && c.name == current.name) {
+            if let Some(chapter_idx) = book
+                .chapters
+                .iter()
+                .position(|c| c.chapter == current.chapter && c.name == current.name)
+            {
                 // Try next chapter in same book
                 if chapter_idx + 1 < book.chapters.len() {
                     return Some(book.chapters[chapter_idx + 1].clone());
@@ -364,7 +395,11 @@ impl Bible {
     pub fn get_previous_chapter(&self, current: &Chapter) -> Option<Chapter> {
         // Find the current book and chapter
         for (book_idx, book) in self.books.iter().enumerate() {
-            if let Some(chapter_idx) = book.chapters.iter().position(|c| c.chapter == current.chapter && c.name == current.name) {
+            if let Some(chapter_idx) = book
+                .chapters
+                .iter()
+                .position(|c| c.chapter == current.chapter && c.name == current.name)
+            {
                 // Try previous chapter in same book
                 if chapter_idx > 0 {
                     return Some(book.chapters[chapter_idx - 1].clone());
@@ -385,7 +420,7 @@ impl Bible {
 mod tests {
     use super::*;
     use proptest::prelude::*;
-    
+
     proptest! {
         #[test]
         fn test_chapter_to_path_roundtrip(
@@ -397,15 +432,15 @@ mod tests {
                 name: format!("{} {}", book_name.trim(), chapter_num),
                 verses: vec![],
             };
-            
+
             let path = chapter.to_path();
-            
+
             // Path should start with encoded book name and end with chapter number
             prop_assert!(path.starts_with("/"));
             let expected_suffix = format!("/{}", chapter_num);
             prop_assert!(path.ends_with(&expected_suffix));
         }
-        
+
         #[test]
         fn test_chapter_to_path_handles_special_chars(
             chapter_num in 1u32..150,
@@ -416,16 +451,16 @@ mod tests {
                 name: format!("{} {}", book_name.trim(), chapter_num),
                 verses: vec![],
             };
-            
+
             let path = chapter.to_path();
-            
+
             // Path should be URL-safe
             prop_assert!(path.starts_with("/"));
             prop_assert!(!path.contains(" "));
             let expected_suffix = format!("/{}", chapter_num);
             prop_assert!(path.ends_with(&expected_suffix));
         }
-        
+
         #[test]
         fn test_get_chapter_book_case_insensitive(
             chapter_num in 1u32..10,
@@ -437,29 +472,29 @@ mod tests {
                 name: format!("{} {}", book_name, chapter_num),
                 verses: vec![],
             };
-            
+
             let test_book = Book {
                 name: book_name.clone(),
                 chapters: vec![test_chapter.clone()],
             };
-            
+
             let bible = Bible {
                 books: vec![test_book],
             };
-            
+
             // Test case insensitive matching
             let upper_result = bible.get_chapter(&book_name.to_uppercase(), chapter_num);
             let lower_result = bible.get_chapter(&book_name.to_lowercase(), chapter_num);
-            
+
             prop_assert!(upper_result.is_ok());
             prop_assert!(lower_result.is_ok());
-            
+
             if let (Ok(upper_chapter), Ok(lower_chapter)) = (upper_result, lower_result) {
                 prop_assert_eq!(upper_chapter.chapter, chapter_num);
                 prop_assert_eq!(lower_chapter.chapter, chapter_num);
             }
         }
-        
+
         #[test]
         fn test_get_chapter_url_decoding(
             chapter_num in 1u32..10,
@@ -471,26 +506,26 @@ mod tests {
                 name: format!("{} {}", clean_book_name, chapter_num),
                 verses: vec![],
             };
-            
+
             let test_book = Book {
                 name: clean_book_name.to_string(),
                 chapters: vec![test_chapter.clone()],
             };
-            
+
             let bible = Bible {
                 books: vec![test_book],
             };
-            
+
             // Test URL-encoded book name
             let encoded_book = urlencoding::encode(clean_book_name);
             let result = bible.get_chapter(&encoded_book, chapter_num);
-            
+
             prop_assert!(result.is_ok());
             if let Ok(found_chapter) = result {
                 prop_assert_eq!(found_chapter.chapter, chapter_num);
             }
         }
-        
+
         #[test]
         fn test_navigation_consistency(
             num_chapters in 2usize..20,
@@ -504,20 +539,20 @@ mod tests {
                     verses: vec![],
                 })
                 .collect();
-            
+
             let book = Book {
                 name: "Test Book".to_string(),
                 chapters,
             };
-            
+
             let bible = Bible {
                 books: vec![book],
             };
-            
+
             // Test that next/previous navigation is consistent
             for i in 1..num_chapters - 1 {
                 let current_chapter = &bible.books[0].chapters[i];
-                
+
                 if let Some(next_chapter) = bible.get_next_chapter(current_chapter) {
                     if let Some(prev_of_next) = bible.get_previous_chapter(&next_chapter) {
                         prop_assert_eq!(prev_of_next.chapter, current_chapter.chapter);
@@ -526,7 +561,7 @@ mod tests {
                 }
             }
         }
-        
+
         #[test]
         fn test_navigation_boundaries(
             num_chapters in 1usize..10,
@@ -540,25 +575,25 @@ mod tests {
                     verses: vec![],
                 })
                 .collect();
-            
+
             let book = Book {
                 name: "Test Book".to_string(),
                 chapters,
             };
-            
+
             let bible = Bible {
                 books: vec![book],
             };
-            
+
             // First chapter should have no previous
             let first_chapter = &bible.books[0].chapters[0];
             prop_assert!(bible.get_previous_chapter(first_chapter).is_none());
-            
+
             // Last chapter should have no next
             let last_chapter = &bible.books[0].chapters[num_chapters - 1];
             prop_assert!(bible.get_next_chapter(last_chapter).is_none());
         }
-        
+
         #[test]
         fn test_cross_book_navigation(
             num_books in 2usize..5,
@@ -574,25 +609,25 @@ mod tests {
                             verses: vec![],
                         })
                         .collect();
-                    
+
                     Book {
                         name: format!("Book {}", book_idx),
                         chapters,
                     }
                 })
                 .collect();
-            
+
             let bible = Bible { books };
-            
+
             // Test navigation from last chapter of first book to first chapter of second book
             let last_chapter_book1 = &bible.books[0].chapters[chapters_per_book - 1];
             let first_chapter_book2 = &bible.books[1].chapters[0];
-            
+
             if let Some(next_chapter) = bible.get_next_chapter(last_chapter_book1) {
                 prop_assert_eq!(next_chapter.chapter, first_chapter_book2.chapter);
                 prop_assert_eq!(next_chapter.name, first_chapter_book2.name.clone());
             }
-            
+
             // Test navigation from first chapter of second book to last chapter of first book
             if let Some(prev_chapter) = bible.get_previous_chapter(first_chapter_book2) {
                 prop_assert_eq!(prev_chapter.chapter, last_chapter_book1.chapter);
@@ -603,7 +638,7 @@ mod tests {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct Translation {
+pub struct BibleTranslation {
     pub name: String,
     pub short_name: String,
     pub description: String,
@@ -626,7 +661,9 @@ pub fn get_selected_translation() -> Option<String> {
     LocalStorage::get(SELECTED_TRANSLATION_KEY).ok()
 }
 
-pub fn set_selected_translation(translation_short_name: &str) -> Result<(), gloo_storage::errors::StorageError> {
+pub fn set_selected_translation(
+    translation_short_name: &str,
+) -> Result<(), gloo_storage::errors::StorageError> {
     LocalStorage::set(SELECTED_TRANSLATION_KEY, translation_short_name)
 }
 
@@ -634,7 +671,9 @@ pub fn get_downloaded_translations() -> Vec<String> {
     LocalStorage::get::<Vec<String>>(DOWNLOADED_TRANSLATIONS_KEY).unwrap_or_default()
 }
 
-pub fn add_downloaded_translation(translation_short_name: &str) -> Result<(), gloo_storage::errors::StorageError> {
+pub fn add_downloaded_translation(
+    translation_short_name: &str,
+) -> Result<(), gloo_storage::errors::StorageError> {
     let mut downloaded = get_downloaded_translations();
     if !downloaded.contains(&translation_short_name.to_string()) {
         downloaded.push(translation_short_name.to_string());
@@ -647,20 +686,24 @@ pub fn is_translation_downloaded(translation_short_name: &str) -> bool {
     get_downloaded_translations().contains(&translation_short_name.to_string())
 }
 
-pub fn remove_downloaded_translation(translation_short_name: &str) -> Result<(), gloo_storage::errors::StorageError> {
+pub fn remove_downloaded_translation(
+    translation_short_name: &str,
+) -> Result<(), gloo_storage::errors::StorageError> {
     let mut downloaded = get_downloaded_translations();
     downloaded.retain(|name| name != translation_short_name);
     LocalStorage::set(DOWNLOADED_TRANSLATIONS_KEY, &downloaded)
 }
 
-pub async fn uninstall_translation(translation_short_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn uninstall_translation(
+    translation_short_name: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Remove from downloaded translations list
     remove_downloaded_translation(translation_short_name)?;
-    
+
     // Remove from IndexedDB cache
     let translation_cache_key = format!("translation_{}", translation_short_name);
     remove_translation_from_cache(&translation_cache_key).await?;
-    
+
     // If this was the selected translation, reset to default
     if let Some(selected) = get_selected_translation() {
         if selected == translation_short_name {
@@ -668,22 +711,26 @@ pub async fn uninstall_translation(translation_short_name: &str) -> Result<(), B
             let _ = set_selected_translation("sv");
         }
     }
-    
+
     Ok(())
 }
 
-pub async fn download_translation(translation: &Translation) -> Result<Bible, Box<dyn std::error::Error>> {
+pub async fn download_translation(
+    translation: &BibleTranslation,
+) -> Result<Bible, Box<dyn std::error::Error>> {
     let bible = fetch_translation_from_url(&translation.iagon).await?;
-    
+
     let translation_cache_key = format!("translation_{}", translation.short_name);
     save_translation_to_cache(&translation_cache_key, &bible).await?;
-    
+
     add_downloaded_translation(&translation.short_name)?;
-    
+
     Ok(bible)
 }
 
-pub async fn load_downloaded_translation(translation_short_name: &str) -> Result<Bible, Box<dyn std::error::Error>> {
+pub async fn load_downloaded_translation(
+    translation_short_name: &str,
+) -> Result<Bible, Box<dyn std::error::Error>> {
     let translation_cache_key = format!("translation_{}", translation_short_name);
     load_translation_from_cache(&translation_cache_key).await
 }
@@ -709,26 +756,35 @@ async fn fetch_translation_from_url(url: &str) -> Result<Bible, Box<dyn std::err
     Err(last_error.unwrap_or_else(|| "All proxy attempts failed".into()))
 }
 
-async fn save_translation_to_cache(cache_key: &str, bible: &Bible) -> Result<(), Box<dyn std::error::Error>> {
+async fn save_translation_to_cache(
+    cache_key: &str,
+    bible: &Bible,
+) -> Result<(), Box<dyn std::error::Error>> {
     let rexie = Rexie::builder("TranslationCache")
         .version(1)
         .add_object_store(ObjectStore::new("translations"))
         .build()
         .await
         .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
-    
-    let transaction = rexie.transaction(&["translations"], TransactionMode::ReadWrite)
+
+    let transaction = rexie
+        .transaction(&["translations"], TransactionMode::ReadWrite)
         .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
-    let store = transaction.store("translations")
+    let store = transaction
+        .store("translations")
         .map_err(|e| format!("Failed to get store: {:?}", e))?;
-    
+
     let json_data = serde_json::to_string(bible)
         .map_err(|e| format!("Failed to serialize Bible data: {:?}", e))?;
-    
-    store.put(&json_data.into(), Some(&cache_key.into())).await
+
+    store
+        .put(&json_data.into(), Some(&cache_key.into()))
+        .await
         .map_err(|e| format!("Failed to save translation data: {:?}", e))?;
-    
-    transaction.commit().await
+
+    transaction
+        .commit()
+        .await
         .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
     Ok(())
 }
@@ -740,12 +796,14 @@ async fn load_translation_from_cache(cache_key: &str) -> Result<Bible, Box<dyn s
         .build()
         .await
         .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
-    
-    let transaction = rexie.transaction(&["translations"], TransactionMode::ReadOnly)
+
+    let transaction = rexie
+        .transaction(&["translations"], TransactionMode::ReadOnly)
         .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
-    let store = transaction.store("translations")
+    let store = transaction
+        .store("translations")
         .map_err(|e| format!("Failed to get store: {:?}", e))?;
-    
+
     let data_result = store.get(cache_key.into()).await;
     match data_result {
         Ok(Some(data_value)) => {
@@ -769,16 +827,22 @@ async fn remove_translation_from_cache(cache_key: &str) -> Result<(), Box<dyn st
         .build()
         .await
         .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
-    
-    let transaction = rexie.transaction(&["translations"], TransactionMode::ReadWrite)
+
+    let transaction = rexie
+        .transaction(&["translations"], TransactionMode::ReadWrite)
         .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
-    let store = transaction.store("translations")
+    let store = transaction
+        .store("translations")
         .map_err(|e| format!("Failed to get store: {:?}", e))?;
-    
-    store.delete(cache_key.into()).await
+
+    store
+        .delete(cache_key.into())
+        .await
         .map_err(|e| format!("Failed to delete translation from cache: {:?}", e))?;
-    
-    transaction.commit().await
+
+    transaction
+        .commit()
+        .await
         .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
     Ok(())
 }
