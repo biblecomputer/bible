@@ -128,6 +128,7 @@
           packages = [
             pkgs.trunk
             pkgs.cargo-leptos
+            pkgs.rust-analyzer
           ];
           shellHook = ''
             export CLIENT_DIST=$PWD/client/dist
