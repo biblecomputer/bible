@@ -1,4 +1,6 @@
-use crate::types::{*, get_bible, init_bible_signal, is_mobile_screen};
+use crate::bible_core::{get_bible, init_bible_signal};
+use crate::types::*;
+use crate::utils::is_mobile_screen;
 use leptos::component;
 use leptos::prelude::*;
 use leptos::view;

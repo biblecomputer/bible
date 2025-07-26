@@ -1,9 +1,10 @@
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use urlencoding::encode;
-use crate::types::{
+use crate::bible_core::get_current_bible;
+use crate::translation_storage::{
     get_selected_translation, set_selected_translation, 
-    is_translation_downloaded, download_translation, switch_bible_translation, get_current_bible, uninstall_translation
+    is_translation_downloaded, download_translation, switch_bible_translation, uninstall_translation
 };
 use crate::translations::get_translations;
 use wasm_bindgen_futures::spawn_local;
