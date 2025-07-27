@@ -94,7 +94,7 @@ impl<'a> Translation<'a> {
         }
     }
 
-    pub fn get(&self, s: &str) -> Option<&'a str> {
+    pub fn get_book(&self, s: &str) -> Option<&'a str> {
         match s {
             "genesis" => Some(self.genesis),
             "exodus" => Some(self.exodus),
@@ -170,5 +170,100 @@ impl<'a> Translation<'a> {
             "revelation" => Some(self.revelation),
             _ => None,
         }
+    }
+
+    pub fn get(&self, s: &str) -> Option<String> {
+        let input_lower = s.to_lowercase();
+        
+        // Check if it's a chapter reference (e.g., "matthew 7", "1_john 3", "first_john 2")
+        if let Some(space_pos) = input_lower.find(' ') {
+            let book_part = &input_lower[..space_pos];
+            let chapter_part = &input_lower[space_pos + 1..];
+            
+            // Convert book part to lookup format (replace spaces with underscores)
+            let book_lookup_key = book_part.replace(' ', "_");
+            
+            // Try to translate the book part
+            if let Some(translated_book) = self.get_book(&book_lookup_key) {
+                return Some(format!("{} {}", translated_book, chapter_part));
+            }
+        }
+        
+        // If no space found or book not found, try to translate as a book name only
+        // Convert spaces to underscores for lookup
+        let book_lookup_key = input_lower.replace(' ', "_");
+        self.get_book(&book_lookup_key).map(|book| book.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::types::Language;
+
+    #[test]
+    fn test_chapter_translation() {
+        let dutch_translation = Translation::from_language(Language::Dutch);
+        
+        // Test book name only
+        assert_eq!(dutch_translation.get("matthew"), Some("Matteüs".to_string()));
+        assert_eq!(dutch_translation.get("john"), Some("Johannes".to_string()));
+        assert_eq!(dutch_translation.get("numbers"), Some("Numeri".to_string()));
+        
+        // Test chapter references
+        assert_eq!(dutch_translation.get("matthew 7"), Some("Matteüs 7".to_string()));
+        assert_eq!(dutch_translation.get("john 3"), Some("Johannes 3".to_string()));
+        assert_eq!(dutch_translation.get("numbers 7"), Some("Numeri 7".to_string()));
+        assert_eq!(dutch_translation.get("first_john 2"), Some("1 Johannes 2".to_string()));
+        
+        // Test non-existent book
+        assert_eq!(dutch_translation.get("nonexistent"), None);
+        assert_eq!(dutch_translation.get("nonexistent 5"), None);
+    }
+    
+    #[test]
+    fn test_english_translation() {
+        let english_translation = Translation::from_language(Language::English);
+        
+        // Test book name only
+        assert_eq!(english_translation.get("matthew"), Some("Matthew".to_string()));
+        assert_eq!(english_translation.get("john"), Some("John".to_string()));
+        
+        // Test chapter references
+        assert_eq!(english_translation.get("matthew 7"), Some("Matthew 7".to_string()));
+        assert_eq!(english_translation.get("john 3"), Some("John 3".to_string()));
+    }
+
+    #[test]
+    fn test_various_formats() {
+        let dutch_translation = Translation::from_language(Language::Dutch);
+        
+        // Test different input formats that might come from the data
+        assert_eq!(dutch_translation.get("Numbers"), Some("Numeri".to_string()));
+        assert_eq!(dutch_translation.get("numbers"), Some("Numeri".to_string()));
+        assert_eq!(dutch_translation.get("NUMBERS"), Some("Numeri".to_string()));
+        assert_eq!(dutch_translation.get("Numbers 7"), Some("Numeri 7".to_string()));
+        assert_eq!(dutch_translation.get("numbers 7"), Some("Numeri 7".to_string()));
+        
+        // Test what happens with unknown format
+        assert_eq!(dutch_translation.get("SomeUnknownBook"), None);
+        assert_eq!(dutch_translation.get("SomeUnknownBook 5"), None);
+    }
+
+    #[test]
+    fn test_command_palette_search_scenario() {
+        let dutch_translation = Translation::from_language(Language::Dutch);
+        
+        // Simulate the command palette scenario
+        let chapter_name = "Numbers 1"; // This is what's stored in the Bible data
+        let translated_name = dutch_translation.get(chapter_name).unwrap(); // Should be "Numeri 1"
+        assert_eq!(translated_name, "Numeri 1");
+        
+        // Now test if searching for "numeri" would find this
+        let query = "numeri";
+        let translated_lower = translated_name.to_lowercase(); // "numeri 1"
+        
+        // This should return a score > 0 since "numeri" is in "numeri 1" 
+        assert!(translated_lower.contains(query), "Translated name '{}' should contain query '{}'", translated_lower, query);
     }
 }

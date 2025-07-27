@@ -19,36 +19,56 @@ fn convert_language(storage_lang: &crate::storage::translation_storage::Language
     }
 }
 
-fn get_translated_book_name(book_name: &str) -> String {
+fn get_translated_name(input: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
             let translation = Translation::from_language(convert_language(first_language));
             
-            // Convert book name to lowercase and replace spaces with underscores for lookup
-            let lookup_key = book_name.to_lowercase().replace(' ', "_");
+            // Convert input to lowercase and replace spaces with underscores for lookup
+            let lookup_key = input.to_lowercase().replace(' ', "_");
             
             if let Some(translated_name) = translation.get(&lookup_key) {
-                return translated_name.to_string();
+                return translated_name;
             }
         }
     }
     
-    // Return original name if no translation found
-    book_name.to_string()
+    // Return original input if no translation found
+    input.to_string()
 }
 
-fn is_book_name_translated(book_name: &str) -> bool {
+fn is_name_translated(input: &str) -> bool {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
             let translation = Translation::from_language(convert_language(first_language));
             
-            // Convert book name to lowercase and replace spaces with underscores for lookup
-            let lookup_key = book_name.to_lowercase().replace(' ', "_");
+            // Convert input to lowercase and replace spaces with underscores for lookup
+            let lookup_key = input.to_lowercase().replace(' ', "_");
             
             return translation.get(&lookup_key).is_some();
         }
     }
     false
+}
+
+fn get_ui_text(key: &str) -> String {
+    if let Some(current_translation) = get_current_translation() {
+        if let Some(first_language) = current_translation.languages.first() {
+            match (key, first_language) {
+                ("books", crate::storage::translation_storage::Language::Dutch) => "Boeken".to_string(),
+                ("books", crate::storage::translation_storage::Language::English) => "Books".to_string(),
+                _ => key.to_string(),
+            }
+        } else {
+            key.to_string()
+        }
+    } else {
+        // Default to English
+        match key {
+            "books" => "Books".to_string(),
+            _ => key.to_string(),
+        }
+    }
 }
 
 #[component]
@@ -84,7 +104,7 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
 
     view! {
         <div class="sidebar">
-            <h2 class="text-lg font-bold mb-4 text-black">Books</h2>
+            <h2 class="text-lg font-bold mb-4 text-black">{get_ui_text("books")}</h2>
             <ul class="space-y-2">
             {move || books.get().iter().map(|b| view! {
                 <BookView
@@ -130,12 +150,12 @@ fn BookView(
             >
                 <span class={
                     let book_name = book.name.clone();
-                    let is_translated = is_book_name_translated(&book_name);
+                    let is_translated = is_name_translated(&book_name);
                     if is_translated { "" } else { "font-bold" }
                 }>
                     {
                         let book_name = book.name.clone();
-                        get_translated_book_name(&book_name)
+                        get_translated_name(&book_name)
                     }
                 </span>
             </button>

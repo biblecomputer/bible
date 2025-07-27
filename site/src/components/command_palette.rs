@@ -1,7 +1,33 @@
 use crate::core::{Chapter, get_bible};
+use crate::storage::translations::get_current_translation;
+use crate::core::types::Language;
+use crate::translation_map::translation::Translation;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos::web_sys::KeyboardEvent;
+
+fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
+    match storage_lang {
+        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
+        crate::storage::translation_storage::Language::English => Language::English,
+    }
+}
+
+fn get_translated_chapter_name(chapter_name: &str) -> String {
+    if let Some(current_translation) = get_current_translation() {
+        if let Some(first_language) = current_translation.languages.first() {
+            let translation = Translation::from_language(convert_language(first_language));
+            
+            // Use the Translation.get() method which handles both book names and chapter references
+            if let Some(translated_name) = translation.get(chapter_name) {
+                return translated_name;
+            }
+        }
+    }
+    
+    // Return original name if no translation found
+    chapter_name.to_string()
+}
 
 #[component]
 pub fn CommandPalette(
@@ -28,7 +54,14 @@ pub fn CommandPalette(
             .iter()
             .flat_map(|book| book.chapters.iter())
             .filter_map(|chapter| {
-                let score = fuzzy_score(&chapter.name.to_lowercase(), &query);
+                let original_name = chapter.name.to_lowercase();
+                let translated_name = get_translated_chapter_name(&chapter.name).to_lowercase();
+                
+                // Get the best score from either original or translated name
+                let original_score = fuzzy_score(&original_name, &query);
+                let translated_score = fuzzy_score(&translated_name, &query);
+                let score = original_score.max(translated_score);
+                
                 if score > 0 {
                     Some((chapter, score))
                 } else {
@@ -166,7 +199,7 @@ pub fn CommandPalette(
                         <input
                             node_ref=input_ref
                             type="text"
-                            placeholder="Search chapters... (e.g., 'Genesis 1', 'John 3:16')"
+                            placeholder="Search chapters... (e.g., 'Genesis 1', 'Matteüs 7', 'Numeri 5')"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             prop:value=search_query
                             on:input=move |e| set_search_query.set(event_target_value(&e))
@@ -211,7 +244,7 @@ pub fn CommandPalette(
                                                 >
                                                     <div class="flex-1">
                                                         <div class="font-medium">
-                                                            {chapter.name.clone()}
+                                                            {get_translated_chapter_name(&chapter.name)}
                                                         </div>
                                                     </div>
                                                     {if is_selected {
@@ -386,6 +419,19 @@ fn character_fuzzy_score(text: &str, query: &str, is_positional_match: bool) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_fuzzy_score_with_translated_names() {
+        // Test fuzzy search functionality with translated names
+        let score = fuzzy_score("numeri 1", "numeri");
+        assert!(score > 0, "Should match 'numeri' in 'numeri 1'");
+        
+        let score2 = fuzzy_score("numeri 1", "numeri 1");
+        assert!(score2 > 0, "Should match exact 'numeri 1'");
+        
+        let score3 = fuzzy_score("numbers 1", "numeri");
+        assert_eq!(score3, 0, "Should not match 'numeri' in 'numbers 1'");
+    }
 
     #[test]
     fn test_exact_match() {

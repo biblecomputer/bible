@@ -1,8 +1,57 @@
 use crate::core::{Chapter, get_bible, init_bible_signal};
+use crate::storage::translations::get_current_translation;
+use crate::core::types::Language;
+use crate::translation_map::translation::Translation;
 use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
 use leptos_router::components::A;
+
+fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
+    match storage_lang {
+        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
+        crate::storage::translation_storage::Language::English => Language::English,
+    }
+}
+
+fn get_translated_chapter_name(chapter_name: &str) -> String {
+    if let Some(current_translation) = get_current_translation() {
+        if let Some(first_language) = current_translation.languages.first() {
+            let translation = Translation::from_language(convert_language(first_language));
+            
+            // Use the Translation.get() method which handles both book names and chapter references
+            if let Some(translated_name) = translation.get(chapter_name) {
+                return translated_name;
+            }
+        }
+    }
+    
+    // Return original name if no translation found
+    chapter_name.to_string()
+}
+
+fn get_navigation_text(key: &str) -> String {
+    if let Some(current_translation) = get_current_translation() {
+        if let Some(first_language) = current_translation.languages.first() {
+            match (key, first_language) {
+                ("previous_chapter", crate::storage::translation_storage::Language::Dutch) => "Vorig Hoofdstuk".to_string(),
+                ("next_chapter", crate::storage::translation_storage::Language::Dutch) => "Volgend Hoofdstuk".to_string(),
+                ("previous_chapter", crate::storage::translation_storage::Language::English) => "Previous Chapter".to_string(),
+                ("next_chapter", crate::storage::translation_storage::Language::English) => "Next Chapter".to_string(),
+                _ => key.to_string(),
+            }
+        } else {
+            key.to_string()
+        }
+    } else {
+        // Default to English
+        match key {
+            "previous_chapter" => "Previous Chapter".to_string(),
+            "next_chapter" => "Next Chapter".to_string(),
+            _ => key.to_string(),
+        }
+    }
+}
 
 #[component]
 pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
@@ -51,7 +100,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     view! {
         <article class="chapter-detail max-w-2xl mx-auto px-4">
             <header class="mb-8">
-                <h1 class="text-3xl font-bold text-black">{move || current_chapter_data.get().name.clone()}</h1>
+                <h1 class="text-3xl font-bold text-black">{move || get_translated_chapter_name(&current_chapter_data.get().name)}</h1>
             </header>
             
             <div class="verses text-lg leading-8 text-black" role="main" aria-label="Chapter text">
@@ -88,7 +137,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                                 <svg class="w-4 h-4 mr-2 group-hover:transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                                 </svg>
-                                "Previous Chapter"
+                                {get_navigation_text("previous_chapter")}
                             </A>
                         </div>
                     }.into_any()
@@ -100,7 +149,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                     view! {
                         <div class="flex items-center px-4 py-2 text-sm font-medium text-black hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors group">
                             <A href=path>
-                                "Next Chapter"
+                                {get_navigation_text("next_chapter")}
                                 <svg class="w-4 h-4 ml-2 group-hover:transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
