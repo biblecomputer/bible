@@ -1,6 +1,9 @@
 use crate::core::{get_bible, init_bible_signal};
 use crate::core::*;
 use crate::utils::is_mobile_screen;
+use crate::storage::translations::get_current_translation;
+use crate::core::types::Language;
+use crate::translation_map::translation::Translation;
 use leptos::component;
 use leptos::prelude::*;
 use leptos::view;
@@ -8,6 +11,45 @@ use leptos::IntoView;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::location::Location;
 use urlencoding::decode;
+
+fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
+    match storage_lang {
+        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
+        crate::storage::translation_storage::Language::English => Language::English,
+    }
+}
+
+fn get_translated_book_name(book_name: &str) -> String {
+    if let Some(current_translation) = get_current_translation() {
+        if let Some(first_language) = current_translation.languages.first() {
+            let translation = Translation::from_language(convert_language(first_language));
+            
+            // Convert book name to lowercase and replace spaces with underscores for lookup
+            let lookup_key = book_name.to_lowercase().replace(' ', "_");
+            
+            if let Some(translated_name) = translation.get(&lookup_key) {
+                return translated_name.to_string();
+            }
+        }
+    }
+    
+    // Return original name if no translation found
+    book_name.to_string()
+}
+
+fn is_book_name_translated(book_name: &str) -> bool {
+    if let Some(current_translation) = get_current_translation() {
+        if let Some(first_language) = current_translation.languages.first() {
+            let translation = Translation::from_language(convert_language(first_language));
+            
+            // Convert book name to lowercase and replace spaces with underscores for lookup
+            let lookup_key = book_name.to_lowercase().replace(' ', "_");
+            
+            return translation.get(&lookup_key).is_some();
+        }
+    }
+    false
+}
 
 #[component]
 pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
@@ -86,7 +128,16 @@ fn BookView(
                     }
                 }
             >
-                {book.name.clone()}
+                <span class={
+                    let book_name = book.name.clone();
+                    let is_translated = is_book_name_translated(&book_name);
+                    if is_translated { "" } else { "font-bold" }
+                }>
+                    {
+                        let book_name = book.name.clone();
+                        get_translated_book_name(&book_name)
+                    }
+                </span>
             </button>
             <Show
                 when={

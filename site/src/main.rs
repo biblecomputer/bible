@@ -16,6 +16,7 @@ mod api;
 mod components;
 mod core;
 mod storage;
+mod translation_map;
 mod utils;
 mod views;
 
