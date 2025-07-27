@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use crate::core::types::Language;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Translation<'a> {
@@ -72,7 +73,27 @@ pub struct Translation<'a> {
     pub revelation: &'a str,
 }
 
+const DUTCH_JSON: &str = include_str!("dutch.json");
+const ENGLISH_JSON: &str = include_str!("english.json");
+
+use std::sync::LazyLock;
+
+static DUTCH_TRANSLATION: LazyLock<Translation<'static>> = LazyLock::new(|| {
+    serde_json::from_str(DUTCH_JSON).expect("Failed to parse dutch.json")
+});
+
+static ENGLISH_TRANSLATION: LazyLock<Translation<'static>> = LazyLock::new(|| {
+    serde_json::from_str(ENGLISH_JSON).expect("Failed to parse english.json")
+});
+
 impl<'a> Translation<'a> {
+    pub fn from_language(language: Language) -> &'static Translation<'static> {
+        match language {
+            Language::Dutch => &DUTCH_TRANSLATION,
+            Language::English => &ENGLISH_TRANSLATION,
+        }
+    }
+
     pub fn get(&self, s: &str) -> Option<&'a str> {
         match s {
             "genesis" => Some(self.genesis),

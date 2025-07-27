@@ -1,4 +1,4 @@
-use crate::storage::translation_storage::{BibleTranslation, Language};
+use crate::storage::translation_storage::{BibleTranslation, Language, get_selected_translation};
 
 pub fn get_translations() -> Vec<BibleTranslation> {
     vec![
@@ -30,4 +30,12 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4M2Y3NmRlMTNjNGI2YzhhMmQyM2Ji:ZmIwZjczMTNkZGZkNjFhYjkwMjYzNWE0NGUwNzEzMGU4YThjYTZjNWZmOTdiZWJkNTg0ZDFhODVlNjBjMTZhNw"),
         }
     ]
+}
+
+pub fn get_current_translation() -> Option<BibleTranslation> {
+    let selected_short_name = get_selected_translation().unwrap_or_else(|| "sv".to_string());
+    
+    get_translations()
+        .into_iter()
+        .find(|t| t.short_name == selected_short_name)
 }
