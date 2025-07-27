@@ -1,11 +1,8 @@
-use crate::chapter_view::ChapterDetail;
-use crate::command_palette::CommandPalette;
-use crate::home_translation_picker::HomeTranslationPicker;
-use crate::sidebar::Sidebar;
-use crate::shortcuts_help::ShortcutsHelp;
-use crate::bible_api::init_bible;
-use crate::bible_core::{get_bible, Chapter};
-use crate::types::*;
+use crate::views::ChapterDetail;
+use crate::components::{CommandPalette, Sidebar, ShortcutsHelp};
+use crate::views::HomeTranslationPicker;
+use crate::api::init_bible;
+use crate::core::{get_bible, Chapter};
 use crate::utils::is_mobile_screen;
 use leptos::prelude::*;
 use leptos::ev;
@@ -15,18 +12,12 @@ use leptos_router::path;
 use leptos::web_sys::KeyboardEvent;
 use wasm_bindgen_futures::spawn_local;
 
-mod bible_api;
-mod bible_core;
-mod chapter_view;
-mod command_palette;
-mod home_translation_picker;
-mod shortcuts_help;
-mod sidebar;
-mod translation_manager;
-mod translation_storage;
-mod translations;
-mod types;
+mod api;
+mod components;
+mod core;
+mod storage;
 mod utils;
+mod views;
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -298,8 +289,8 @@ fn KeyboardNavigationHandler(
 
 #[component]
 fn Home() -> impl IntoView {
-    use crate::bible_core::get_current_bible;
-    use crate::translation_storage::{get_selected_translation, is_translation_downloaded};
+    use crate::core::get_current_bible;
+    use crate::storage::{get_selected_translation, is_translation_downloaded};
     use leptos_router::hooks::{use_navigate, use_location};
     use urlencoding::encode;
     

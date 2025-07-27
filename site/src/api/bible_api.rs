@@ -1,4 +1,5 @@
-use crate::bible_core::{Bible, BIBLE, init_bible_signal};
+use crate::core::{Bible, BIBLE, init_bible_signal};
+use leptos::prelude::Set;
 use gloo_net::http::Request;
 use rexie::{ObjectStore, Rexie, TransactionMode};
 
@@ -19,7 +20,7 @@ pub async fn init_bible() -> std::result::Result<(), Box<dyn std::error::Error>>
 }
 
 async fn load_or_fetch_bible() -> std::result::Result<Bible, Box<dyn std::error::Error>> {
-    use crate::translation_storage::{get_selected_translation, is_translation_downloaded, load_downloaded_translation};
+    use crate::storage::{get_selected_translation, is_translation_downloaded, load_downloaded_translation};
     
     if let Some(selected_translation) = get_selected_translation() {
         if is_translation_downloaded(&selected_translation) {

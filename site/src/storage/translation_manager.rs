@@ -1,9 +1,9 @@
 use leptos::prelude::*;
-use crate::translation_storage::{
+use crate::storage::{
     BibleTranslation, get_selected_translation, set_selected_translation, 
-    is_translation_downloaded, download_translation, switch_bible_translation, uninstall_translation
+    is_translation_downloaded, download_translation, switch_bible_translation, uninstall_translation,
+    get_translations
 };
-use crate::translations::get_translations;
 use wasm_bindgen_futures::spawn_local;
 
 #[component]

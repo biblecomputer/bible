@@ -1,4 +1,4 @@
-use crate::{Chapter, get_bible, init_bible_signal};
+use crate::core::{Chapter, get_bible, init_bible_signal};
 use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
