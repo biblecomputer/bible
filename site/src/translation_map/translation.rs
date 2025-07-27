@@ -167,7 +167,7 @@ impl<'a> Translation<'a> {
             "second_john" | "2_john" | "2john" | "ii_john" | "iijohn" => Some(self.second_john),
             "third_john" | "3_john" | "3john" | "iii_john" | "iiijohn" => Some(self.third_john),
             "jude" => Some(self.jude),
-            "revelation" => Some(self.revelation),
+            "revelation" | "revelation_of_john" => Some(self.revelation),
             _ => None,
         }
     }
@@ -298,5 +298,11 @@ mod tests {
         assert_eq!(dutch_translation.get("I John"), Some("I Johannes".to_string()));
         assert_eq!(dutch_translation.get("II John"), Some("II Johannes".to_string()));
         assert_eq!(dutch_translation.get("III John"), Some("III Johannes".to_string()));
+        
+        // Test Revelation
+        assert_eq!(dutch_translation.get("Revelation"), Some("Openbaringen".to_string()));
+        assert_eq!(dutch_translation.get("Revelation 1"), Some("Openbaringen 1".to_string()));
+        assert_eq!(dutch_translation.get("Revelation of John"), Some("Openbaringen".to_string()));
+        assert_eq!(dutch_translation.get("Revelation of John 22"), Some("Openbaringen 22".to_string()));
     }
 }
