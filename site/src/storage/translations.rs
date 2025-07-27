@@ -1,15 +1,15 @@
-use crate::storage::translation_storage::{BibleTranslation, Language, get_selected_translation};
+use crate::storage::translation_storage::{get_selected_translation, BibleTranslation, Language};
 
 pub fn get_translations() -> Vec<BibleTranslation> {
     vec![
         BibleTranslation {
             name: String::from("Staten vertaling"),
-            short_name: String::from("sv"),
+            short_name: String::from("svv"),
             description: String::from("De Statenvertaling is een Nederlandse Bijbelvertaling uit 1637, vervaardigd in opdracht van de Staten-Generaal. Zij baseerden zich nauwgezet op de oorspronkelijke Hebreeuwse en Griekse grondteksten. Deze vertaling wordt gekenmerkt door haar plechtige, eerbiedige taal en heeft eeuwenlang grote invloed gehad op het protestantse geloofsleven in Nederland."),
             wikipedia: String::from("https://nl.wikipedia.org/wiki/Statenvertaling"),
             release_year: 1637,
             languages: vec![Language::Dutch],
-            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg2ZDFjNDgwOGQ0M2UzNTUyNTdhYmRh:MTJjOTRlYTBmNzM2YWZiZDE2NzdkMzU3NzA3MjBmMTRmZGZkMWYzNWVkYWVlNTU1Y2RjYTA1NzYzZmE1YmEzNA"),
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4NjlmY2VlMTNjNGI2YzhhMmU3MzQx:NWFlN2IwYmIyZDQ0OWI3OTQ1ZmJhYWI4NGFjODJkYjYyMmM1MWJkZmEzYmI1NTA1NzgyZWEwNGQwOGMyMGM3MQ"),
         },
         BibleTranslation {
             name: String::from("Petrus Canisiusvertaling"),
@@ -18,7 +18,7 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             wikipedia: String::from("https://nl.wikipedia.org/wiki/Petrus_Canisiusvertaling"),
             release_year: 1939,
             languages: vec![Language::Dutch],
-            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4MTA1YThlMTNjNGI2YzhhMjM0YmNm:MGI0OWJkYzcyMDNkZWYxNzRkODQ0NTA1MTY2ZDVmOGI4MjI0ZjE2MzFiYmM4MDI2ZGU5MTZmOWJiNzVjZDYxMw"),
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4NjYwZTZlMTNjNGI2YzhhMmU0Zjc0:MGYyYTlkYmRiZDhhNThjYjRmNzk4NzA2ODZkODY0M2NlMzJjZDRkMjM3YWJmNjQ5MWU4NmFkMTRmNDMwZWMzYQ"),
         },
         BibleTranslation {
             name: String::from("King james version"),
@@ -27,14 +27,14 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             wikipedia: String::from("https://nl.wikipedia.org/wiki/King_James_Version"),
             release_year: 1611,
             languages: vec![Language::English],
-            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4M2Y3NmRlMTNjNGI2YzhhMmQyM2Ji:ZmIwZjczMTNkZGZkNjFhYjkwMjYzNWE0NGUwNzEzMGU4YThjYTZjNWZmOTdiZWJkNTg0ZDFhODVlNjBjMTZhNw"),
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4NjYzMDBlMTNjNGI2YzhhMmU1Yzc2:MzI3ZTY3NjBmMDAwMzBlMDVlZGM3NGQxNjU5MDIxMDdlNTE0MDA2ZWJkNTRkMjAyZGJjZWE1ZTlhMTQzNmYzNg"),
         }
     ]
 }
 
 pub fn get_current_translation() -> Option<BibleTranslation> {
     let selected_short_name = get_selected_translation().unwrap_or_else(|| "sv".to_string());
-    
+
     get_translations()
         .into_iter()
         .find(|t| t.short_name == selected_short_name)
