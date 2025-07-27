@@ -1,5 +1,6 @@
-use crate::bible_api::try_fetch_bible;
-use crate::bible_core::{Bible, init_bible_signal};
+use crate::api::try_fetch_bible;
+use crate::core::{Bible, init_bible_signal};
+use leptos::prelude::Set;
 use gloo_storage::{LocalStorage, Storage};
 use rexie::{ObjectStore, Rexie, TransactionMode};
 use serde::{Deserialize, Serialize};

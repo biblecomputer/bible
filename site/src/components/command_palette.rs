@@ -1,4 +1,4 @@
-use crate::{Chapter, get_bible};
+use crate::core::{Chapter, get_bible};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos::web_sys::KeyboardEvent;

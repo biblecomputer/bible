@@ -1,9 +1,9 @@
 use leptos::prelude::*;
-use crate::translation_storage::{
+use crate::storage::{
     get_selected_translation, get_downloaded_translations,
-    switch_bible_translation, set_selected_translation
+    switch_bible_translation, set_selected_translation,
+    get_translations
 };
-use crate::translations::get_translations;
 use wasm_bindgen_futures::spawn_local;
 
 #[component]
@@ -12,23 +12,23 @@ pub fn TranslationSwitcher() -> impl IntoView {
     
     // Only show if there are multiple downloaded translations
     if downloaded_translations.len() <= 1 {
-        return view! { <></> };
+        return view! { <></> }.into_any();
     }
     
     let (is_open, set_is_open) = signal(false);
     let (is_switching, set_is_switching) = signal(false);
-    let current_translation = get_selected_translation().unwrap_or_else(|| "sv".to_string());
+    let current_translation = signal(get_selected_translation().unwrap_or_else(|| "sv".to_string())).0;
     
     // Get translation details
     let all_translations = get_translations();
-    let available_translations: Vec<_> = all_translations
+    let available_translations = signal(all_translations
         .into_iter()
         .filter(|t| downloaded_translations.contains(&t.short_name))
-        .collect();
+        .collect::<Vec<_>>()).0;
     
-    let current_translation_name = available_translations
+    let current_translation_name = available_translations.get()
         .iter()
-        .find(|t| t.short_name == current_translation)
+        .find(|t| t.short_name == current_translation.get())
         .map(|t| t.name.clone())
         .unwrap_or_else(|| "Unknown".to_string());
     
@@ -73,9 +73,11 @@ pub fn TranslationSwitcher() -> impl IntoView {
                         <div class="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide border-b border-gray-100">
                             "Switch Translation"
                         </div>
-                        {
-                            available_translations.into_iter().map(|translation| {
-                                let is_current = translation.short_name == current_translation;
+                        <For
+                            each=move || available_translations.get()
+                            key=|translation| translation.short_name.clone()
+                            children=move |translation| {
+                                let is_current = translation.short_name == current_translation.get();
                                 let short_name = translation.short_name.clone();
                                 
                                 view! {
@@ -96,15 +98,15 @@ pub fn TranslationSwitcher() -> impl IntoView {
                                                     <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                                                     </svg>
-                                                }.into()
+                                                }.into_any()
                                             } else {
-                                                view! { <></> }.into()
+                                                view! { <></> }.into_any()
                                             }}
                                         </div>
                                     </button>
                                 }
-                            }).collect_view()
-                        }
+                            }
+                        />
                         <div class="border-t border-gray-100 mt-1">
                             <a
                                 href="/translations"
@@ -129,5 +131,5 @@ pub fn TranslationSwitcher() -> impl IntoView {
                 />
             </Show>
         </div>
-    }
+    }.into_any()
 }
