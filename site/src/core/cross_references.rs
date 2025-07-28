@@ -1,4 +1,4 @@
-use crate::core::types::{References, Reference, VerseKey};
+use crate::core::types::{References, Reference, VerseId};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -155,10 +155,9 @@ pub fn parse_cross_references(content: &str) -> Result<References, CrossReferenc
         
         // Parse from verse
         let (from_book, from_chapter, from_verse, _) = parse_single_verse_reference(from_verse_ref)?;
-        let from_key = VerseKey {
-            book_name: from_book,
-            chapter: from_chapter,
-            verse: from_verse,
+        let from_key = match VerseId::from_book_name(&from_book, from_chapter, from_verse) {
+            Some(id) => id,
+            None => continue, // Skip unknown books
         };
         
         // Parse to verse (can be range)
@@ -235,11 +234,7 @@ Gen.1.2	Job.26.7	40"#;
         let references = parse_cross_references(content).unwrap();
         
         // Check Genesis 1:1 references
-        let gen_1_1_key = VerseKey {
-            book_name: "Genesis".to_string(),
-            chapter: 1,
-            verse: 1,
-        };
+        let gen_1_1_key = VerseId::from_book_name("Genesis", 1, 1).unwrap();
         
         let gen_1_1_refs = references.0.get(&gen_1_1_key).unwrap();
         assert_eq!(gen_1_1_refs.len(), 2);
@@ -259,11 +254,7 @@ Gen.1.2	Job.26.7	40"#;
         assert_eq!(gen_1_1_refs[1].votes, 50);
         
         // Check Genesis 1:2 reference
-        let gen_1_2_key = VerseKey {
-            book_name: "Genesis".to_string(),
-            chapter: 1,
-            verse: 2,
-        };
+        let gen_1_2_key = VerseId::from_book_name("Genesis", 1, 2).unwrap();
         
         let gen_1_2_refs = references.0.get(&gen_1_2_key).unwrap();
         assert_eq!(gen_1_2_refs.len(), 1);
@@ -280,11 +271,7 @@ Gen.1.2	Job.26.7	40"#;
         assert!(!references.0.is_empty());
         
         // Check that Genesis 1:1 has references (should be one of the most referenced verses)
-        let gen_1_1_key = VerseKey {
-            book_name: "Genesis".to_string(),
-            chapter: 1,
-            verse: 1,
-        };
+        let gen_1_1_key = VerseId::from_book_name("Genesis", 1, 1).unwrap();
         
         if let Some(gen_1_1_refs) = references.0.get(&gen_1_1_key) {
             assert!(!gen_1_1_refs.is_empty());
