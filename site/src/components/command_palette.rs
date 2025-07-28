@@ -85,6 +85,33 @@ fn parse_verse_reference(query: &str) -> Option<VerseReference> {
     None
 }
 
+fn score_verse_number_match(verse_number: u32, search_number: u32) -> usize {
+    let verse_str = verse_number.to_string();
+    let search_str = search_number.to_string();
+    
+    // Exact match gets highest score
+    if verse_number == search_number {
+        return 1000;
+    }
+    
+    // Check if verse number starts with search number (e.g., 10, 11, 12 when searching for 1)
+    if verse_str.starts_with(&search_str) {
+        return 800;
+    }
+    
+    // Check if search number starts with verse number (e.g., searching for 10 when verse is 1)
+    if search_str.starts_with(&verse_str) {
+        return 400;
+    }
+    
+    // Check if verse number contains search number (e.g., 21, 31 when searching for 1)
+    if verse_str.contains(&search_str) {
+        return 600;
+    }
+    
+    0
+}
+
 fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
     match storage_lang {
         crate::storage::translation_storage::Language::Dutch => Language::Dutch,
@@ -151,16 +178,19 @@ pub fn CommandPalette(
                             if let Some(chapter) = book.chapters.iter().find(|c| c.chapter == verse_ref.chapter) {
                                 match verse_ref.verse {
                                     Some(verse_num) => {
-                                        // Specific verse requested
-                                        if let Some(verse) = chapter.verses.iter().find(|v| v.verse == verse_num) {
-                                            results.push((
-                                                SearchResult::Verse {
-                                                    chapter: chapter.clone(),
-                                                    verse_number: verse.verse,
-                                                    verse_text: verse.text.clone(),
-                                                },
-                                                1000 // High score for exact verse match
-                                            ));
+                                        // Specific verse requested - find exact match and similar verses
+                                        for verse in &chapter.verses {
+                                            let score = score_verse_number_match(verse.verse, verse_num);
+                                            if score > 0 {
+                                                results.push((
+                                                    SearchResult::Verse {
+                                                        chapter: chapter.clone(),
+                                                        verse_number: verse.verse,
+                                                        verse_text: verse.text.clone(),
+                                                    },
+                                                    score
+                                                ));
+                                            }
                                         }
                                     }
                                     None => {
@@ -626,6 +656,37 @@ mod tests {
         assert!(parse_verse_reference("gen:1").is_none()); // No chapter
         assert!(parse_verse_reference("gen 1:abc").is_none()); // Invalid verse
         assert!(parse_verse_reference("gen abc:1").is_none()); // Invalid chapter
+    }
+
+    #[test]
+    fn test_score_verse_number_match() {
+        // Test exact match
+        assert_eq!(score_verse_number_match(1, 1), 1000);
+        assert_eq!(score_verse_number_match(16, 16), 1000);
+        
+        // Test starts with (1 matches 10, 11, 12)
+        assert_eq!(score_verse_number_match(10, 1), 800);
+        assert_eq!(score_verse_number_match(11, 1), 800);
+        assert_eq!(score_verse_number_match(12, 1), 800);
+        assert_eq!(score_verse_number_match(100, 1), 800);
+        
+        // Test contains (1 matches 21, 31, but not 151 since that starts with 1)
+        assert_eq!(score_verse_number_match(21, 1), 600);
+        assert_eq!(score_verse_number_match(31, 1), 600);
+        assert_eq!(score_verse_number_match(151, 1), 800); // This starts with 1, so gets higher score
+        
+        // Test reverse starts with (10 matches 1)
+        assert_eq!(score_verse_number_match(1, 10), 400);
+        assert_eq!(score_verse_number_match(2, 23), 400);
+        
+        // Test no match
+        assert_eq!(score_verse_number_match(2, 3), 0);
+        assert_eq!(score_verse_number_match(25, 6), 0);
+        
+        // Test priorities (exact > starts_with > contains > reverse_starts_with)
+        assert!(score_verse_number_match(1, 1) > score_verse_number_match(10, 1));
+        assert!(score_verse_number_match(10, 1) > score_verse_number_match(21, 1));
+        assert!(score_verse_number_match(21, 1) > score_verse_number_match(1, 10));
     }
 
     // Note: display_name test skipped due to web API dependency in translation functions
