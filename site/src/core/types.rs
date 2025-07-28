@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bible {
@@ -47,4 +48,23 @@ pub struct BibleTranslation {
 pub enum Language {
     Dutch,
     English,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct References(pub HashMap<VerseKey, Vec<Reference>>);
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct VerseKey {
+    pub book_name: String,
+    pub chapter: u32,
+    pub verse: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Reference {
+    pub to_book_name: String,
+    pub to_chapter: u32,
+    pub to_verse_start: u32,
+    pub to_verse_end: Option<u32>, // None for single verse, Some for verse ranges
+    pub votes: i32, // Can be negative based on the data
 }
