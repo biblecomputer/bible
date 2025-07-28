@@ -31,7 +31,7 @@
           fileset = pkgs.lib.fileset.unions [
             (craneLib.fileset.commonCargoSources unfilteredRoot)
             (pkgs.lib.fileset.fileFilter (
-              file: pkgs.lib.any file.hasExt [ "html" "scss" "css" "js" "json" ]
+              file: pkgs.lib.any file.hasExt [ "html" "scss" "css" "js" "json" "txt" ]
             ) unfilteredRoot)
             (pkgs.lib.fileset.maybeMissing ./assets)
           ];
