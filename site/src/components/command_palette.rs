@@ -1,10 +1,80 @@
-use crate::core::{Chapter, get_bible};
+use crate::core::{Chapter, get_bible, VerseRange};
 use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos::web_sys::KeyboardEvent;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SearchResult {
+    Chapter(Chapter),
+    Verse {
+        chapter: Chapter,
+        verse_number: u32,
+        verse_text: String,
+    },
+}
+
+impl SearchResult {
+    pub fn get_display_name(&self) -> String {
+        match self {
+            SearchResult::Chapter(chapter) => get_translated_chapter_name(&chapter.name),
+            SearchResult::Verse { chapter, verse_number, .. } => {
+                format!("{} verse {}", get_translated_chapter_name(&chapter.name), verse_number)
+            }
+        }
+    }
+    
+    pub fn to_path(&self) -> String {
+        match self {
+            SearchResult::Chapter(chapter) => chapter.to_path(),
+            SearchResult::Verse { chapter, verse_number, .. } => {
+                let verse_range = VerseRange { start: *verse_number, end: *verse_number };
+                chapter.to_path_with_verses(&[verse_range])
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct VerseReference {
+    book_name: String,
+    chapter: u32,
+    verse: Option<u32>,
+}
+
+fn parse_verse_reference(query: &str) -> Option<VerseReference> {
+    // Handle formats like "gen 1:1", "genesis 1:5", "john 3:16", "mat 5:3-7"
+    let query = query.trim().to_lowercase();
+    
+    // Look for colon indicating verse reference
+    if let Some(colon_pos) = query.find(':') {
+        let before_colon = &query[..colon_pos];
+        let after_colon = &query[colon_pos + 1..];
+        
+        // Split the part before colon into book and chapter
+        let parts: Vec<&str> = before_colon.split_whitespace().collect();
+        if parts.len() >= 2 {
+            // Try to parse the last part as chapter number
+            if let Ok(chapter_num) = parts.last().unwrap().parse::<u32>() {
+                let book_name = parts[..parts.len() - 1].join(" ");
+                
+                // Parse verse number (take only the first number if it's a range like "3-7")
+                let verse_str = after_colon.split('-').next().unwrap_or(after_colon);
+                if let Ok(verse_num) = verse_str.parse::<u32>() {
+                    return Some(VerseReference {
+                        book_name,
+                        chapter: chapter_num,
+                        verse: Some(verse_num),
+                    });
+                }
+            }
+        }
+    }
+    
+    None
+}
 
 fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
     match storage_lang {
@@ -42,14 +112,55 @@ pub fn CommandPalette(
     // Create a node ref for the input element
     let input_ref = NodeRef::<leptos::html::Input>::new();
 
-    // Create a memo for filtered chapters
-    let filtered_chapters = Memo::new(move |_| {
+    // Create a memo for filtered search results (chapters and verses)
+    let filtered_results = Memo::new(move |_| {
         let query = search_query.get().to_lowercase();
         if query.is_empty() {
             return Vec::new();
         }
 
-        let mut results: Vec<(&Chapter, usize)> = get_bible()
+        let mut results: Vec<(SearchResult, usize)> = Vec::new();
+        
+        // Check if this is a verse reference (e.g., "gen 1:1")
+        if let Some(verse_ref) = parse_verse_reference(&query) {
+            // Try to find the specific verse
+            if let Some(translation) = get_current_translation() {
+                if let Some(first_language) = translation.languages.first() {
+                    let translation_obj = Translation::from_language(convert_language(first_language));
+                    
+                    // Try to translate the book name
+                    let book_name_to_search = if let Some(translated) = translation_obj.get(&verse_ref.book_name) {
+                        translated
+                    } else {
+                        verse_ref.book_name.clone()
+                    };
+                    
+                    // Find the chapter
+                    for book in &get_bible().books {
+                        if book.name.to_lowercase().contains(&book_name_to_search.to_lowercase()) 
+                            || book.name.to_lowercase().contains(&verse_ref.book_name) {
+                            if let Some(chapter) = book.chapters.iter().find(|c| c.chapter == verse_ref.chapter) {
+                                if let Some(verse_num) = verse_ref.verse {
+                                    if let Some(verse) = chapter.verses.iter().find(|v| v.verse == verse_num) {
+                                        results.push((
+                                            SearchResult::Verse {
+                                                chapter: chapter.clone(),
+                                                verse_number: verse.verse,
+                                                verse_text: verse.text.clone(),
+                                            },
+                                            1000 // High score for exact verse match
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Always include regular chapter search as well
+        let chapter_results: Vec<(SearchResult, usize)> = get_bible()
             .books
             .iter()
             .flat_map(|book| book.chapters.iter())
@@ -63,12 +174,14 @@ pub fn CommandPalette(
                 let score = original_score.max(translated_score);
                 
                 if score > 0 {
-                    Some((chapter, score))
+                    Some((SearchResult::Chapter(chapter.clone()), score))
                 } else {
                     None
                 }
             })
             .collect();
+            
+        results.extend(chapter_results);
 
         // Sort by score (higher is better)
         results.sort_by(|a, b| b.1.cmp(&a.1));
@@ -76,8 +189,8 @@ pub fn CommandPalette(
         results
             .into_iter()
             .take(10)
-            .map(|(chapter, _)| chapter.clone())
-            .collect::<Vec<Chapter>>()
+            .map(|(result, _)| result)
+            .collect::<Vec<SearchResult>>()
     });
 
     // Set up global keyboard handling when palette is open
@@ -94,14 +207,14 @@ pub fn CommandPalette(
                     }
                     "ArrowDown" => {
                         e.prevent_default();
-                        let chapters = filtered_chapters.get();
-                        if !chapters.is_empty() {
+                        let results = filtered_results.get();
+                        if !results.is_empty() {
                             let current = selected_index.get();
                             // Always ensure we're within bounds
-                            if current >= chapters.len() {
+                            if current >= results.len() {
                                 set_selected_index.set(0);
                             } else {
-                                let next = if current + 1 >= chapters.len() {
+                                let next = if current + 1 >= results.len() {
                                     0 // wrap to first
                                 } else {
                                     current + 1
@@ -112,15 +225,15 @@ pub fn CommandPalette(
                     }
                     "ArrowUp" => {
                         e.prevent_default();
-                        let chapters = filtered_chapters.get();
-                        if !chapters.is_empty() {
+                        let results = filtered_results.get();
+                        if !results.is_empty() {
                             let current = selected_index.get();
                             // Always ensure we're within bounds
-                            if current >= chapters.len() {
-                                set_selected_index.set(chapters.len() - 1);
+                            if current >= results.len() {
+                                set_selected_index.set(results.len() - 1);
                             } else {
                                 let next = if current == 0 {
-                                    chapters.len() - 1 // wrap to last
+                                    results.len() - 1 // wrap to last
                                 } else {
                                     current - 1
                                 };
@@ -130,12 +243,12 @@ pub fn CommandPalette(
                     }
                     "Enter" => {
                         e.prevent_default();
-                        let chapters = filtered_chapters.get();
-                        if !chapters.is_empty() {
+                        let results = filtered_results.get();
+                        if !results.is_empty() {
                             let current = selected_index.get();
-                            let valid_index = if current >= chapters.len() { 0 } else { current };
-                            if let Some(chapter) = chapters.get(valid_index) {
-                                set_navigate_to.set(Some(chapter.to_path()));
+                            let valid_index = if current >= results.len() { 0 } else { current };
+                            if let Some(result) = results.get(valid_index) {
+                                set_navigate_to.set(Some(result.to_path()));
                                 set_is_open.set(false);
                                 set_search_query.set(String::new());
                                 set_selected_index.set(0);
@@ -199,7 +312,7 @@ pub fn CommandPalette(
                         <input
                             node_ref=input_ref
                             type="text"
-                            placeholder="Search chapters... (e.g., 'Genesis 1', 'Matteüs 7', 'Numeri 5')"
+                            placeholder="Search chapters or verses... (e.g., 'Genesis 1', 'gen 1:1', 'john 3:16')"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             prop:value=search_query
                             on:input=move |e| set_search_query.set(event_target_value(&e))
@@ -211,20 +324,23 @@ pub fn CommandPalette(
                         <div class="py-2">
                             <Show
                                 when=move || !search_query.get().is_empty()
-                                fallback=|| view! { <div class="px-4 py-2 text-black">"Start typing to search chapters..."</div> }
+                                fallback=|| view! { <div class="px-4 py-2 text-black">"Start typing to search chapters or verses..."</div> }
                             >
                                 <div class="max-h-64 overflow-y-auto">
                                     {move || {
-                                        let chapters = filtered_chapters.get();
+                                        let results = filtered_results.get();
                                         let current_selected = selected_index.get();
-                                        let bounded_selected = if chapters.is_empty() { 
+                                        let bounded_selected = if results.is_empty() { 
                                             0 
                                         } else { 
-                                            current_selected.min(chapters.len() - 1) 
+                                            current_selected.min(results.len() - 1) 
                                         };
                                         
-                                        chapters.into_iter().enumerate().map(|(index, chapter)| {
+                                        results.into_iter().enumerate().map(|(index, result)| {
                                             let is_selected = index == bounded_selected;
+                                            let result_path = result.to_path();
+                                            let display_name = result.get_display_name();
+                                            
                                             view! {
                                                 <div 
                                                     class=if is_selected { 
@@ -233,9 +349,9 @@ pub fn CommandPalette(
                                                         "px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center border-b border-gray-100" 
                                                     }
                                                     on:click={
-                                                        let chapter_path = chapter.to_path();
+                                                        let path = result_path.clone();
                                                         move |_| {
-                                                            set_navigate_to.set(Some(chapter_path.clone()));
+                                                            set_navigate_to.set(Some(path.clone()));
                                                             set_is_open.set(false);
                                                             set_search_query.set(String::new());
                                                             set_selected_index.set(0);
@@ -244,8 +360,24 @@ pub fn CommandPalette(
                                                 >
                                                     <div class="flex-1">
                                                         <div class="font-medium">
-                                                            {get_translated_chapter_name(&chapter.name)}
+                                                            {display_name.clone()}
                                                         </div>
+                                                        {match &result {
+                                                            SearchResult::Verse { verse_text, .. } => {
+                                                                view! {
+                                                                    <div class="text-xs opacity-75 mt-1 truncate">
+                                                                        {if verse_text.len() > 80 {
+                                                                            format!("{}...", &verse_text[..80])
+                                                                        } else {
+                                                                            verse_text.clone()
+                                                                        }}
+                                                                    </div>
+                                                                }.into_any()
+                                                            }
+                                                            SearchResult::Chapter(_) => {
+                                                                view! { <div></div> }.into_any()
+                                                            }
+                                                        }}
                                                     </div>
                                                     {if is_selected {
                                                         view! {
@@ -260,9 +392,9 @@ pub fn CommandPalette(
                                             }
                                         }).collect_view()
                                     }}
-                                    <Show when=move || filtered_chapters.get().is_empty()>
+                                    <Show when=move || filtered_results.get().is_empty()>
                                         <div class="px-4 py-2 text-black text-sm">
-                                            "No chapters found"
+                                            "No results found"
                                         </div>
                                     </Show>
                                 </div>
@@ -420,6 +552,71 @@ fn character_fuzzy_score(text: &str, query: &str, is_positional_match: bool) -> 
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_parse_verse_reference() {
+        // Test basic format "gen 1:1"
+        let result = parse_verse_reference("gen 1:1").unwrap();
+        assert_eq!(result.book_name, "gen");
+        assert_eq!(result.chapter, 1);
+        assert_eq!(result.verse, Some(1));
+
+        // Test longer book name "john 3:16"
+        let result = parse_verse_reference("john 3:16").unwrap();
+        assert_eq!(result.book_name, "john");
+        assert_eq!(result.chapter, 3);
+        assert_eq!(result.verse, Some(16));
+
+        // Test two-word book "first john 2:5"
+        let result = parse_verse_reference("first john 2:5").unwrap();
+        assert_eq!(result.book_name, "first john");
+        assert_eq!(result.chapter, 2);
+        assert_eq!(result.verse, Some(5));
+
+        // Test roman numerals "ii kings 7:3"
+        let result = parse_verse_reference("ii kings 7:3").unwrap();
+        assert_eq!(result.book_name, "ii kings");
+        assert_eq!(result.chapter, 7);
+        assert_eq!(result.verse, Some(3));
+
+        // Test verse range (should take first number) "mat 5:3-7"
+        let result = parse_verse_reference("mat 5:3-7").unwrap();
+        assert_eq!(result.book_name, "mat");
+        assert_eq!(result.chapter, 5);
+        assert_eq!(result.verse, Some(3));
+
+        // Test invalid formats
+        assert!(parse_verse_reference("genesis 1").is_none()); // No colon
+        assert!(parse_verse_reference("gen:1").is_none()); // No chapter
+        assert!(parse_verse_reference("gen 1:abc").is_none()); // Invalid verse
+        assert!(parse_verse_reference("gen abc:1").is_none()); // Invalid chapter
+    }
+
+    // Note: display_name test skipped due to web API dependency in translation functions
+
+    #[test]
+    fn test_search_result_to_path() {
+        use crate::core::Chapter;
+        
+        let chapter = Chapter {
+            chapter: 1,
+            name: "Genesis 1".to_string(),
+            verses: vec![],
+        };
+
+        // Test chapter path
+        let chapter_result = SearchResult::Chapter(chapter.clone());
+        let path = chapter_result.to_path();
+        assert_eq!(path, "/Genesis/1");
+
+        // Test verse path
+        let verse_result = SearchResult::Verse {
+            chapter: chapter.clone(),
+            verse_number: 5,
+            verse_text: "And God called the light Day".to_string(),
+        };
+        let path = verse_result.to_path();
+        assert_eq!(path, "/Genesis/1?verses=5");
+    }
     #[test]
     fn test_fuzzy_score_with_translated_names() {
         // Test fuzzy search functionality with translated names
