@@ -238,6 +238,10 @@ fn KeyboardNavigationHandler(
     let navigate = use_navigate();
     let location = use_location();
     
+    // Verse typing buffer state (for instant verse navigation like Finder)
+    let (verse_typing_buffer, set_verse_typing_buffer) = signal(String::new());
+    let (verse_typing_generation, set_verse_typing_generation) = signal(0u32);
+    
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
         // Handle Cmd/Ctrl+K to open command palette
@@ -276,6 +280,45 @@ fn KeyboardNavigationHandler(
             let book_name = path_parts[0].replace('_', " ");
             if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
                 if let Ok(current_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
+                    // Handle instant verse navigation (typing numbers like Finder)
+                    if let Some(digit) = e.key().chars().next() {
+                        if digit.is_ascii_digit() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                            e.prevent_default();
+                            
+                            // Increment generation to cancel previous timeouts
+                            let current_gen = verse_typing_generation.get();
+                            let new_gen = current_gen + 1;
+                            set_verse_typing_generation.set(new_gen);
+                            
+                            // Add digit to buffer
+                            let current_buffer = verse_typing_buffer.get();
+                            let new_buffer = format!("{}{}", current_buffer, digit);
+                            set_verse_typing_buffer.set(new_buffer.clone());
+                            
+                            // Try to navigate to the verse
+                            if let Ok(verse_num) = new_buffer.parse::<u32>() {
+                                if verse_num > 0 && verse_num <= current_chapter.verses.len() as u32 {
+                                    let verse_range = VerseRange { start: verse_num, end: verse_num };
+                                    let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                    navigate(&new_path, Default::default());
+                                }
+                            }
+                            
+                            // Set timeout to clear buffer after 1.5 seconds using generation check
+                            let buffer_setter = set_verse_typing_buffer;
+                            let gen_getter = verse_typing_generation;
+                            spawn_local(async move {
+                                gloo_timers::future::TimeoutFuture::new(1500).await;
+                                // Only clear if this generation is still current
+                                if gen_getter.get() == new_gen {
+                                    buffer_setter.set(String::new());
+                                }
+                            });
+                            
+                            return;
+                        }
+                    }
+                    
                     match e.key().as_str() {
                         "ArrowRight" | "l" => {
                             if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
@@ -348,8 +391,12 @@ fn KeyboardNavigationHandler(
     window_event_listener(ev::keydown, handle_keydown);
 
     view! {
-        // This component renders nothing, it just handles keyboard events
-        <></>
+        // Visual feedback for verse typing (like Finder's typing indicator)
+        <Show when=move || !verse_typing_buffer.get().is_empty()>
+            <div class="fixed top-4 right-4 bg-black bg-opacity-75 text-white px-3 py-2 rounded-lg text-sm font-mono z-50">
+                "Go to verse: " {move || verse_typing_buffer.get()}
+            </div>
+        </Show>
     }
 }
 
