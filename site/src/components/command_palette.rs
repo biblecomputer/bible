@@ -3,7 +3,7 @@ use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
 use leptos::prelude::*;
-use leptos_router::hooks::use_navigate;
+use leptos_router::hooks::{use_navigate, use_location};
 use leptos::web_sys::KeyboardEvent;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -135,12 +135,26 @@ fn get_translated_chapter_name(chapter_name: &str) -> String {
     chapter_name.to_string()
 }
 
+fn get_current_chapter(location_pathname: &str) -> Option<Chapter> {
+    let path_parts: Vec<&str> = location_pathname.trim_start_matches('/').split('/').collect();
+    if path_parts.len() == 2 {
+        let book_name = path_parts[0].replace('_', " ");
+        if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
+            if let Ok(chapter) = get_bible().get_chapter(&book_name, chapter_num) {
+                return Some(chapter);
+            }
+        }
+    }
+    None
+}
+
 #[component]
 pub fn CommandPalette(
     is_open: ReadSignal<bool>,
     set_is_open: WriteSignal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
+    let location = use_location();
     let (search_query, set_search_query) = signal(String::new());
     let (selected_index, set_selected_index) = signal(0usize);
     let (navigate_to, set_navigate_to) = signal::<Option<String>>(None);
@@ -157,8 +171,54 @@ pub fn CommandPalette(
 
         let mut results: Vec<(SearchResult, usize)> = Vec::new();
         
+        // Check if this is a current chapter verse shortcut (e.g., ":5" or ":")
+        if let Some(verse_part) = query.strip_prefix(':') {
+            if let Some(current_chapter) = get_current_chapter(&location.pathname.get()) {
+                
+                if verse_part.is_empty() {
+                    // Just ":" - show all verses from current chapter (limited to first 15)
+                    for verse in current_chapter.verses.iter().take(15) {
+                        results.push((
+                            SearchResult::Verse {
+                                chapter: current_chapter.clone(),
+                                verse_number: verse.verse,
+                                verse_text: verse.text.clone(),
+                            },
+                            1000 // High score for current chapter verses
+                        ));
+                    }
+                } else if let Ok(verse_num) = verse_part.parse::<u32>() {
+                    // ":5" - jump to specific verse in current chapter
+                    if let Some(verse) = current_chapter.verses.iter().find(|v| v.verse == verse_num) {
+                        results.push((
+                            SearchResult::Verse {
+                                chapter: current_chapter.clone(),
+                                verse_number: verse.verse,
+                                verse_text: verse.text.clone(),
+                            },
+                            2000 // Very high score for exact verse match
+                        ));
+                    }
+                    
+                    // Also show nearby verses for context
+                    for verse in &current_chapter.verses {
+                        let score = score_verse_number_match(verse.verse, verse_num);
+                        if score > 0 && verse.verse != verse_num {
+                            results.push((
+                                SearchResult::Verse {
+                                    chapter: current_chapter.clone(),
+                                    verse_number: verse.verse,
+                                    verse_text: verse.text.clone(),
+                                },
+                                score + 500 // Bonus for being in current chapter
+                            ));
+                        }
+                    }
+                }
+            }
+        }
         // Check if this is a verse reference (e.g., "gen 1:1" or "gen 1:")
-        if let Some(verse_ref) = parse_verse_reference(&query) {
+        else if let Some(verse_ref) = parse_verse_reference(&query) {
             // Try to find the verse(s)
             if let Some(translation) = get_current_translation() {
                 if let Some(first_language) = translation.languages.first() {
