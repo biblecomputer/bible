@@ -2,6 +2,7 @@ use crate::core::{get_bible, init_bible_signal};
 use crate::core::*;
 use crate::utils::is_mobile_screen;
 use crate::storage::translations::get_current_translation;
+use crate::storage::save_sidebar_open;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
 use leptos::component;
@@ -197,6 +198,7 @@ fn BookView(
                                 // Close sidebar on mobile when chapter is selected
                                 if is_mobile_screen() {
                                     set_sidebar_open.set(false);
+                                    save_sidebar_open(false);
                                 }
                             }
                         }

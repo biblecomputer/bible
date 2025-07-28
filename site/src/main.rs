@@ -4,6 +4,7 @@ use crate::views::HomeTranslationPicker;
 use crate::api::init_bible;
 use crate::core::{get_bible, Chapter, VerseRange};
 use crate::utils::is_mobile_screen;
+use crate::storage::{get_sidebar_open, save_sidebar_open};
 use leptos::prelude::*;
 use leptos::ev;
 use leptos_router::components::{Route, Router, Routes};
@@ -85,8 +86,8 @@ fn BibleApp() -> impl IntoView {
 fn BibleWithSidebar() -> impl IntoView {
     // Command palette state
     let (is_palette_open, set_is_palette_open) = signal(false);
-    // Sidebar visibility state
-    let (is_sidebar_open, set_is_sidebar_open) = signal(true);
+    // Sidebar visibility state - initialize from localStorage
+    let (is_sidebar_open, set_is_sidebar_open) = signal(get_sidebar_open());
         
         view! {
             <KeyboardNavigationHandler 
@@ -102,7 +103,12 @@ fn BibleWithSidebar() -> impl IntoView {
                         <div class="flex items-center space-x-2">
                             <button
                                 class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                                on:click=move |_| set_is_sidebar_open.update(|open| *open = !*open)
+                                on:click=move |_| {
+                                    set_is_sidebar_open.update(|open| {
+                                        *open = !*open;
+                                        save_sidebar_open(*open);
+                                    });
+                                }
                                 aria-label=move || if is_sidebar_open.get() { "Hide sidebar" } else { "Show sidebar" }
                                 title=move || if is_sidebar_open.get() { "Hide sidebar" } else { "Show sidebar" }
                             >
@@ -173,7 +179,10 @@ fn BibleWithSidebar() -> impl IntoView {
                     >
                         <div 
                             class="fixed inset-0 bg-black bg-opacity-50 z-30"
-                            on:click=move |_| set_is_sidebar_open.set(false)
+                            on:click=move |_| {
+                        set_is_sidebar_open.set(false);
+                        save_sidebar_open(false);
+                    }
                         />
                     </Show>
                     
@@ -208,6 +217,7 @@ fn SidebarAutoHide(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
         if path_parts.len() == 2 && !path_parts[0].is_empty() && !path_parts[1].is_empty() {
             if is_mobile_screen() {
                 set_sidebar_open.set(false);
+                save_sidebar_open(false);
             }
         }
     });
@@ -237,6 +247,7 @@ fn KeyboardNavigationHandler(
             // Close sidebar on mobile when command palette opens
             if is_mobile_screen() {
                 set_sidebar_open.set(false);
+                save_sidebar_open(false);
             }
             return;
         }
@@ -244,7 +255,10 @@ fn KeyboardNavigationHandler(
         // Handle Ctrl+B to toggle sidebar
         if e.key() == "b" && e.ctrl_key() {
             e.prevent_default();
-            set_sidebar_open.update(|open| *open = !*open);
+            set_sidebar_open.update(|open| {
+                *open = !*open;
+                save_sidebar_open(*open);
+            });
             return;
         }
         
