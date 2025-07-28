@@ -164,12 +164,6 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                                     if is_highlighted { "font-bold text-black bg-yellow-100 px-1 rounded" } else { "" }
                                 )
                                 id=format!("verse-{}", verse.verse)
-                                aria-label=format!("{}, verse {}: {}", 
-                                    get_translated_chapter_name(&current_chapter_data.get().name), 
-                                    verse.verse, 
-                                    verse.text
-                                )
-                                role="text"
                                 tabindex=if is_highlighted { "0" } else { "-1" }
                             >
                                 {verse.text.clone()}
