@@ -87,12 +87,14 @@ fn BibleApp() -> impl IntoView {
 fn BibleWithSidebar() -> impl IntoView {
     // Command palette state
     let (is_palette_open, set_is_palette_open) = signal(false);
-    // Sidebar visibility state - initialize from localStorage
-    let (is_sidebar_open, set_is_sidebar_open) = signal(get_sidebar_open());
+    // Left sidebar (books/chapters) visibility state - initialize from localStorage
+    let (is_left_sidebar_open, set_is_left_sidebar_open) = signal(get_sidebar_open());
+    // Right sidebar (cross-references) visibility state
+    let (is_right_sidebar_open, set_is_right_sidebar_open) = signal(false);
     let location = use_location();
     
-    // Detect if we should show cross-references sidebar
-    let sidebar_content = Memo::new(move |_| {
+    // Detect if we have cross-references data to show
+    let cross_references_data = Memo::new(move |_| {
         let pathname = location.pathname.get();
         let _search = location.search.get();
         
@@ -111,39 +113,41 @@ fn BibleWithSidebar() -> impl IntoView {
                 if verse_ranges.len() == 1 {
                     let range = &verse_ranges[0];
                     if range.start == range.end {
-                        // Single verse selected - show cross-references
+                        // Single verse selected - return cross-references data
                         return Some((book_name, chapter_num, range.start));
                     }
                 }
             }
         }
         
-        None // Show regular sidebar
+        None // No cross-references data available
     });
         
         view! {
             <KeyboardNavigationHandler 
                 palette_open=is_palette_open 
                 set_palette_open=set_is_palette_open 
-                _sidebar_open=is_sidebar_open
-                set_sidebar_open=set_is_sidebar_open
+                _left_sidebar_open=is_left_sidebar_open
+                set_left_sidebar_open=set_is_left_sidebar_open
+                _right_sidebar_open=is_right_sidebar_open
+                set_right_sidebar_open=set_is_right_sidebar_open
             />
-            <SidebarAutoHide set_sidebar_open=set_is_sidebar_open />
+            <SidebarAutoHide set_sidebar_open=set_is_left_sidebar_open />
             <CommandPalette is_open=is_palette_open set_is_open=set_is_palette_open />
-                <nav class="bg-white border-b border-gray-200 px-4 py-2">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-2">
-                            <button
-                                class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                                on:click=move |_| {
-                                    set_is_sidebar_open.update(|open| {
-                                        *open = !*open;
-                                        save_sidebar_open(*open);
-                                    });
-                                }
-                                aria-label=move || if is_sidebar_open.get() { "Hide sidebar" } else { "Show sidebar" }
-                                title=move || if is_sidebar_open.get() { "Hide sidebar" } else { "Show sidebar" }
-                            >
+            <nav class="bg-white border-b border-gray-200 px-4 py-2">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <button
+                            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                            on:click=move |_| {
+                                set_is_left_sidebar_open.update(|open| {
+                                    *open = !*open;
+                                    save_sidebar_open(*open);
+                                });
+                            }
+                            aria-label=move || if is_left_sidebar_open.get() { "Hide books sidebar" } else { "Show books sidebar" }
+                            title=move || if is_left_sidebar_open.get() { "Hide books sidebar" } else { "Show books sidebar" }
+                        >
                                 <svg 
                                     width="24" 
                                     height="24" 
@@ -172,14 +176,44 @@ fn BibleWithSidebar() -> impl IntoView {
                                 "Kies vertaling"
                             </a>
                         </div>
-                        <a 
-                            href="https://github.com/sempruijs/bible" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            class="text-black hover:text-gray-600 transition-colors"
-                            aria-label="GitHub repository"
-                            title="View source on GitHub"
-                        >
+                        <div class="flex items-center space-x-2">
+                            <Show
+                                when=move || cross_references_data.get().is_some()
+                                fallback=|| view! { <></> }
+                            >
+                                <button
+                                    class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                                    on:click=move |_| {
+                                        set_is_right_sidebar_open.update(|open| *open = !*open);
+                                    }
+                                    aria-label=move || if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
+                                    title=move || if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
+                                >
+                                    <svg 
+                                        width="24" 
+                                        height="24" 
+                                        viewBox="0 0 24 24" 
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        aria-hidden="true"
+                                    >
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14,2 14,8 20,8"/>
+                                        <line x1="16" y1="13" x2="8" y2="13"/>
+                                        <line x1="16" y1="17" x2="8" y2="17"/>
+                                        <polyline points="10,9 9,9 8,9"/>
+                                    </svg>
+                                </button>
+                            </Show>
+                            <a 
+                                href="https://github.com/sempruijs/bible" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                class="text-black hover:text-gray-600 transition-colors"
+                                aria-label="GitHub repository"
+                                title="View source on GitHub"
+                            >
                             <svg 
                                 width="20" 
                                 height="20" 
@@ -192,47 +226,36 @@ fn BibleWithSidebar() -> impl IntoView {
                             </svg>
                         </a>
                     </div>
-                </nav>
-                <div class="flex h-screen relative">
-                    <Show
-                        when=move || is_sidebar_open.get()
+                </div>
+            </nav>
+            <div class="flex h-screen relative">
+                // Left sidebar (books/chapters)
+                <Show
+                        when=move || is_left_sidebar_open.get()
                         fallback=|| view! { <></> }
                     >
                         <aside class="w-64 bg-white border-r border-black p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto">
-                            {move || {
-                                if let Some((book_name, chapter, verse)) = sidebar_content.get() {
-                                    view! {
-                                        <CrossReferencesSidebar 
-                                            book_name=book_name
-                                            chapter=chapter
-                                            verse=verse
-                                            set_sidebar_open=set_is_sidebar_open
-                                        />
-                                    }.into_any()
-                                } else {
-                                    view! {
-                                        <Sidebar set_sidebar_open=set_is_sidebar_open />
-                                    }.into_any()
-                                }
-                            }}
+                            <Sidebar set_sidebar_open=set_is_left_sidebar_open />
                         </aside>
                     </Show>
                     
+                    // Left sidebar mobile overlay
                     <Show
                         when=move || {
-                            is_sidebar_open.get() && is_mobile_screen()
+                            is_left_sidebar_open.get() && is_mobile_screen()
                         }
                         fallback=|| view! { <></> }
                     >
                         <div 
                             class="fixed inset-0 bg-black bg-opacity-50 z-30"
                             on:click=move |_| {
-                        set_is_sidebar_open.set(false);
-                        save_sidebar_open(false);
-                    }
+                                set_is_left_sidebar_open.set(false);
+                                save_sidebar_open(false);
+                            }
                         />
                     </Show>
                     
+                    // Main content area
                     <main class="flex-1 p-4 md:p-6 overflow-y-auto">
                         <Routes fallback=|| "Not found.">
                             <Route
@@ -246,6 +269,46 @@ fn BibleWithSidebar() -> impl IntoView {
                             />
                         </Routes>
                     </main>
+                    
+                    // Right sidebar (cross-references)
+                    <Show
+                        when=move || {
+                            is_right_sidebar_open.get() && cross_references_data.get().is_some()
+                        }
+                        fallback=|| view! { <></> }
+                    >
+                        <aside class="w-64 bg-white border-l border-black p-3 overflow-y-auto md:relative absolute inset-y-0 right-0 z-40 md:z-auto">
+                            {move || {
+                                if let Some((book_name, chapter, verse)) = cross_references_data.get() {
+                                    view! {
+                                        <CrossReferencesSidebar 
+                                            book_name=book_name
+                                            chapter=chapter
+                                            verse=verse
+                                            set_sidebar_open=set_is_right_sidebar_open
+                                        />
+                                    }.into_any()
+                                } else {
+                                    view! { <div></div> }.into_any()
+                                }
+                            }}
+                        </aside>
+                    </Show>
+                    
+                    // Right sidebar mobile overlay
+                    <Show
+                        when=move || {
+                            is_right_sidebar_open.get() && is_mobile_screen()
+                        }
+                        fallback=|| view! { <></> }
+                    >
+                        <div 
+                            class="fixed inset-0 bg-black bg-opacity-50 z-35"
+                            on:click=move |_| {
+                                set_is_right_sidebar_open.set(false);
+                            }
+                        />
+                    </Show>
                 </div>
                 <ShortcutsHelp />
         }
@@ -279,8 +342,10 @@ fn SidebarAutoHide(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
 fn KeyboardNavigationHandler(
     palette_open: ReadSignal<bool>,
     set_palette_open: WriteSignal<bool>,
-    _sidebar_open: ReadSignal<bool>,
-    set_sidebar_open: WriteSignal<bool>,
+    _left_sidebar_open: ReadSignal<bool>,
+    set_left_sidebar_open: WriteSignal<bool>,
+    _right_sidebar_open: ReadSignal<bool>,
+    set_right_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -301,19 +366,26 @@ fn KeyboardNavigationHandler(
             set_palette_open.set(true);
             // Close sidebar on mobile when command palette opens
             if is_mobile_screen() {
-                set_sidebar_open.set(false);
+                set_left_sidebar_open.set(false);
                 save_sidebar_open(false);
             }
             return;
         }
         
-        // Handle Ctrl+B to toggle sidebar
+        // Handle Ctrl+B to toggle left sidebar (books/chapters)
         if e.key() == "b" && e.ctrl_key() {
             e.prevent_default();
-            set_sidebar_open.update(|open| {
+            set_left_sidebar_open.update(|open| {
                 *open = !*open;
                 save_sidebar_open(*open);
             });
+            return;
+        }
+        
+        // Handle Ctrl+R to toggle right sidebar (cross-references)
+        if e.key() == "r" && e.ctrl_key() {
+            e.prevent_default();
+            set_right_sidebar_open.update(|open| *open = !*open);
             return;
         }
         
