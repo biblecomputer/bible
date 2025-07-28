@@ -80,6 +80,8 @@ pub fn ShortcutsHelp() -> impl IntoView {
                             <div class="flex items-center gap-1">
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Ctrl</kbd>
                                 <span class="text-black">+</span>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Shift</kbd>
+                                <span class="text-black">+</span>
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">R</kbd>
                             </div>
                         </div>

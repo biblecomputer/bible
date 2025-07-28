@@ -382,8 +382,8 @@ fn KeyboardNavigationHandler(
             return;
         }
         
-        // Handle Ctrl+R to toggle right sidebar (cross-references)
-        if e.key() == "r" && e.ctrl_key() {
+        // Handle Ctrl+Shift+R to toggle right sidebar (cross-references)
+        if e.key() == "R" && e.ctrl_key() && e.shift_key() {
             e.prevent_default();
             set_right_sidebar_open.update(|open| *open = !*open);
             return;
