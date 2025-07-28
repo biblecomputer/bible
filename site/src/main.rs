@@ -285,8 +285,14 @@ fn KeyboardNavigationHandler(
                             };
                             
                             if let Some(next_verse) = current_chapter.get_next_verse(current_verse) {
+                                // Navigate to next verse in current chapter
                                 let verse_range = VerseRange { start: next_verse, end: next_verse };
                                 let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                navigate(&new_path, Default::default());
+                            } else if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
+                                // Navigate to first verse of next chapter
+                                let verse_range = VerseRange { start: 1, end: 1 };
+                                let new_path = next_chapter.to_path_with_verses(&[verse_range]);
                                 navigate(&new_path, Default::default());
                             }
                         }
@@ -303,9 +309,18 @@ fn KeyboardNavigationHandler(
                             };
                             
                             if let Some(prev_verse) = current_chapter.get_previous_verse(current_verse) {
+                                // Navigate to previous verse in current chapter
                                 let verse_range = VerseRange { start: prev_verse, end: prev_verse };
                                 let new_path = current_chapter.to_path_with_verses(&[verse_range]);
                                 navigate(&new_path, Default::default());
+                            } else if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
+                                // Navigate to last verse of previous chapter
+                                let last_verse = prev_chapter.verses.len() as u32;
+                                if last_verse > 0 {
+                                    let verse_range = VerseRange { start: last_verse, end: last_verse };
+                                    let new_path = prev_chapter.to_path_with_verses(&[verse_range]);
+                                    navigate(&new_path, Default::default());
+                                }
                             }
                         }
                         _ => {}

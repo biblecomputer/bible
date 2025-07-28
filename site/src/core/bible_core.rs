@@ -292,6 +292,40 @@ mod tests {
     }
 
     #[test]
+    fn test_cross_chapter_navigation_logic() {
+        // Test that we properly handle chapter boundaries for cross-chapter navigation
+        let genesis_1 = Chapter {
+            chapter: 1,
+            name: "Genesis 1".to_string(),
+            verses: vec![
+                Verse { verse: 1, chapter: 1, name: "Genesis 1".to_string(), text: "First verse".to_string() },
+                Verse { verse: 2, chapter: 1, name: "Genesis 1".to_string(), text: "Second verse".to_string() },
+            ]
+        };
+
+        let genesis_2 = Chapter {
+            chapter: 2,
+            name: "Genesis 2".to_string(),
+            verses: vec![
+                Verse { verse: 1, chapter: 2, name: "Genesis 2".to_string(), text: "First verse chapter 2".to_string() },
+                Verse { verse: 2, chapter: 2, name: "Genesis 2".to_string(), text: "Second verse chapter 2".to_string() },
+                Verse { verse: 3, chapter: 2, name: "Genesis 2".to_string(), text: "Third verse chapter 2".to_string() },
+            ]
+        };
+
+        // Test verse navigation within chapters
+        assert_eq!(genesis_1.get_next_verse(1), Some(2));
+        assert_eq!(genesis_1.get_next_verse(2), None); // End of chapter - cross-chapter navigation handled in main.rs
+        
+        assert_eq!(genesis_2.get_previous_verse(1), None); // Beginning of chapter - cross-chapter navigation handled in main.rs
+        assert_eq!(genesis_2.get_previous_verse(2), Some(1));
+        
+        // Test that we can identify when we're at chapter boundaries
+        assert!(genesis_1.get_next_verse(genesis_1.verses.len() as u32).is_none()); // Last verse of chapter
+        assert!(genesis_2.get_previous_verse(1).is_none()); // First verse of chapter
+    }
+
+    #[test]
     fn test_chapter_to_path_with_verses() {
         let chapter = Chapter {
             chapter: 1,
