@@ -67,11 +67,20 @@ pub fn ShortcutsHelp() -> impl IntoView {
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-black">Toggle Sidebar</span>
+                            <span class="text-black">Toggle Books Sidebar</span>
                             <div class="flex items-center gap-1">
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Ctrl</kbd>
                                 <span class="text-black">+</span>
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">B</kbd>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-black">Toggle Cross-References</span>
+                            <div class="flex items-center gap-1">
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Ctrl</kbd>
+                                <span class="text-black">+</span>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">R</kbd>
                             </div>
                         </div>
                         
