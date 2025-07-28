@@ -45,13 +45,13 @@ struct VerseReference {
 }
 
 fn parse_verse_reference(query: &str) -> Option<VerseReference> {
-    // Handle formats like "gen 1:1", "genesis 1:5", "john 3:16", "mat 5:3-7"
+    // Handle formats like "gen 1:1", "genesis 1:5", "john 3:16", "mat 5:3-7", and "gen 1:" (incomplete)
     let query = query.trim().to_lowercase();
     
     // Look for colon indicating verse reference
     if let Some(colon_pos) = query.find(':') {
         let before_colon = &query[..colon_pos];
-        let after_colon = &query[colon_pos + 1..];
+        let after_colon = &query[colon_pos + 1..].trim();
         
         // Split the part before colon into book and chapter
         let parts: Vec<&str> = before_colon.split_whitespace().collect();
@@ -59,6 +59,15 @@ fn parse_verse_reference(query: &str) -> Option<VerseReference> {
             // Try to parse the last part as chapter number
             if let Ok(chapter_num) = parts.last().unwrap().parse::<u32>() {
                 let book_name = parts[..parts.len() - 1].join(" ");
+                
+                // Handle incomplete verse reference (just "gen 1:")
+                if after_colon.is_empty() {
+                    return Some(VerseReference {
+                        book_name,
+                        chapter: chapter_num,
+                        verse: None, // No specific verse
+                    });
+                }
                 
                 // Parse verse number (take only the first number if it's a range like "3-7")
                 let verse_str = after_colon.split('-').next().unwrap_or(after_colon);
@@ -121,9 +130,9 @@ pub fn CommandPalette(
 
         let mut results: Vec<(SearchResult, usize)> = Vec::new();
         
-        // Check if this is a verse reference (e.g., "gen 1:1")
+        // Check if this is a verse reference (e.g., "gen 1:1" or "gen 1:")
         if let Some(verse_ref) = parse_verse_reference(&query) {
-            // Try to find the specific verse
+            // Try to find the verse(s)
             if let Some(translation) = get_current_translation() {
                 if let Some(first_language) = translation.languages.first() {
                     let translation_obj = Translation::from_language(convert_language(first_language));
@@ -140,16 +149,32 @@ pub fn CommandPalette(
                         if book.name.to_lowercase().contains(&book_name_to_search.to_lowercase()) 
                             || book.name.to_lowercase().contains(&verse_ref.book_name) {
                             if let Some(chapter) = book.chapters.iter().find(|c| c.chapter == verse_ref.chapter) {
-                                if let Some(verse_num) = verse_ref.verse {
-                                    if let Some(verse) = chapter.verses.iter().find(|v| v.verse == verse_num) {
-                                        results.push((
-                                            SearchResult::Verse {
-                                                chapter: chapter.clone(),
-                                                verse_number: verse.verse,
-                                                verse_text: verse.text.clone(),
-                                            },
-                                            1000 // High score for exact verse match
-                                        ));
+                                match verse_ref.verse {
+                                    Some(verse_num) => {
+                                        // Specific verse requested
+                                        if let Some(verse) = chapter.verses.iter().find(|v| v.verse == verse_num) {
+                                            results.push((
+                                                SearchResult::Verse {
+                                                    chapter: chapter.clone(),
+                                                    verse_number: verse.verse,
+                                                    verse_text: verse.text.clone(),
+                                                },
+                                                1000 // High score for exact verse match
+                                            ));
+                                        }
+                                    }
+                                    None => {
+                                        // No specific verse, show all verses from chapter (limited to first 12)
+                                        for verse in chapter.verses.iter().take(12) {
+                                            results.push((
+                                                SearchResult::Verse {
+                                                    chapter: chapter.clone(),
+                                                    verse_number: verse.verse,
+                                                    verse_text: verse.text.clone(),
+                                                },
+                                                900 // High score for chapter verse suggestions
+                                            ));
+                                        }
                                     }
                                 }
                             }
@@ -312,7 +337,7 @@ pub fn CommandPalette(
                         <input
                             node_ref=input_ref
                             type="text"
-                            placeholder="Search chapters or verses... (e.g., 'Genesis 1', 'gen 1:1', 'john 3:16')"
+                            placeholder="Search chapters or verses... (e.g., 'Genesis 1', 'gen 1:', 'john 3:16')"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             prop:value=search_query
                             on:input=move |e| set_search_query.set(event_target_value(&e))
@@ -583,6 +608,18 @@ mod tests {
         assert_eq!(result.book_name, "mat");
         assert_eq!(result.chapter, 5);
         assert_eq!(result.verse, Some(3));
+
+        // Test incomplete verse reference "gen 1:"
+        let result = parse_verse_reference("gen 1:").unwrap();
+        assert_eq!(result.book_name, "gen");
+        assert_eq!(result.chapter, 1);
+        assert_eq!(result.verse, None); // No specific verse
+        
+        // Test incomplete with spaces "john 3: "
+        let result = parse_verse_reference("john 3: ").unwrap();
+        assert_eq!(result.book_name, "john");
+        assert_eq!(result.chapter, 3);
+        assert_eq!(result.verse, None);
 
         // Test invalid formats
         assert!(parse_verse_reference("genesis 1").is_none()); // No colon
