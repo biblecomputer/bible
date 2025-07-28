@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_router::hooks::use_params_map;
+use leptos_router::hooks::{use_params_map, use_location};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use urlencoding::{decode, encode};
@@ -54,6 +54,55 @@ pub enum ParamParseError {
     BookNotFound,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct VerseRange {
+    pub start: u32,
+    pub end: u32,
+}
+
+impl VerseRange {
+    pub fn contains(&self, verse_number: u32) -> bool {
+        verse_number >= self.start && verse_number <= self.end
+    }
+    
+    pub fn from_string(s: &str) -> Option<Self> {
+        if let Some((start_str, end_str)) = s.split_once('-') {
+            if let (Ok(start), Ok(end)) = (start_str.trim().parse::<u32>(), end_str.trim().parse::<u32>()) {
+                if start <= end {
+                    return Some(VerseRange { start, end });
+                }
+            }
+        } else if let Ok(single_verse) = s.trim().parse::<u32>() {
+            return Some(VerseRange { start: single_verse, end: single_verse });
+        }
+        None
+    }
+}
+
+pub fn parse_verse_ranges_from_url() -> Vec<VerseRange> {
+    let location = use_location();
+    let search_params = location.search.get();
+    
+    if let Some(verses_param) = search_params
+        .split('&')
+        .find_map(|param| {
+            let mut parts = param.split('=');
+            if parts.next()? == "verses" {
+                parts.next()
+            } else {
+                None
+            }
+        })
+    {
+        verses_param
+            .split(',')
+            .filter_map(|range_str| VerseRange::from_string(range_str))
+            .collect()
+    } else {
+        Vec::new()
+    }
+}
+
 impl Chapter {
     pub fn to_path(&self) -> String {
         let name_parts: Vec<&str> = self.name.split_whitespace().collect();
@@ -66,6 +115,27 @@ impl Chapter {
 
         let encoded_book = encode(&book_name);
         format!("/{}/{}", encoded_book, self.chapter)
+    }
+    
+    pub fn to_path_with_verses(&self, verse_ranges: &[VerseRange]) -> String {
+        let base_path = self.to_path();
+        if verse_ranges.is_empty() {
+            return base_path;
+        }
+        
+        let verse_param = verse_ranges
+            .iter()
+            .map(|range| {
+                if range.start == range.end {
+                    range.start.to_string()
+                } else {
+                    format!("{}-{}", range.start, range.end)
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+            
+        format!("{}?verses={}", base_path, verse_param)
     }
 
     pub fn from_url() -> std::result::Result<Self, ParamParseError> {
@@ -152,6 +222,63 @@ impl Bible {
 mod tests {
     use super::*;
     use proptest::prelude::*;
+    
+    #[test]
+    fn test_verse_range_from_string() {
+        // Test single verse
+        let range = VerseRange::from_string("5").unwrap();
+        assert_eq!(range.start, 5);
+        assert_eq!(range.end, 5);
+        assert!(range.contains(5));
+        assert!(!range.contains(4));
+        assert!(!range.contains(6));
+        
+        // Test verse range
+        let range = VerseRange::from_string("1-3").unwrap();
+        assert_eq!(range.start, 1);
+        assert_eq!(range.end, 3);
+        assert!(range.contains(1));
+        assert!(range.contains(2));
+        assert!(range.contains(3));
+        assert!(!range.contains(4));
+        
+        // Test invalid ranges
+        assert!(VerseRange::from_string("3-1").is_none()); // end < start
+        assert!(VerseRange::from_string("abc").is_none()); // invalid number
+        assert!(VerseRange::from_string("1-abc").is_none()); // invalid range
+    }
+    
+    #[test]
+    fn test_chapter_to_path_with_verses() {
+        let chapter = Chapter {
+            chapter: 1,
+            name: "Genesis 1".to_string(),
+            verses: vec![],
+        };
+        
+        // Test without verses
+        let path = chapter.to_path_with_verses(&[]);
+        assert_eq!(path, "/Genesis/1");
+        
+        // Test with single verse
+        let ranges = vec![VerseRange { start: 5, end: 5 }];
+        let path = chapter.to_path_with_verses(&ranges);
+        assert_eq!(path, "/Genesis/1?verses=5");
+        
+        // Test with verse range
+        let ranges = vec![VerseRange { start: 1, end: 3 }];
+        let path = chapter.to_path_with_verses(&ranges);
+        assert_eq!(path, "/Genesis/1?verses=1-3");
+        
+        // Test with multiple ranges
+        let ranges = vec![
+            VerseRange { start: 1, end: 3 },
+            VerseRange { start: 5, end: 5 },
+            VerseRange { start: 10, end: 12 },
+        ];
+        let path = chapter.to_path_with_verses(&ranges);
+        assert_eq!(path, "/Genesis/1?verses=1-3,5,10-12");
+    }
 
     proptest! {
         #[test]
