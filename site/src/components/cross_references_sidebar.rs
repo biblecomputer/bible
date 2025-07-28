@@ -1,5 +1,5 @@
 use crate::core::{load_cross_references};
-use crate::core::types::{References, Reference, VerseKey};
+use crate::core::types::{References, Reference, VerseId};
 use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
@@ -97,16 +97,30 @@ pub fn CrossReferencesSidebar(
     set_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
     
-    // Create the verse key for lookup
-    let verse_key = VerseKey {
-        book_name: book_name.clone(),
-        chapter,
-        verse,
+    // Create the optimized verse ID for lookup
+    let verse_id = match VerseId::from_book_name(&book_name, chapter, verse) {
+        Some(id) => id,
+        None => {
+            // Unknown book - show no references
+            return view! {
+                <div class="cross-references-sidebar">
+                    <div class="mb-4">
+                        <h2 class="text-lg font-bold text-black mb-2">{get_ui_text("cross_references")}</h2>
+                        <div class="text-sm text-gray-600 mb-4">
+                            {get_translated_book_name(&book_name)} " " {chapter} ":" {verse}
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-500 italic">
+                        {get_ui_text("no_references")}
+                    </div>
+                </div>
+            };
+        }
     };
     
     // Get cross-references for this verse
     let references = get_cross_references();
-    let verse_references = references.0.get(&verse_key);
+    let verse_references = references.0.get(&verse_id);
     
     // Sort references by votes (highest to lowest)
     let sorted_references = Memo::new(move |_| {
