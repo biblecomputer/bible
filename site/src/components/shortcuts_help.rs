@@ -55,22 +55,38 @@ pub fn ShortcutsHelp() -> impl IntoView {
                         
                         <div class="flex items-center justify-between">
                             <span class="text-black">Previous Chapter</span>
-                            <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Left Arrow</kbd>
+                            <div class="flex items-center gap-2">
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Left Arrow</kbd>
+                                <span class="text-gray-400">or</span>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">H</kbd>
+                            </div>
                         </div>
                         
                         <div class="flex items-center justify-between">
                             <span class="text-black">Next Chapter</span>
-                            <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Right Arrow</kbd>
+                            <div class="flex items-center gap-2">
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Right Arrow</kbd>
+                                <span class="text-gray-400">or</span>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">L</kbd>
+                            </div>
                         </div>
                         
                         <div class="flex items-center justify-between">
                             <span class="text-black">Previous Verse</span>
-                            <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Up Arrow</kbd>
+                            <div class="flex items-center gap-2">
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Up Arrow</kbd>
+                                <span class="text-gray-400">or</span>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">K</kbd>
+                            </div>
                         </div>
                         
                         <div class="flex items-center justify-between">
                             <span class="text-black">Next Verse</span>
-                            <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Down Arrow</kbd>
+                            <div class="flex items-center gap-2">
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Down Arrow</kbd>
+                                <span class="text-gray-400">or</span>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">J</kbd>
+                            </div>
                         </div>
                         
                         <div class="flex items-center justify-between">
