@@ -62,33 +62,36 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     // Parse verse ranges from URL
     let highlighted_verses = Memo::new(|_| parse_verse_ranges_from_url());
     
-    // Auto-focus on the first highlighted verse for accessibility
+    // Auto-focus on the first highlighted verse for accessibility, or chapter heading if no verses selected
     Effect::new(move |_| {
         let verse_ranges = highlighted_verses.get();
-        if let Some(first_range) = verse_ranges.first() {
-            // Focus on the first verse in the first range after a short delay to ensure DOM is ready
-            let verse_id = format!("verse-{}", first_range.start);
+        
+        spawn_local(async move {
+            // Small delay to ensure the DOM is ready
+            gloo_timers::future::TimeoutFuture::new(150).await;
             
-            // Use requestAnimationFrame equivalent to ensure DOM is fully rendered
-            spawn_local(async move {
-                // Small delay to ensure the DOM is ready
-                gloo_timers::future::TimeoutFuture::new(150).await;
-                
-                if let Some(window) = web_sys::window() {
-                    if let Some(document) = window.document() {
+            if let Some(window) = web_sys::window() {
+                if let Some(document) = window.document() {
+                    if let Some(first_range) = verse_ranges.first() {
+                        // Focus on the first verse in the first range
+                        let verse_id = format!("verse-{}", first_range.start);
                         if let Some(verse_element) = document.get_element_by_id(&verse_id) {
-                            // Focus the element for screen readers
                             if let Ok(html_element) = verse_element.dyn_into::<web_sys::HtmlElement>() {
                                 let _ = html_element.focus();
-                                
-                                // Also scroll into view to ensure it's visible
                                 let _ = html_element.scroll_into_view();
+                            }
+                        }
+                    } else {
+                        // No verses selected, focus the chapter heading for accessibility
+                        if let Some(heading_element) = document.get_element_by_id("chapter-heading") {
+                            if let Ok(html_element) = heading_element.dyn_into::<web_sys::HtmlElement>() {
+                                let _ = html_element.focus();
                             }
                         }
                     }
                 }
-            });
-        }
+            }
+        });
     });
     
     // Clone the chapter for use in closures
@@ -134,7 +137,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     view! {
         <article class="chapter-detail max-w-2xl mx-auto px-4">
             <header class="mb-8">
-                <h1 class="text-3xl font-bold text-black">{move || get_translated_chapter_name(&current_chapter_data.get().name)}</h1>
+                <h1 id="chapter-heading" class="text-3xl font-bold text-black" tabindex="-1">{move || get_translated_chapter_name(&current_chapter_data.get().name)}</h1>
             </header>
             
             <div class="verses text-lg leading-8 text-black" role="main" aria-label="Chapter text">
