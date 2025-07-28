@@ -158,6 +158,20 @@ pub fn ShortcutsHelp() -> impl IntoView {
                         </div>
                         
                         <div class="flex items-center justify-between">
+                            <span class="text-black">First Chapter of Bible</span>
+                            <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">gg</kbd>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-black">Last Chapter of Bible</span>
+                            <div class="flex items-center gap-1">
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Shift</kbd>
+                                <span class="text-black">+</span>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">G</kbd>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
                             <span class="text-black">Show This Help</span>
                             <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">?</kbd>
                         </div>

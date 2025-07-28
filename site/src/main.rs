@@ -242,6 +242,10 @@ fn KeyboardNavigationHandler(
     let (verse_typing_buffer, set_verse_typing_buffer) = signal(String::new());
     let (verse_typing_generation, set_verse_typing_generation) = signal(0u32);
     
+    // Global navigation state (for gg detection)
+    let (pending_g, set_pending_g) = signal(false);
+    let (g_timeout_generation, set_g_timeout_generation) = signal(0u32);
+    
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
         // Handle Cmd/Ctrl+K to open command palette
@@ -416,6 +420,46 @@ fn KeyboardNavigationHandler(
                                 e.prevent_default();
                                 if let Some(next_book_chapter) = get_bible().get_next_book(&current_chapter) {
                                     navigate(&next_book_chapter.to_path(), Default::default());
+                                }
+                            }
+                        }
+                        "g" => {
+                            // Handle 'g' key for gg (go to first chapter) or single g (pending)
+                            if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                                e.prevent_default();
+                                if pending_g.get() {
+                                    // Second 'g' pressed - go to first chapter of Bible
+                                    if let Some(first_chapter) = get_bible().get_first_chapter() {
+                                        navigate(&first_chapter.to_path(), Default::default());
+                                    }
+                                    set_pending_g.set(false);
+                                } else {
+                                    // First 'g' pressed - set pending state
+                                    set_pending_g.set(true);
+                                    
+                                    // Set timeout to clear pending state after 1 second
+                                    let current_gen = g_timeout_generation.get();
+                                    let new_gen = current_gen + 1;
+                                    set_g_timeout_generation.set(new_gen);
+                                    
+                                    let pending_setter = set_pending_g;
+                                    let gen_getter = g_timeout_generation;
+                                    spawn_local(async move {
+                                        gloo_timers::future::TimeoutFuture::new(1000).await;
+                                        // Only clear if this generation is still current
+                                        if gen_getter.get() == new_gen {
+                                            pending_setter.set(false);
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                        "G" => {
+                            // Shift+G: Go to last chapter of Bible
+                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                                e.prevent_default();
+                                if let Some(last_chapter) = get_bible().get_last_chapter() {
+                                    navigate(&last_chapter.to_path(), Default::default());
                                 }
                             }
                         }

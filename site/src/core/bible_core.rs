@@ -268,6 +268,14 @@ impl Bible {
         }
         None
     }
+
+    pub fn get_first_chapter(&self) -> Option<Chapter> {
+        self.books.first()?.chapters.first().cloned()
+    }
+
+    pub fn get_last_chapter(&self) -> Option<Chapter> {
+        self.books.last()?.chapters.last().cloned()
+    }
 }
 
 #[cfg(test)]
@@ -592,6 +600,47 @@ mod tests {
             if let Some(prev_chapter) = bible.get_previous_chapter(first_chapter_book2) {
                 prop_assert_eq!(prev_chapter.chapter, last_chapter_book1.chapter);
                 prop_assert_eq!(prev_chapter.name, last_chapter_book1.name.clone());
+            }
+        }
+
+        #[test]
+        fn test_global_navigation(
+            num_books in 2usize..5,
+            chapters_per_book in 1usize..3
+        ) {
+            let books: Vec<Book> = (0..num_books)
+                .map(|book_idx| {
+                    let chapters: Vec<Chapter> = (1..=chapters_per_book)
+                        .map(|chapter_idx| Chapter {
+                            chapter: chapter_idx as u32,
+                            name: format!("Book {} Chapter {}", book_idx, chapter_idx),
+                            verses: vec![],
+                        })
+                        .collect();
+
+                    Book {
+                        name: format!("Book {}", book_idx),
+                        chapters,
+                    }
+                })
+                .collect();
+
+            let bible = Bible { books };
+
+            // Test get_first_chapter - should return first chapter of first book
+            if let Some(first_chapter) = bible.get_first_chapter() {
+                prop_assert_eq!(first_chapter.chapter, 1);
+                prop_assert_eq!(first_chapter.name, "Book 0 Chapter 1".to_string());
+            } else {
+                prop_assert!(false, "get_first_chapter should return Some");
+            }
+
+            // Test get_last_chapter - should return last chapter of last book
+            if let Some(last_chapter) = bible.get_last_chapter() {
+                prop_assert_eq!(last_chapter.chapter, chapters_per_book as u32);
+                prop_assert_eq!(last_chapter.name, format!("Book {} Chapter {}", num_books - 1, chapters_per_book));
+            } else {
+                prop_assert!(false, "get_last_chapter should return Some");
             }
         }
     }
