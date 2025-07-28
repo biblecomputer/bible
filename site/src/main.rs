@@ -401,6 +401,24 @@ fn KeyboardNavigationHandler(
                                 navigate(&new_path, Default::default());
                             }
                         }
+                        "H" => {
+                            // Shift+H: Go to previous book (first chapter)
+                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                                e.prevent_default();
+                                if let Some(prev_book_chapter) = get_bible().get_previous_book(&current_chapter) {
+                                    navigate(&prev_book_chapter.to_path(), Default::default());
+                                }
+                            }
+                        }
+                        "L" => {
+                            // Shift+L: Go to next book (first chapter)
+                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                                e.prevent_default();
+                                if let Some(next_book_chapter) = get_bible().get_next_book(&current_chapter) {
+                                    navigate(&next_book_chapter.to_path(), Default::default());
+                                }
+                            }
+                        }
                         _ => {}
                     }
                 }

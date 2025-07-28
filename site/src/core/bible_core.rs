@@ -232,6 +232,42 @@ impl Bible {
         }
         None
     }
+
+    pub fn get_next_book(&self, current: &Chapter) -> Option<Chapter> {
+        // Find the current book
+        for (book_idx, book) in self.books.iter().enumerate() {
+            if book
+                .chapters
+                .iter()
+                .any(|c| c.chapter == current.chapter && c.name == current.name)
+            {
+                // Found current book, get next book's first chapter
+                if book_idx + 1 < self.books.len() {
+                    return self.books[book_idx + 1].chapters.first().cloned();
+                }
+                return None; // Already at last book
+            }
+        }
+        None
+    }
+
+    pub fn get_previous_book(&self, current: &Chapter) -> Option<Chapter> {
+        // Find the current book
+        for (book_idx, book) in self.books.iter().enumerate() {
+            if book
+                .chapters
+                .iter()
+                .any(|c| c.chapter == current.chapter && c.name == current.name)
+            {
+                // Found current book, get previous book's first chapter
+                if book_idx > 0 {
+                    return self.books[book_idx - 1].chapters.first().cloned();
+                }
+                return None; // Already at first book
+            }
+        }
+        None
+    }
 }
 
 #[cfg(test)]
@@ -324,6 +360,7 @@ mod tests {
         assert!(genesis_1.get_next_verse(genesis_1.verses.len() as u32).is_none()); // Last verse of chapter
         assert!(genesis_2.get_previous_verse(1).is_none()); // First verse of chapter
     }
+
 
     #[test]
     fn test_chapter_to_path_with_verses() {
