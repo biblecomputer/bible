@@ -6,6 +6,8 @@ use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
 use leptos_router::components::A;
+use wasm_bindgen_futures::spawn_local;
+use leptos::wasm_bindgen::JsCast;
 
 fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
     match storage_lang {
@@ -59,6 +61,35 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     
     // Parse verse ranges from URL
     let highlighted_verses = Memo::new(|_| parse_verse_ranges_from_url());
+    
+    // Auto-focus on the first highlighted verse for accessibility
+    Effect::new(move |_| {
+        let verse_ranges = highlighted_verses.get();
+        if let Some(first_range) = verse_ranges.first() {
+            // Focus on the first verse in the first range after a short delay to ensure DOM is ready
+            let verse_id = format!("verse-{}", first_range.start);
+            
+            // Use requestAnimationFrame equivalent to ensure DOM is fully rendered
+            spawn_local(async move {
+                // Small delay to ensure the DOM is ready
+                gloo_timers::future::TimeoutFuture::new(150).await;
+                
+                if let Some(window) = web_sys::window() {
+                    if let Some(document) = window.document() {
+                        if let Some(verse_element) = document.get_element_by_id(&verse_id) {
+                            // Focus the element for screen readers
+                            if let Ok(html_element) = verse_element.dyn_into::<web_sys::HtmlElement>() {
+                                let _ = html_element.focus();
+                                
+                                // Also scroll into view to ensure it's visible
+                                let _ = html_element.scroll_into_view();
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
     
     // Clone the chapter for use in closures
     let chapter_for_prev = chapter.clone();
@@ -133,6 +164,13 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                                     if is_highlighted { "font-bold text-black bg-yellow-100 px-1 rounded" } else { "" }
                                 )
                                 id=format!("verse-{}", verse.verse)
+                                aria-label=format!("{}, verse {}: {}", 
+                                    get_translated_chapter_name(&current_chapter_data.get().name), 
+                                    verse.verse, 
+                                    verse.text
+                                )
+                                role="text"
+                                tabindex=if is_highlighted { "0" } else { "-1" }
                             >
                                 {verse.text.clone()}
                             </span>
