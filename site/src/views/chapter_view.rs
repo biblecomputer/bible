@@ -1,4 +1,4 @@
-use crate::core::{Chapter, get_bible, init_bible_signal};
+use crate::core::{Chapter, get_bible, init_bible_signal, parse_verse_ranges_from_url};
 use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
@@ -57,6 +57,9 @@ fn get_navigation_text(key: &str) -> String {
 pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     let bible_signal = init_bible_signal();
     
+    // Parse verse ranges from URL
+    let highlighted_verses = Memo::new(|_| parse_verse_ranges_from_url());
+    
     // Clone the chapter for use in closures
     let chapter_for_prev = chapter.clone();
     let chapter_for_next = chapter.clone();
@@ -105,6 +108,9 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
             
             <div class="verses text-lg leading-8 text-black" role="main" aria-label="Chapter text">
                 {move || current_chapter_data.get().verses.iter().cloned().map(|verse| {
+                    let verse_ranges = highlighted_verses.get();
+                    let is_highlighted = verse_ranges.iter().any(|range| range.contains(verse.verse));
+                    
                     view! {
                         <>
                             <Show 
@@ -112,14 +118,20 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                                 fallback=|| view! { <></> }
                             >
                                 <span 
-                                    class="verse-number text-sm text-black font-medium mr-1 select-none align-super"
+                                    class=format!(
+                                        "verse-number text-sm {} font-medium mr-1 select-none align-super",
+                                        if is_highlighted { "text-blue-600 font-bold" } else { "text-black" }
+                                    )
                                     role="text"
                                 >
                                     {verse.verse}
                                 </span>
                             </Show>
                             <span 
-                                class="verse-text" 
+                                class=format!(
+                                    "verse-text {}",
+                                    if is_highlighted { "font-bold text-black bg-yellow-100 px-1 rounded" } else { "" }
+                                )
                                 id=format!("verse-{}", verse.verse)
                             >
                                 {verse.text.clone()}
