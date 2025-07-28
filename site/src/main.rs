@@ -1,10 +1,11 @@
 use crate::views::ChapterDetail;
-use crate::components::{CommandPalette, Sidebar, ShortcutsHelp};
+use crate::components::{CommandPalette, Sidebar, ShortcutsHelp, CrossReferencesSidebar};
 use crate::views::HomeTranslationPicker;
 use crate::api::init_bible;
-use crate::core::{get_bible, Chapter, VerseRange};
+use crate::core::{get_bible, Chapter, VerseRange, parse_verse_ranges_from_url};
 use crate::utils::is_mobile_screen;
 use crate::storage::{get_sidebar_open, save_sidebar_open};
+use urlencoding::decode;
 use leptos::prelude::*;
 use leptos::ev;
 use leptos_router::components::{Route, Router, Routes};
@@ -88,6 +89,37 @@ fn BibleWithSidebar() -> impl IntoView {
     let (is_palette_open, set_is_palette_open) = signal(false);
     // Sidebar visibility state - initialize from localStorage
     let (is_sidebar_open, set_is_sidebar_open) = signal(get_sidebar_open());
+    let location = use_location();
+    
+    // Detect if we should show cross-references sidebar
+    let sidebar_content = Memo::new(move |_| {
+        let pathname = location.pathname.get();
+        let _search = location.search.get();
+        
+        // Parse URL to get book, chapter, and verse info
+        let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
+        if path_parts.len() == 2 {
+            let book_name = if let Ok(decoded) = decode(path_parts[0]) {
+                decoded.into_owned()
+            } else {
+                path_parts[0].replace('_', " ")
+            };
+            
+            if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
+                // Check if there are verse parameters and if it's exactly one verse
+                let verse_ranges = parse_verse_ranges_from_url();
+                if verse_ranges.len() == 1 {
+                    let range = &verse_ranges[0];
+                    if range.start == range.end {
+                        // Single verse selected - show cross-references
+                        return Some((book_name, chapter_num, range.start));
+                    }
+                }
+            }
+        }
+        
+        None // Show regular sidebar
+    });
         
         view! {
             <KeyboardNavigationHandler 
@@ -167,7 +199,22 @@ fn BibleWithSidebar() -> impl IntoView {
                         fallback=|| view! { <></> }
                     >
                         <aside class="w-64 bg-white border-r border-black p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto">
-                            <Sidebar set_sidebar_open=set_is_sidebar_open />
+                            {move || {
+                                if let Some((book_name, chapter, verse)) = sidebar_content.get() {
+                                    view! {
+                                        <CrossReferencesSidebar 
+                                            book_name=book_name
+                                            chapter=chapter
+                                            verse=verse
+                                            set_sidebar_open=set_is_sidebar_open
+                                        />
+                                    }.into_any()
+                                } else {
+                                    view! {
+                                        <Sidebar set_sidebar_open=set_is_sidebar_open />
+                                    }.into_any()
+                                }
+                            }}
                         </aside>
                     </Show>
                     
