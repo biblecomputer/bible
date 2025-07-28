@@ -2,7 +2,7 @@ use crate::views::ChapterDetail;
 use crate::components::{CommandPalette, Sidebar, ShortcutsHelp};
 use crate::views::HomeTranslationPicker;
 use crate::api::init_bible;
-use crate::core::{get_bible, Chapter};
+use crate::core::{get_bible, Chapter, VerseRange};
 use crate::utils::is_mobile_screen;
 use leptos::prelude::*;
 use leptos::ev;
@@ -254,6 +254,7 @@ fn KeyboardNavigationHandler(
         }
         
         let pathname = location.pathname.get();
+        let search = location.search.get();
         
         // Parse current path to get book and chapter
         let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
@@ -270,6 +271,41 @@ fn KeyboardNavigationHandler(
                         "ArrowLeft" => {
                             if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
                                 navigate(&prev_chapter.to_path(), Default::default());
+                            }
+                        }
+                        "ArrowDown" => {
+                            e.prevent_default();
+                            // Get current verse from URL or default to 1
+                            let current_verse = if search.contains("verses=") {
+                                let verse_param = search.split("verses=").nth(1).unwrap_or("1").split('&').next().unwrap_or("1");
+                                // Handle single verse from comma-separated list
+                                verse_param.split(',').next().unwrap_or("1").split('-').next().unwrap_or("1").parse().unwrap_or(1)
+                            } else {
+                                1
+                            };
+                            
+                            if let Some(next_verse) = current_chapter.get_next_verse(current_verse) {
+                                let verse_range = VerseRange { start: next_verse, end: next_verse };
+                                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                navigate(&new_path, Default::default());
+                            }
+                        }
+                        "ArrowUp" => {
+                            e.prevent_default();
+                            // Get current verse from URL or default to first verse with content
+                            let current_verse = if search.contains("verses=") {
+                                let verse_param = search.split("verses=").nth(1).unwrap_or("1").split('&').next().unwrap_or("1");
+                                // Handle single verse from comma-separated list
+                                verse_param.split(',').next().unwrap_or("1").split('-').next().unwrap_or("1").parse().unwrap_or(1)
+                            } else {
+                                // If no verse is selected, start from the last verse to go up
+                                current_chapter.verses.len() as u32
+                            };
+                            
+                            if let Some(prev_verse) = current_chapter.get_previous_verse(current_verse) {
+                                let verse_range = VerseRange { start: prev_verse, end: prev_verse };
+                                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                navigate(&new_path, Default::default());
                             }
                         }
                         _ => {}
