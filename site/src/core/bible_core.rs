@@ -152,6 +152,22 @@ impl Chapter {
         let chapter: Chapter = get_bible().get_chapter(&book(), chapter()).unwrap();
         Ok(chapter)
     }
+
+    pub fn get_next_verse(&self, current_verse: u32) -> Option<u32> {
+        if current_verse < self.verses.len() as u32 {
+            Some(current_verse + 1)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_previous_verse(&self, current_verse: u32) -> Option<u32> {
+        if current_verse > 1 {
+            Some(current_verse - 1)
+        } else {
+            None
+        }
+    }
 }
 
 impl Bible {
@@ -248,6 +264,33 @@ mod tests {
         assert!(VerseRange::from_string("1-abc").is_none()); // invalid range
     }
     
+    #[test]
+    fn test_verse_navigation() {
+        let chapter = Chapter {
+            chapter: 1,
+            name: "Genesis".to_string(),
+            verses: vec![
+                Verse { verse: 1, chapter: 1, name: "Genesis".to_string(), text: "In the beginning...".to_string() },
+                Verse { verse: 2, chapter: 1, name: "Genesis".to_string(), text: "And the earth...".to_string() },
+                Verse { verse: 3, chapter: 1, name: "Genesis".to_string(), text: "And God said...".to_string() },
+            ]
+        };
+
+        // Test next verse navigation
+        assert_eq!(chapter.get_next_verse(1), Some(2));
+        assert_eq!(chapter.get_next_verse(2), Some(3));
+        assert_eq!(chapter.get_next_verse(3), None); // Last verse
+
+        // Test previous verse navigation
+        assert_eq!(chapter.get_previous_verse(1), None); // First verse
+        assert_eq!(chapter.get_previous_verse(2), Some(1));
+        assert_eq!(chapter.get_previous_verse(3), Some(2));
+        
+        // Test edge cases
+        assert_eq!(chapter.get_next_verse(0), Some(1)); // Invalid verse number should still work
+        assert_eq!(chapter.get_previous_verse(0), None); // Can't go before first verse
+    }
+
     #[test]
     fn test_chapter_to_path_with_verses() {
         let chapter = Chapter {
