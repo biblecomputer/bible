@@ -263,17 +263,17 @@ fn KeyboardNavigationHandler(
             if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
                 if let Ok(current_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
                     match e.key().as_str() {
-                        "ArrowRight" => {
+                        "ArrowRight" | "l" => {
                             if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
                                 navigate(&next_chapter.to_path(), Default::default());
                             }
                         }
-                        "ArrowLeft" => {
+                        "ArrowLeft" | "h" => {
                             if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
                                 navigate(&prev_chapter.to_path(), Default::default());
                             }
                         }
-                        "ArrowDown" => {
+                        "ArrowDown" | "j" => {
                             e.prevent_default();
                             // Get current verse from URL or default to 1
                             let current_verse = if search.contains("verses=") {
@@ -296,7 +296,7 @@ fn KeyboardNavigationHandler(
                                 navigate(&new_path, Default::default());
                             }
                         }
-                        "ArrowUp" => {
+                        "ArrowUp" | "k" => {
                             e.prevent_default();
                             // Get current verse from URL or default to first verse with content
                             let current_verse = if search.contains("verses=") {
