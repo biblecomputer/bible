@@ -380,6 +380,27 @@ fn KeyboardNavigationHandler(
                                 }
                             }
                         }
+                        "J" => {
+                            // Shift+J: Go to last verse of current chapter
+                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                                e.prevent_default();
+                                let last_verse = current_chapter.verses.len() as u32;
+                                if last_verse > 0 {
+                                    let verse_range = VerseRange { start: last_verse, end: last_verse };
+                                    let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                    navigate(&new_path, Default::default());
+                                }
+                            }
+                        }
+                        "K" => {
+                            // Shift+K: Go to first verse of current chapter  
+                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                                e.prevent_default();
+                                let verse_range = VerseRange { start: 1, end: 1 };
+                                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                navigate(&new_path, Default::default());
+                            }
+                        }
                         _ => {}
                     }
                 }
