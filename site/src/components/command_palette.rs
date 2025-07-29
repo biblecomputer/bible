@@ -4,6 +4,7 @@ use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_navigate, use_location};
+use leptos_router::NavigateOptions;
 use leptos::web_sys::KeyboardEvent;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -395,7 +396,7 @@ pub fn CommandPalette(
     // Handle navigation
     Effect::new(move |_| {
         if let Some(path) = navigate_to.get() {
-            navigate(&path, Default::default());
+            navigate(&path, NavigateOptions { scroll: false, ..Default::default() });
             set_navigate_to.set(None);
         }
     });

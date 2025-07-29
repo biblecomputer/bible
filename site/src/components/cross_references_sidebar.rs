@@ -7,6 +7,7 @@ use crate::utils::is_mobile_screen;
 use crate::storage::save_sidebar_open;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
+use leptos_router::NavigateOptions;
 use urlencoding::encode;
 use std::sync::OnceLock;
 
@@ -188,7 +189,7 @@ fn ReferenceItem(
             <button
                 class="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors duration-150 group"
                 on:click=move |_| {
-                    navigate(&reference_url, Default::default());
+                    navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
                     // Close sidebar on mobile when reference is selected
                     if is_mobile_screen() {
                         set_sidebar_open.set(false);
