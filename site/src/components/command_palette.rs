@@ -533,16 +533,90 @@ pub fn CommandPalette(
 /// - "ps 9" matches "psalmen 9" (partial word + number)
 /// - "gen 3" matches "genesis 3" (partial word + number)  
 /// - "john 3:16" matches "johannes 3:16" (partial word + full number)
+fn normalize_text_for_search(text: &str) -> String {
+    // Normalize Dutch characters and other diacritics for better search matching
+    text.chars()
+        .map(|c| match c {
+            // Dutch characters
+            'ë' | 'è' | 'é' | 'ê' => 'e',
+            'ï' | 'ì' | 'í' | 'î' => 'i',
+            'ö' | 'ò' | 'ó' | 'ô' => 'o',
+            'ü' | 'ù' | 'ú' | 'û' => 'u',
+            'á' | 'à' | 'â' | 'ä' => 'a',
+            'ý' | 'ỳ' | 'ŷ' | 'ÿ' => 'y',
+            'ç' => 'c',
+            'ñ' => 'n',
+            // Capital versions
+            'Ë' | 'È' | 'É' | 'Ê' => 'E',
+            'Ï' | 'Ì' | 'Í' | 'Î' => 'I',
+            'Ö' | 'Ò' | 'Ó' | 'Ô' => 'O',
+            'Ü' | 'Ù' | 'Ú' | 'Û' => 'U',
+            'Á' | 'À' | 'Â' | 'Ä' => 'A',
+            'Ý' | 'Ỳ' | 'Ŷ' | 'Ÿ' => 'Y',
+            'Ç' => 'C',
+            'Ñ' => 'N',
+            // Keep other characters as-is
+            _ => c,
+        })
+        .collect::<String>()
+        .to_lowercase()
+}
+
+fn convert_arabic_to_roman(text: &str) -> String {
+    // Convert Arabic numerals to Roman numerals for book names
+    // Preserve the case of the rest of the text
+    text.replace("1 ", "i ")
+        .replace("2 ", "ii ")
+        .replace("3 ", "iii ")
+}
+
+fn convert_roman_to_arabic(text: &str) -> String {
+    // Convert Roman numerals to Arabic numerals for book names
+    // Order matters - do longer patterns first
+    // Handle both uppercase and lowercase
+    text.replace("III ", "3 ")
+        .replace("II ", "2 ")
+        .replace("I ", "1 ")
+        .replace("iii ", "3 ")
+        .replace("ii ", "2 ")
+        .replace("i ", "1 ")
+}
+
 fn fuzzy_score(text: &str, query: &str) -> usize {
     if query.is_empty() {
         return 0;
     }
     
-    let text_lower = text.to_lowercase();
-    let query_lower = query.to_lowercase();
+    // Normalize both text and query for better matching
+    let text_normalized = normalize_text_for_search(text);
+    let query_normalized = normalize_text_for_search(query);
     
-    let text_words: Vec<&str> = text_lower.split_whitespace().collect();
-    let query_words: Vec<&str> = query_lower.split_whitespace().collect();
+    // Try with number/roman numeral conversions
+    let text_arabic_to_roman = convert_arabic_to_roman(&text_normalized);
+    let text_roman_to_arabic = convert_roman_to_arabic(&text_normalized);
+    let query_arabic_to_roman = convert_arabic_to_roman(&query_normalized);
+    let query_roman_to_arabic = convert_roman_to_arabic(&query_normalized);
+    
+    // Calculate scores for all combinations
+    let score1 = calculate_fuzzy_score(&text_normalized, &query_normalized);
+    let score2 = calculate_fuzzy_score(&text_arabic_to_roman, &query_normalized);
+    let score3 = calculate_fuzzy_score(&text_roman_to_arabic, &query_normalized);
+    let score4 = calculate_fuzzy_score(&text_normalized, &query_arabic_to_roman);
+    let score5 = calculate_fuzzy_score(&text_normalized, &query_roman_to_arabic);
+    let score6 = calculate_fuzzy_score(&text_arabic_to_roman, &query_roman_to_arabic);
+    let score7 = calculate_fuzzy_score(&text_roman_to_arabic, &query_arabic_to_roman);
+    
+    // Return the best score
+    score1.max(score2).max(score3).max(score4).max(score5).max(score6).max(score7)
+}
+
+fn calculate_fuzzy_score(text: &str, query: &str) -> usize {
+    if query.is_empty() {
+        return 0;
+    }
+    
+    let text_words: Vec<&str> = text.split_whitespace().collect();
+    let query_words: Vec<&str> = query.split_whitespace().collect();
     
     if query_words.is_empty() {
         return 0;
@@ -577,7 +651,7 @@ fn fuzzy_score(text: &str, query: &str) -> usize {
     }
     
     // Bonus for exact text match
-    if text_lower == query_lower {
+    if text == query {
         total_score += 100;
     }
     
@@ -667,6 +741,62 @@ fn character_fuzzy_score(text: &str, query: &str, is_positional_match: bool) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_normalize_text_for_search() {
+        // Test Dutch character normalization
+        assert_eq!(normalize_text_for_search("Matteüs"), "matteus");
+        assert_eq!(normalize_text_for_search("Jesaja"), "jesaja");  
+        assert_eq!(normalize_text_for_search("Ezechiël"), "ezechiel");
+        assert_eq!(normalize_text_for_search("Daniël"), "daniel");
+        
+        // Test mixed case
+        assert_eq!(normalize_text_for_search("MATTEÜS"), "matteus");
+        assert_eq!(normalize_text_for_search("Matteüs"), "matteus");
+    }
+
+    #[test]
+    fn test_convert_arabic_to_roman() {
+        // Test Arabic to Roman conversion
+        assert_eq!(convert_arabic_to_roman("1 samuel"), "i samuel");
+        assert_eq!(convert_arabic_to_roman("2 samuel"), "ii samuel");
+        assert_eq!(convert_arabic_to_roman("3 john"), "iii john");
+        
+        // Test no change for non-numbered books
+        assert_eq!(convert_arabic_to_roman("genesis"), "genesis");
+        assert_eq!(convert_arabic_to_roman("matthew"), "matthew");
+    }
+
+    #[test]
+    fn test_convert_roman_to_arabic() {
+        // Test Roman to Arabic conversion  
+        assert_eq!(convert_roman_to_arabic("I samuel"), "1 samuel");
+        assert_eq!(convert_roman_to_arabic("II samuel"), "2 samuel");
+        assert_eq!(convert_roman_to_arabic("III john"), "3 john");
+        
+        // Test no change for non-numbered books
+        assert_eq!(convert_roman_to_arabic("genesis"), "genesis");
+        assert_eq!(convert_roman_to_arabic("matthew"), "matthew");
+    }
+
+    #[test]
+    fn test_fuzzy_score_with_dutch_chars() {
+        // Test that Dutch characters match their normalized equivalents
+        let score1 = fuzzy_score("Matteüs", "matteus");
+        assert!(score1 > 0, "Should match Dutch characters");
+        
+        // Test number/roman conversion in search
+        let score2 = fuzzy_score("I Samuel", "1 samuel");
+        let score3 = fuzzy_score("II Samuel", "2 samuel");
+        assert!(score2 > 0, "Should match 1 samuel with I Samuel");
+        assert!(score3 > 0, "Should match 2 samuel with II Samuel");
+        
+        // Test the reverse direction too
+        let score4 = fuzzy_score("1 Samuel", "i samuel");
+        let score5 = fuzzy_score("2 Samuel", "ii samuel");
+        assert!(score4 > 0, "Should match i samuel with 1 Samuel");
+        assert!(score5 > 0, "Should match ii samuel with 2 Samuel");
+    }
 
     #[test]
     fn test_parse_verse_reference() {
