@@ -506,52 +506,57 @@ fn KeyboardNavigationHandler(
                         }
                         "ArrowDown" | "j" => {
                             e.prevent_default();
-                            // Get current verse from URL or default to 1
+                            // Get current verse from URL, 0 means chapter heading, no verses param means start from heading
                             let current_verse = if search.contains("verses=") {
                                 let verse_param = search.split("verses=").nth(1).unwrap_or("1").split('&').next().unwrap_or("1");
                                 // Handle single verse from comma-separated list
                                 verse_param.split(',').next().unwrap_or("1").split('-').next().unwrap_or("1").parse().unwrap_or(1)
                             } else {
-                                1
+                                0 // No verse selected = chapter heading is selected
                             };
                             
-                            if let Some(next_verse) = current_chapter.get_next_verse(current_verse) {
+                            if current_verse == 0 {
+                                // Currently on chapter heading, navigate to first verse
+                                let verse_range = VerseRange { start: 1, end: 1 };
+                                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+                            } else if let Some(next_verse) = current_chapter.get_next_verse(current_verse) {
                                 // Navigate to next verse in current chapter
                                 let verse_range = VerseRange { start: next_verse, end: next_verse };
                                 let new_path = current_chapter.to_path_with_verses(&[verse_range]);
                                 navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                             } else if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
-                                // Navigate to first verse of next chapter
-                                let verse_range = VerseRange { start: 1, end: 1 };
-                                let new_path = next_chapter.to_path_with_verses(&[verse_range]);
+                                // Navigate to chapter heading of next chapter (no verses param)
+                                let new_path = next_chapter.to_path();
                                 navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                             }
                         }
                         "ArrowUp" | "k" => {
                             e.prevent_default();
-                            // Get current verse from URL or default to first verse with content
+                            // Get current verse from URL, 0 means chapter heading, no verses param means start from heading
                             let current_verse = if search.contains("verses=") {
                                 let verse_param = search.split("verses=").nth(1).unwrap_or("1").split('&').next().unwrap_or("1");
-                                // Handle single verse from comma-separated list
+                                // Handle single verse from comma-separated list  
                                 verse_param.split(',').next().unwrap_or("1").split('-').next().unwrap_or("1").parse().unwrap_or(1)
                             } else {
-                                // If no verse is selected, start from the last verse to go up
-                                current_chapter.verses.len() as u32
+                                0 // No verse selected = chapter heading is selected
                             };
                             
-                            if let Some(prev_verse) = current_chapter.get_previous_verse(current_verse) {
+                            if current_verse == 0 {
+                                // Currently on chapter heading, navigate to previous chapter heading
+                                if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
+                                    let new_path = prev_chapter.to_path();
+                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+                                }
+                            } else if current_verse == 1 {
+                                // Currently on first verse, navigate to chapter heading (no verses param)
+                                let new_path = current_chapter.to_path();
+                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+                            } else if let Some(prev_verse) = current_chapter.get_previous_verse(current_verse) {
                                 // Navigate to previous verse in current chapter
                                 let verse_range = VerseRange { start: prev_verse, end: prev_verse };
                                 let new_path = current_chapter.to_path_with_verses(&[verse_range]);
                                 navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                            } else if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
-                                // Navigate to last verse of previous chapter
-                                let last_verse = prev_chapter.verses.len() as u32;
-                                if last_verse > 0 {
-                                    let verse_range = VerseRange { start: last_verse, end: last_verse };
-                                    let new_path = prev_chapter.to_path_with_verses(&[verse_range]);
-                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                                }
                             }
                         }
                         "r" => {
@@ -584,9 +589,8 @@ fn KeyboardNavigationHandler(
                             if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
                                 e.prevent_default();
                                 if pending_g.get() {
-                                    // Second 'g' pressed - go to first verse of current chapter
-                                    let verse_range = VerseRange { start: 1, end: 1 };
-                                    let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                    // Second 'g' pressed - go to chapter heading (no verses param)
+                                    let new_path = current_chapter.to_path();
                                     navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                                     set_pending_g.set(false);
                                 } else {
