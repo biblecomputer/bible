@@ -10,6 +10,7 @@ use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
 use leptos_router::hooks::{use_location, use_navigate};
+use leptos_router::NavigateOptions;
 use leptos_router::location::Location;
 use urlencoding::decode;
 
@@ -194,7 +195,7 @@ fn BookView(
                             let navigate = navigate.clone();
                             let nav_path = chapter_path.clone();
                             move |_| {
-                                navigate(&nav_path, Default::default());
+                                navigate(&nav_path, NavigateOptions { scroll: false, ..Default::default() });
                                 // Close sidebar on mobile when chapter is selected
                                 if is_mobile_screen() {
                                     set_sidebar_open.set(false);

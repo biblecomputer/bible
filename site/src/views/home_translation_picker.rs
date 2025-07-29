@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
+use leptos_router::NavigateOptions;
 use urlencoding::encode;
 use crate::core::get_current_bible;
 use crate::storage::{
@@ -26,7 +27,7 @@ pub fn HomeTranslationPicker() -> impl IntoView {
             if let Some(first_book) = bible.books.first() {
                 if let Some(first_chapter) = first_book.chapters.first() {
                     let encoded_book = encode(&first_book.name);
-                    navigate(&format!("/{}/{}", encoded_book, first_chapter.chapter), Default::default());
+                    navigate(&format!("/{}/{}", encoded_book, first_chapter.chapter), NavigateOptions { scroll: false, ..Default::default() });
                 }
             }
         }

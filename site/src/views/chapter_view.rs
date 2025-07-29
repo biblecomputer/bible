@@ -78,7 +78,31 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                         if let Some(verse_element) = document.get_element_by_id(&verse_id) {
                             if let Ok(html_element) = verse_element.dyn_into::<web_sys::HtmlElement>() {
                                 let _ = html_element.focus();
-                                let _ = html_element.scroll_into_view();
+                                
+                                // Use CSS scroll-behavior for smooth scrolling and center the verse
+                                if let Some(body) = document.body() {
+                                    if let Ok(html_body) = body.dyn_into::<web_sys::HtmlElement>() {
+                                        let _ = html_body.style().set_property("scroll-behavior", "smooth");
+                                    }
+                                }
+                                if let Some(document_element) = document.document_element() {
+                                    if let Ok(html_element) = document_element.dyn_into::<web_sys::HtmlElement>() {
+                                        let _ = html_element.style().set_property("scroll-behavior", "smooth");
+                                    }
+                                }
+                                
+                                // Calculate position to center the verse
+                                if let Some(window) = web_sys::window() {
+                                    if let Ok(window_height) = window.inner_height() {
+                                        if let Some(window_height) = window_height.as_f64() {
+                                            let element_top = html_element.offset_top() as f64;
+                                            let element_height = html_element.offset_height() as f64;
+                                            let scroll_y = element_top - (window_height / 2.0) + (element_height / 2.0);
+                                            
+                                            window.scroll_to_with_x_and_y(0.0, scroll_y);
+                                        }
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -119,7 +143,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     let prev_path = Memo::new(move |_| prev_chapter.get().as_ref().map(|ch| ch.to_path()));
     let next_path = Memo::new(move |_| next_chapter.get().as_ref().map(|ch| ch.to_path()));
     
-    // Create reactive chapter data
+    // Create reactive chapter data - only update when bible translation changes, not on verse navigation
     let current_chapter_data = Memo::new(move |_| {
         if let Some(bible) = bible_signal.get() {
             // Try to get the equivalent chapter from the new Bible
@@ -134,14 +158,28 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
         }
     });
     
+    // Cache the chapter data to prevent unnecessary re-renders during verse navigation
+    let stable_chapter_data = RwSignal::new(current_chapter_data.get_untracked());
+    
+    // Only update the stable data when the chapter actually changes (not just verse navigation)
+    Effect::new(move |_| {
+        let new_chapter = current_chapter_data.get();
+        let current_stable = stable_chapter_data.get_untracked();
+        
+        // Only update if the chapter book/number changed, not just verse highlighting
+        if new_chapter.name != current_stable.name || new_chapter.chapter != current_stable.chapter {
+            stable_chapter_data.set(new_chapter);
+        }
+    });
+    
     view! {
         <article class="chapter-detail max-w-2xl mx-auto px-4">
             <header class="mb-8">
-                <h1 id="chapter-heading" class="text-3xl font-bold text-black" tabindex="-1">{move || get_translated_chapter_name(&current_chapter_data.get().name)}</h1>
+                <h1 id="chapter-heading" class="text-3xl font-bold text-black" tabindex="-1">{move || get_translated_chapter_name(&stable_chapter_data.get().name)}</h1>
             </header>
             
             <div class="verses text-lg leading-8 text-black" role="main" aria-label="Chapter text">
-                {move || current_chapter_data.get().verses.iter().cloned().map(|verse| {
+                {move || stable_chapter_data.get().verses.iter().cloned().map(|verse| {
                     let verse_ranges = highlighted_verses.get();
                     let is_highlighted = verse_ranges.iter().any(|range| range.contains(verse.verse));
                     

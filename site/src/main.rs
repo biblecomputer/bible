@@ -10,6 +10,7 @@ use leptos::prelude::*;
 use leptos::ev;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::hooks::{use_location, use_navigate};
+use leptos_router::NavigateOptions;
 use leptos_router::path;
 use leptos::web_sys::KeyboardEvent;
 use wasm_bindgen_futures::spawn_local;
@@ -423,7 +424,7 @@ fn KeyboardNavigationHandler(
                                 if verse_num > 0 && verse_num <= current_chapter.verses.len() as u32 {
                                     let verse_range = VerseRange { start: verse_num, end: verse_num };
                                     let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                    navigate(&new_path, Default::default());
+                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                                 }
                             }
                             
@@ -445,12 +446,12 @@ fn KeyboardNavigationHandler(
                     match e.key().as_str() {
                         "ArrowRight" | "l" => {
                             if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
-                                navigate(&next_chapter.to_path(), Default::default());
+                                navigate(&next_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
                             }
                         }
                         "ArrowLeft" | "h" => {
                             if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
-                                navigate(&prev_chapter.to_path(), Default::default());
+                                navigate(&prev_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
                             }
                         }
                         "ArrowDown" | "j" => {
@@ -468,12 +469,12 @@ fn KeyboardNavigationHandler(
                                 // Navigate to next verse in current chapter
                                 let verse_range = VerseRange { start: next_verse, end: next_verse };
                                 let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                navigate(&new_path, Default::default());
+                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                             } else if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
                                 // Navigate to first verse of next chapter
                                 let verse_range = VerseRange { start: 1, end: 1 };
                                 let new_path = next_chapter.to_path_with_verses(&[verse_range]);
-                                navigate(&new_path, Default::default());
+                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                             }
                         }
                         "ArrowUp" | "k" => {
@@ -492,14 +493,14 @@ fn KeyboardNavigationHandler(
                                 // Navigate to previous verse in current chapter
                                 let verse_range = VerseRange { start: prev_verse, end: prev_verse };
                                 let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                navigate(&new_path, Default::default());
+                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                             } else if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
                                 // Navigate to last verse of previous chapter
                                 let last_verse = prev_chapter.verses.len() as u32;
                                 if last_verse > 0 {
                                     let verse_range = VerseRange { start: last_verse, end: last_verse };
                                     let new_path = prev_chapter.to_path_with_verses(&[verse_range]);
-                                    navigate(&new_path, Default::default());
+                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                                 }
                             }
                         }
@@ -511,7 +512,7 @@ fn KeyboardNavigationHandler(
                                 if last_verse > 0 {
                                     let verse_range = VerseRange { start: last_verse, end: last_verse };
                                     let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                    navigate(&new_path, Default::default());
+                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                                 }
                             }
                         }
@@ -521,7 +522,7 @@ fn KeyboardNavigationHandler(
                                 e.prevent_default();
                                 let verse_range = VerseRange { start: 1, end: 1 };
                                 let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                navigate(&new_path, Default::default());
+                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                             }
                         }
                         "H" => {
@@ -529,7 +530,7 @@ fn KeyboardNavigationHandler(
                             if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
                                 e.prevent_default();
                                 if let Some(prev_book_chapter) = get_bible().get_previous_book(&current_chapter) {
-                                    navigate(&prev_book_chapter.to_path(), Default::default());
+                                    navigate(&prev_book_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
                                 }
                             }
                         }
@@ -538,7 +539,7 @@ fn KeyboardNavigationHandler(
                             if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
                                 e.prevent_default();
                                 if let Some(next_book_chapter) = get_bible().get_next_book(&current_chapter) {
-                                    navigate(&next_book_chapter.to_path(), Default::default());
+                                    navigate(&next_book_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
                                 }
                             }
                         }
@@ -549,7 +550,7 @@ fn KeyboardNavigationHandler(
                                 if pending_g.get() {
                                     // Second 'g' pressed - go to first chapter of Bible
                                     if let Some(first_chapter) = get_bible().get_first_chapter() {
-                                        navigate(&first_chapter.to_path(), Default::default());
+                                        navigate(&first_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
                                     }
                                     set_pending_g.set(false);
                                 } else {
@@ -578,7 +579,7 @@ fn KeyboardNavigationHandler(
                             if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
                                 e.prevent_default();
                                 if let Some(last_chapter) = get_bible().get_last_chapter() {
-                                    navigate(&last_chapter.to_path(), Default::default());
+                                    navigate(&last_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
                                 }
                             }
                         }
@@ -628,14 +629,14 @@ fn Home() -> impl IntoView {
                         if let Some(first_chapter) = genesis_book.chapters.first() {
                             let encoded_book = encode(&genesis_book.name);
                             let path = format!("/{}/{}", encoded_book, first_chapter.chapter);
-                            navigate(&path, Default::default());
+                            navigate(&path, NavigateOptions { scroll: false, ..Default::default() });
                             return;
                         }
                     }
                 }
                 
                 // Fallback: try to navigate to a standard Genesis path
-                navigate("/Genesis/1", Default::default());
+                navigate("/Genesis/1", NavigateOptions { scroll: false, ..Default::default() });
             }
         }
     });
