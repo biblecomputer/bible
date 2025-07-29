@@ -112,8 +112,6 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     Effect::new(move |_| {
         let verse_ranges = highlighted_verses.get();
         
-        // Debug logging
-        web_sys::console::log_1(&format!("Highlighted verses changed: {:?}", verse_ranges).into());
         
         spawn_local(async move {
             // Try multiple times with increasing delays to handle timing issues
@@ -125,11 +123,9 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                         if let Some(first_range) = verse_ranges.first() {
                             // Focus on the first verse in the first range
                             let verse_id = format!("verse-{}", first_range.start);
-                            web_sys::console::log_1(&format!("Looking for element: {}", verse_id).into());
                             
                             if let Some(verse_element) = document.get_element_by_id(&verse_id) {
                                 if let Ok(html_element) = verse_element.dyn_into::<web_sys::HtmlElement>() {
-                                    web_sys::console::log_1(&"Found element, scrolling...".into());
                                     let _ = html_element.focus();
                                     
                                     // Calculate position to center the verse with vim-like buffer
@@ -141,15 +137,12 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                                                 // Position verse at 1/3 from top (vim-like scrolloff behavior)
                                                 let scroll_y = element_top - (window_height / 3.0) + (element_height / 2.0);
                                                 
-                                                web_sys::console::log_1(&format!("Scrolling to: {}", scroll_y).into());
                                                 window.scroll_to_with_x_and_y(0.0, scroll_y);
                                                 break; // Success, exit retry loop
                                             }
                                         }
                                     }
                                 }
-                            } else {
-                                web_sys::console::log_1(&format!("Element not found: {}", verse_id).into());
                             }
                         } else {
                             // No verses selected, focus the chapter heading for accessibility
