@@ -178,35 +178,54 @@ fn BibleWithSidebar() -> impl IntoView {
                             </a>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <Show
-                                when=move || cross_references_data.get().is_some()
-                                fallback=|| view! { <></> }
-                            >
-                                <button
-                                    class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                                    on:click=move |_| {
-                                        set_is_right_sidebar_open.update(|open| *open = !*open);
+                            <button
+                                class=move || format!(
+                                    "p-2 rounded transition-colors {}",
+                                    if cross_references_data.get().is_some() {
+                                        "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                    } else {
+                                        "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
                                     }
-                                    aria-label=move || if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
-                                    title=move || if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
+                                )
+                                on:click=move |_| {
+                                    if cross_references_data.get().is_some() {
+                                        set_is_right_sidebar_open.update(|open| *open = !*open);
+                                    } else {
+                                        // Show sidebar with helpful message
+                                        set_is_right_sidebar_open.set(true);
+                                    }
+                                }
+                                aria-label=move || {
+                                    if cross_references_data.get().is_some() {
+                                        if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
+                                    } else {
+                                        "Show references help"
+                                    }
+                                }
+                                title=move || {
+                                    if cross_references_data.get().is_some() {
+                                        if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
+                                    } else {
+                                        "References (select a verse first)"
+                                    }
+                                }
+                            >
+                                <svg 
+                                    width="24" 
+                                    height="24" 
+                                    viewBox="0 0 24 24" 
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    aria-hidden="true"
                                 >
-                                    <svg 
-                                        width="24" 
-                                        height="24" 
-                                        viewBox="0 0 24 24" 
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        aria-hidden="true"
-                                    >
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                        <polyline points="14,2 14,8 20,8"/>
-                                        <line x1="16" y1="13" x2="8" y2="13"/>
-                                        <line x1="16" y1="17" x2="8" y2="17"/>
-                                        <polyline points="10,9 9,9 8,9"/>
-                                    </svg>
-                                </button>
-                            </Show>
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14,2 14,8 20,8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                    <polyline points="10,9 9,9 8,9"/>
+                                </svg>
+                            </button>
                             <a 
                                 href="https://github.com/sempruijs/bible" 
                                 target="_blank" 
@@ -273,9 +292,7 @@ fn BibleWithSidebar() -> impl IntoView {
                     
                     // Right sidebar (cross-references)
                     <Show
-                        when=move || {
-                            is_right_sidebar_open.get() && cross_references_data.get().is_some()
-                        }
+                        when=move || is_right_sidebar_open.get()
                         fallback=|| view! { <></> }
                     >
                         <aside class="w-64 bg-white border-l border-black p-3 overflow-y-auto md:relative absolute inset-y-0 right-0 z-40 md:z-auto">
@@ -290,7 +307,40 @@ fn BibleWithSidebar() -> impl IntoView {
                                         />
                                     }.into_any()
                                 } else {
-                                    view! { <div></div> }.into_any()
+                                    view! { 
+                                        <div class="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500">
+                                            <svg 
+                                                width="48" 
+                                                height="48" 
+                                                viewBox="0 0 24 24" 
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="1.5"
+                                                class="mb-4 text-gray-400"
+                                                aria-hidden="true"
+                                            >
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                                <polyline points="14,2 14,8 20,8"/>
+                                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                                <polyline points="10,9 9,9 8,9"/>
+                                            </svg>
+                                            <h3 class="text-lg font-medium text-gray-700 mb-2">References</h3>
+                                            <p class="text-sm leading-relaxed">
+                                                Please select a verse by navigating with arrow keys or 
+                                                <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs font-mono">j</kbd>
+                                                /
+                                                <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs font-mono">k</kbd>
+                                                to see cross-references.
+                                            </p>
+                                            <button 
+                                                class="mt-4 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+                                                on:click=move |_| set_is_right_sidebar_open.set(false)
+                                            >
+                                                Close
+                                            </button>
+                                        </div>
+                                    }.into_any()
                                 }
                             }}
                         </aside>
