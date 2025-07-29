@@ -20,6 +20,87 @@ fn get_cross_references() -> &'static References {
     })
 }
 
+fn get_canonical_book_name(display_name: &str) -> String {
+    // Convert display book names (potentially translated) back to canonical English names
+    // that the cross-reference system recognizes
+    match display_name {
+        // English Roman numerals to Arabic numerals
+        "I Samuel" => "1 Samuel".to_string(),
+        "II Samuel" => "2 Samuel".to_string(),
+        "I Kings" => "1 Kings".to_string(),
+        "II Kings" => "2 Kings".to_string(),
+        "I Chronicles" => "1 Chronicles".to_string(),
+        "II Chronicles" => "2 Chronicles".to_string(),
+        "I Corinthians" => "1 Corinthians".to_string(),
+        "II Corinthians" => "2 Corinthians".to_string(),
+        "I Thessalonians" => "1 Thessalonians".to_string(),
+        "II Thessalonians" => "2 Thessalonians".to_string(),
+        "I Timothy" => "1 Timothy".to_string(),
+        "II Timothy" => "2 Timothy".to_string(),
+        "I Peter" => "1 Peter".to_string(),
+        "II Peter" => "2 Peter".to_string(),
+        "I John" => "1 John".to_string(),
+        "II John" => "2 John".to_string(),
+        "III John" => "3 John".to_string(),
+        
+        // Dutch translations back to English
+        "I Samuël" => "1 Samuel".to_string(),
+        "II Samuël" => "2 Samuel".to_string(),
+        "I Koningen" => "1 Kings".to_string(),
+        "II Koningen" => "2 Kings".to_string(),
+        "I Kronieken" => "1 Chronicles".to_string(),
+        "II Kronieken" => "2 Chronicles".to_string(),
+        "Psalmen" => "Psalms".to_string(),
+        "Prediker" => "Ecclesiastes".to_string(),
+        "Hooglied" => "Song of Solomon".to_string(),
+        "Jesaja" => "Isaiah".to_string(),
+        "Jeremia" => "Jeremiah".to_string(),
+        "Klaagliederen" => "Lamentations".to_string(),
+        "Ezechiël" => "Ezekiel".to_string(),
+        "Daniël" => "Daniel".to_string(),
+        "Joël" => "Joel".to_string(),
+        "Micha" => "Micah".to_string(),
+        "Habakuk" => "Habakkuk".to_string(),
+        "Zefanja" => "Zephaniah".to_string(),
+        "Haggaï" => "Haggai".to_string(),
+        "Zacharia" => "Zechariah".to_string(),
+        "Maleachi" => "Malachi".to_string(),
+        
+        // New Testament Dutch translations
+        "Matteüs" => "Matthew".to_string(),
+        "Marcus" => "Mark".to_string(),
+        "Lucas" => "Luke".to_string(),
+        "Johannes" => "John".to_string(),
+        "Handelingen" => "Acts".to_string(),
+        "Romeinen" => "Romans".to_string(),
+        "I Korintiërs" => "1 Corinthians".to_string(),
+        "II Korintiërs" => "2 Corinthians".to_string(),
+        "Galaten" => "Galatians".to_string(),
+        "Efeziërs" => "Ephesians".to_string(),
+        "Filippenzen" => "Philippians".to_string(),
+        "Kolossenzen" => "Colossians".to_string(),
+        "I Tessalonicenzen" => "1 Thessalonians".to_string(),
+        "II Tessalonicenzen" => "2 Thessalonians".to_string(),
+        "I Timoteüs" => "1 Timothy".to_string(),
+        "II Timoteüs" => "2 Timothy".to_string(),
+        "Titus" => "Titus".to_string(),
+        "Filemon" => "Philemon".to_string(),
+        "Hebreeën" => "Hebrews".to_string(),
+        "Jakobus" => "James".to_string(),
+        "I Petrus" => "1 Peter".to_string(),
+        "II Petrus" => "2 Peter".to_string(),
+        "I Johannes" => "1 John".to_string(),
+        "II Johannes" => "2 John".to_string(),
+        "III Johannes" => "3 John".to_string(),
+        "Judas" => "Jude".to_string(),
+        "Openbaring" => "Revelation".to_string(),
+        
+        // If no translation found, return as-is (might already be English)
+        _ => display_name.to_string(),
+    }
+}
+
+
 fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
     match storage_lang {
         crate::storage::translation_storage::Language::Dutch => Language::Dutch,
@@ -98,10 +179,22 @@ pub fn CrossReferencesSidebar(
     set_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
     
+    // Convert display book name (e.g. "I Samuël") to canonical English name (e.g. "1 Samuel") 
+    // for cross-reference lookup
+    let canonical_book_name = get_canonical_book_name(&book_name);
+    
+    // Debug logging to track the conversion and lookup process
+    web_sys::console::log_1(&format!("Cross-reference lookup: '{}' -> '{}' {}:{}", 
+        book_name, canonical_book_name, chapter, verse).into());
+    
     // Create the optimized verse ID for lookup
-    let verse_id = match VerseId::from_book_name(&book_name, chapter, verse) {
-        Some(id) => id,
+    let verse_id = match VerseId::from_book_name(&canonical_book_name, chapter, verse) {
+        Some(id) => {
+            web_sys::console::log_1(&format!("VerseId created successfully: {:?}", id).into());
+            id
+        },
         None => {
+            web_sys::console::log_1(&format!("Failed to create VerseId for book: '{}'", canonical_book_name).into());
             // Unknown book - show no references
             return view! {
                 <div class="cross-references-sidebar">
@@ -122,6 +215,10 @@ pub fn CrossReferencesSidebar(
     // Get cross-references for this verse
     let references = get_cross_references();
     let verse_references = references.0.get(&verse_id);
+    
+    // Debug logging for cross-reference lookup results
+    web_sys::console::log_1(&format!("Cross-references found: {}", 
+        verse_references.map(|refs| refs.len()).unwrap_or(0)).into());
     
     // Sort references by votes (highest to lowest)
     let sorted_references = Memo::new(move |_| {
@@ -273,5 +370,34 @@ mod tests {
         };
         
         assert_eq!(reference_to_url(&range_reference), "/Romans/1?verses=19-20");
+    }
+
+    #[test]
+    fn test_canonical_book_name_conversion() {
+        // Test English Roman numerals to Arabic numerals conversion
+        assert_eq!(get_canonical_book_name("I Samuel"), "1 Samuel");
+        assert_eq!(get_canonical_book_name("II Samuel"), "2 Samuel");
+        assert_eq!(get_canonical_book_name("I Kings"), "1 Kings");
+        assert_eq!(get_canonical_book_name("II Kings"), "2 Kings");
+        assert_eq!(get_canonical_book_name("I Corinthians"), "1 Corinthians");
+        assert_eq!(get_canonical_book_name("II Corinthians"), "2 Corinthians");
+        assert_eq!(get_canonical_book_name("III John"), "3 John");
+        
+        // Test Dutch to English conversion for numbered books
+        assert_eq!(get_canonical_book_name("I Samuël"), "1 Samuel");
+        assert_eq!(get_canonical_book_name("II Samuël"), "2 Samuel");
+        assert_eq!(get_canonical_book_name("I Koningen"), "1 Kings");
+        assert_eq!(get_canonical_book_name("II Koningen"), "2 Kings");
+        
+        // Test other Dutch translations
+        assert_eq!(get_canonical_book_name("Psalmen"), "Psalms");
+        assert_eq!(get_canonical_book_name("Prediker"), "Ecclesiastes");
+        
+        // Test that Arabic numeral English names pass through unchanged
+        assert_eq!(get_canonical_book_name("1 Samuel"), "1 Samuel");
+        assert_eq!(get_canonical_book_name("Genesis"), "Genesis");
+        
+        // Test unknown names pass through unchanged
+        assert_eq!(get_canonical_book_name("Unknown Book"), "Unknown Book");
     }
 }
