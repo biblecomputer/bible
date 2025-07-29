@@ -504,25 +504,11 @@ fn KeyboardNavigationHandler(
                                 }
                             }
                         }
-                        "J" => {
-                            // Shift+J: Go to last verse of current chapter
-                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                        "r" => {
+                            // r: Toggle references sidebar
+                            if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
                                 e.prevent_default();
-                                let last_verse = current_chapter.verses.len() as u32;
-                                if last_verse > 0 {
-                                    let verse_range = VerseRange { start: last_verse, end: last_verse };
-                                    let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                                }
-                            }
-                        }
-                        "K" => {
-                            // Shift+K: Go to first verse of current chapter  
-                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
-                                e.prevent_default();
-                                let verse_range = VerseRange { start: 1, end: 1 };
-                                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+                                set_right_sidebar_open.update(|open| *open = !*open);
                             }
                         }
                         "H" => {
@@ -544,14 +530,14 @@ fn KeyboardNavigationHandler(
                             }
                         }
                         "g" => {
-                            // Handle 'g' key for gg (go to first chapter) or single g (pending)
+                            // Handle 'g' key for gg (go to first verse of current chapter) or single g (pending)
                             if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
                                 e.prevent_default();
                                 if pending_g.get() {
-                                    // Second 'g' pressed - go to first chapter of Bible
-                                    if let Some(first_chapter) = get_bible().get_first_chapter() {
-                                        navigate(&first_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-                                    }
+                                    // Second 'g' pressed - go to first verse of current chapter
+                                    let verse_range = VerseRange { start: 1, end: 1 };
+                                    let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                                     set_pending_g.set(false);
                                 } else {
                                     // First 'g' pressed - set pending state
@@ -575,11 +561,14 @@ fn KeyboardNavigationHandler(
                             }
                         }
                         "G" => {
-                            // Shift+G: Go to last chapter of Bible
+                            // Shift+G: Go to last verse of current chapter
                             if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
                                 e.prevent_default();
-                                if let Some(last_chapter) = get_bible().get_last_chapter() {
-                                    navigate(&last_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
+                                let last_verse = current_chapter.verses.len() as u32;
+                                if last_verse > 0 {
+                                    let verse_range = VerseRange { start: last_verse, end: last_verse };
+                                    let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                                 }
                             }
                         }
