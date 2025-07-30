@@ -86,11 +86,11 @@ impl KeyCombination {
 pub struct KeyboardMapper;
 
 impl KeyboardMapper {
-    pub fn map_to_instruction(combination: &KeyCombination) -> Instruction {
+    pub fn map_to_instruction(combination: &KeyCombination) -> Option<Instruction> {
         // Handle numeric input for verse navigation
         if let Ok(verse_num) = combination.key.parse::<u32>() {
             if !combination.shift && !combination.ctrl && !combination.meta && !combination.alt {
-                return Instruction::GoToVerse(verse_num);
+                return Some(Instruction::GoToVerse(verse_num));
             }
         }
         
@@ -102,43 +102,42 @@ impl KeyboardMapper {
             combination.alt,
         ) {
             // Basic navigation
-            ("ArrowRight" | "l", false, false, false, false) => Instruction::NextChapter,
-            ("ArrowLeft" | "h", false, false, false, false) => Instruction::PreviousChapter,
-            ("ArrowDown" | "j", false, false, false, false) => Instruction::NextVerse,
-            ("ArrowUp" | "k", false, false, false, false) => Instruction::PreviousVerse,
+            ("ArrowRight" | "l", false, false, false, false) => Some(Instruction::NextChapter),
+            ("ArrowLeft" | "h", false, false, false, false) => Some(Instruction::PreviousChapter),
+            ("ArrowDown" | "j", false, false, false, false) => Some(Instruction::NextVerse),
+            ("ArrowUp" | "k", false, false, false, false) => Some(Instruction::PreviousVerse),
             
             // Book navigation
-            ("H", true, false, false, false) => Instruction::PreviousBook,
-            ("L", true, false, false, false) => Instruction::NextBook,
+            ("H", true, false, false, false) => Some(Instruction::PreviousBook),
+            ("L", true, false, false, false) => Some(Instruction::NextBook),
             
             // Chapter jumping
-            ("g", false, false, false, false) => Instruction::PendingG,
-            ("G", true, false, false, false) => Instruction::EndOfChapter,
+            ("G", true, false, false, false) => Some(Instruction::EndOfChapter),
             
             // Special navigation
-            ("s", false, false, false, false) => Instruction::SwitchToPreviousChapter,
+            ("s", false, false, false, false) => Some(Instruction::SwitchToPreviousChapter),
             
             // Copy operations
-            ("c", false, false, false, false) => Instruction::CopyRawVerse,
+            ("c", false, false, false, false) => Some(Instruction::CopyRawVerse),
             ("C", true, false, false, false) | ("c", true, false, false, false) => {
-                Instruction::CopyVerseWithReference
+                Some(Instruction::CopyVerseWithReference)
             }
             
             // UI toggles
-            ("b", false, true, false, false) => Instruction::ToggleSidebar,
-            ("r", false, false, false, false) => Instruction::ToggleCrossReferences,
-            ("R", true, true, false, false) => Instruction::ToggleCrossReferences,
+            ("b", false, true, false, false) => Some(Instruction::ToggleSidebar),
+            ("r", false, false, false, false) => Some(Instruction::ToggleCrossReferences),
+            ("R", true, true, false, false) => Some(Instruction::ToggleCrossReferences),
             
             // Command palette (Cmd/Ctrl+K)
             ("k", false, true, false, false) | ("k", false, false, true, false) => {
-                Instruction::OpenCommandPalette
+                Some(Instruction::OpenCommandPalette)
             }
             
-            _ => Instruction::NoOp,
+            _ => None,
         }
     }
     
     pub fn should_handle_key(combination: &KeyCombination) -> bool {
-        !matches!(KeyboardMapper::map_to_instruction(combination), Instruction::NoOp)
+        KeyboardMapper::map_to_instruction(combination).is_some()
     }
 }

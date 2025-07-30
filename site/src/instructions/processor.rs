@@ -97,7 +97,6 @@ where
             Instruction::GoToVerse(verse_num) => self.handle_go_to_verse(context, verse_num),
             Instruction::CopyRawVerse => self.handle_copy_raw_verse(context),
             Instruction::CopyVerseWithReference => self.handle_copy_verse_with_reference(context),
-            Instruction::NoOp => false,
             _ => {
                 // Other instructions need to be handled by the UI components
                 // Return false to indicate this processor didn't handle it
