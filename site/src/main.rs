@@ -409,6 +409,21 @@ fn KeyboardNavigationHandler(
     let (pending_g, set_pending_g) = signal(false);
     let (g_timeout_generation, set_g_timeout_generation) = signal(0u32);
     
+    // Previous chapter tracking for "alt-tab" like switching
+    let (previous_chapter_path, set_previous_chapter_path) = signal(Option::<String>::None);
+    
+    // Reactive effect to track all path changes
+    {
+        let mut last_path = String::new();
+        Effect::new(move |_| {
+            let current_path = location.pathname.get();
+            if !last_path.is_empty() && last_path != current_path {
+                set_previous_chapter_path.set(Some(last_path.clone()));
+            }
+            last_path = current_path;
+        });
+    }
+    
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
         // Handle Cmd/Ctrl+K to open command palette
@@ -527,8 +542,7 @@ fn KeyboardNavigationHandler(
                                 navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
                             } else if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
                                 // Navigate to chapter heading of next chapter (no verses param)
-                                let new_path = next_chapter.to_path();
-                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+                                navigate(&next_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
                             }
                         }
                         "ArrowUp" | "k" => {
@@ -545,8 +559,7 @@ fn KeyboardNavigationHandler(
                             if current_verse == 0 {
                                 // Currently on chapter heading, navigate to previous chapter heading
                                 if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
-                                    let new_path = prev_chapter.to_path();
-                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+                                    navigate(&prev_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
                                 }
                             } else if current_verse == 1 {
                                 // Currently on first verse, navigate to chapter heading (no verses param)
@@ -564,6 +577,18 @@ fn KeyboardNavigationHandler(
                             if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
                                 e.prevent_default();
                                 set_right_sidebar_open.update(|open| *open = !*open);
+                            }
+                        }
+                        "s" => {
+                            // s: Switch to previous chapter (alt-tab like functionality)
+                            if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                                e.prevent_default();
+                                if let Some(prev_path) = previous_chapter_path.get() {
+                                    let current_path = location.pathname.get();
+                                    // Swap current and previous paths
+                                    set_previous_chapter_path.set(Some(current_path));
+                                    navigate(&prev_path, NavigateOptions { scroll: false, ..Default::default() });
+                                }
                             }
                         }
                         "H" => {
