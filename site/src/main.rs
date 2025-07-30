@@ -651,8 +651,8 @@ fn KeyboardNavigationHandler(
                                                 copy_text.push_str(&verse.text);
                                             }
                                             
-                                            // Add reference with link
-                                            copy_text.push('\n');
+                                            // Add reference and link on separate lines
+                                            copy_text.push_str("\n\n");
                                             
                                             // Format reference (e.g., "Genesis 1:1-5")
                                             let book_name = current_chapter.name.split_whitespace().next().unwrap_or("");
@@ -674,10 +674,11 @@ fn KeyboardNavigationHandler(
                                                 copy_text.push_str(&format!("{} {}:{}", book_name, chapter_num, range_strs.join(",")));
                                             }
                                             
-                                            // Add link
+                                            // Add link on separate line
+                                            copy_text.push('\n');
                                             let book_name_url = book_name.replace(' ', "_").to_lowercase();
                                             let verses_param = search.split("verses=").nth(1).unwrap_or("").split('&').next().unwrap_or("");
-                                            copy_text.push_str(&format!(" https://bible.pruijs.net/{}/{}?verses={}", book_name_url, chapter_num, verses_param));
+                                            copy_text.push_str(&format!("https://bible.pruijs.net/{}/{}?verses={}", book_name_url, chapter_num, verses_param));
                                         } else {
                                             // Regular c: Copy raw text only
                                             for (i, verse) in verses_to_copy.iter().enumerate() {
