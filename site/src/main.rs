@@ -592,10 +592,15 @@ fn KeyboardNavigationHandler(
                                 }
                             }
                         }
-                        "c" => {
-                            // c: Copy selected verses to clipboard
-                            if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                        "c" | "C" => {
+                            // c: Copy raw verse text (no verse numbers, no references)
+                            // C: Copy verse text with reference and link
+                            let is_shift = e.key() == "C" || e.shift_key();
+                            if !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
                                 e.prevent_default();
+                                
+                                // Debug logging
+                                leptos::web_sys::console::log_1(&format!("Copy key pressed: '{}', is_shift: {}", e.key(), is_shift).into());
                                 
                                 // Parse verse ranges from URL manually (can't use hook in event handler)
                                 let verse_ranges = if search.contains("verses=") {
@@ -636,15 +641,51 @@ fn KeyboardNavigationHandler(
                                     }
                                     
                                     if !verses_to_copy.is_empty() {
-                                        // Add chapter header
-                                        copy_text.push_str(&format!("{}\n\n", current_chapter.name));
-                                        
-                                        // Add verses
-                                        for (i, verse) in verses_to_copy.iter().enumerate() {
-                                            if i > 0 {
-                                                copy_text.push('\n');
+                                        if is_shift {
+                                            // Shift+C: Copy with reference and link
+                                            // Add verse text
+                                            for (i, verse) in verses_to_copy.iter().enumerate() {
+                                                if i > 0 {
+                                                    copy_text.push(' ');
+                                                }
+                                                copy_text.push_str(&verse.text);
                                             }
-                                            copy_text.push_str(&format!("{} {}", verse.verse, verse.text));
+                                            
+                                            // Add reference with link
+                                            copy_text.push('\n');
+                                            
+                                            // Format reference (e.g., "Genesis 1:1-5")
+                                            let book_name = current_chapter.name.split_whitespace().next().unwrap_or("");
+                                            let chapter_num = current_chapter.name.split_whitespace().nth(1).unwrap_or("1");
+                                            
+                                            if verse_ranges.len() == 1 && verse_ranges[0].start == verse_ranges[0].end {
+                                                // Single verse
+                                                copy_text.push_str(&format!("{} {}:{}", book_name, chapter_num, verse_ranges[0].start));
+                                            } else {
+                                                // Multiple verses or ranges
+                                                let mut range_strs = Vec::new();
+                                                for range in &verse_ranges {
+                                                    if range.start == range.end {
+                                                        range_strs.push(range.start.to_string());
+                                                    } else {
+                                                        range_strs.push(format!("{}-{}", range.start, range.end));
+                                                    }
+                                                }
+                                                copy_text.push_str(&format!("{} {}:{}", book_name, chapter_num, range_strs.join(",")));
+                                            }
+                                            
+                                            // Add link
+                                            let book_name_url = book_name.replace(' ', "_").to_lowercase();
+                                            let verses_param = search.split("verses=").nth(1).unwrap_or("").split('&').next().unwrap_or("");
+                                            copy_text.push_str(&format!(" https://bible.pruijs.net/{}/{}?verses={}", book_name_url, chapter_num, verses_param));
+                                        } else {
+                                            // Regular c: Copy raw text only
+                                            for (i, verse) in verses_to_copy.iter().enumerate() {
+                                                if i > 0 {
+                                                    copy_text.push(' ');
+                                                }
+                                                copy_text.push_str(&verse.text);
+                                            }
                                         }
                                     }
                                 } else {
