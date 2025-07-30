@@ -103,7 +103,6 @@ impl VimKey {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct KeyboardMappings {
     pub mappings: HashMap<String, String>,
-    pub digit_mappings: HashMap<String, String>,
 }
 
 impl KeyboardMappings {
@@ -117,17 +116,6 @@ impl KeyboardMappings {
     pub fn get_instruction(&self, vim_key: &str) -> Option<Instruction> {
         if let Some(instruction_name) = self.mappings.get(vim_key) {
             self.parse_instruction(instruction_name)
-        } else if let Some(digit) = vim_key.chars().next() {
-            if digit.is_ascii_digit() {
-                if let Some(instruction_name) = self.digit_mappings.get(&digit.to_string()) {
-                    if instruction_name == "GoToVerse" {
-                        if let Ok(verse_num) = vim_key.parse::<u32>() {
-                            return Some(Instruction::GoToVerse(verse_num));
-                        }
-                    }
-                }
-            }
-            None
         } else {
             None
         }
@@ -158,6 +146,7 @@ impl KeyboardMappings {
 pub struct VimKeyboardMapper {
     mappings: KeyboardMappings,
     sequence_buffer: String,
+    multiplier_buffer: String,
 }
 
 impl VimKeyboardMapper {
@@ -165,42 +154,95 @@ impl VimKeyboardMapper {
         Self {
             mappings: KeyboardMappings::load(),
             sequence_buffer: String::new(),
+            multiplier_buffer: String::new(),
         }
     }
     
-    pub fn map_to_instruction(&mut self, e: &KeyboardEvent) -> Option<Instruction> {
-        // Handle single digit input for verse navigation
-        if let Some(digit) = e.key().chars().next() {
-            if digit.is_ascii_digit() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() && !e.shift_key() {
-                if let Ok(verse_num) = digit.to_string().parse::<u32>() {
-                    return Some(Instruction::GoToVerse(verse_num));
+    pub fn map_to_instruction(&mut self, e: &KeyboardEvent) -> Option<(Instruction, u32)> {
+        // Skip processing if any modifier keys are pressed (except shift for some keys)
+        if e.ctrl_key() || e.meta_key() || e.alt_key() {
+            // Try to match modified keys first
+            let mut found_instruction = None;
+            for (vim_key_str, _) in &self.mappings.mappings {
+                if let Some(vim_key) = VimKey::from_vim_syntax(vim_key_str) {
+                    if vim_key.matches_event(e) {
+                        found_instruction = self.mappings.get_instruction(vim_key_str);
+                        break;
+                    }
                 }
+            }
+            if let Some(instruction) = found_instruction {
+                self.clear_buffers();
+                return Some((instruction, 1));
+            }
+            return None;
+        }
+        
+        // Handle digit input for multipliers
+        if let Some(digit) = e.key().chars().next() {
+            if digit.is_ascii_digit() {
+                self.multiplier_buffer.push(digit);
+                return None; // Wait for the actual command
             }
         }
         
-        // Try to match single-key mappings first
+        // Get current multiplier (default to 1)
+        let multiplier = if self.multiplier_buffer.is_empty() {
+            1
+        } else {
+            self.multiplier_buffer.parse().unwrap_or(1)
+        };
+        
+        // Handle 'g' specially - it can be "g" for GoToVerse or "gg" for BeginningOfChapter
+        if e.key() == "g" {
+            if self.sequence_buffer == "g" {
+                // This is the second 'g' in "gg" sequence
+                self.clear_buffers();
+                return Some((Instruction::BeginningOfChapter, multiplier));
+            } else if !self.multiplier_buffer.is_empty() {
+                // This is a multiplier followed by 'g' (e.g., "33g" -> go to verse 33)
+                let verse_num = multiplier;
+                self.clear_buffers();
+                return Some((Instruction::GoToVerse(verse_num), 1));
+            } else {
+                // This is the first 'g' in potential "gg" sequence
+                self.sequence_buffer.push_str(&e.key());
+                return None; // Wait for potential second 'g'
+            }
+        }
+        
+        // Try to match single-key mappings
+        let mut found_instruction = None;
         for (vim_key_str, _) in &self.mappings.mappings {
             if let Some(vim_key) = VimKey::from_vim_syntax(vim_key_str) {
                 if !vim_key.is_multi_char_sequence() && vim_key.matches_event(e) {
-                    self.sequence_buffer.clear(); // Clear any partial sequences
-                    return self.mappings.get_instruction(vim_key_str);
+                    found_instruction = self.mappings.get_instruction(vim_key_str);
+                    break;
                 }
             }
         }
+        if let Some(instruction) = found_instruction {
+            self.clear_buffers();
+            return Some((instruction, multiplier));
+        }
         
-        // Handle multi-character sequences like "gg"
-        if !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+        // Handle other multi-character sequences
+        if !self.sequence_buffer.is_empty() || (!e.key().chars().next().unwrap_or(' ').is_ascii_digit() && e.key() != "g") {
             self.sequence_buffer.push_str(&e.key());
             
             // Check if current buffer matches any multi-char sequence
+            let mut found_instruction = None;
             for (vim_key_str, _) in &self.mappings.mappings {
                 if let Some(vim_key) = VimKey::from_vim_syntax(vim_key_str) {
                     if vim_key.is_multi_char_sequence() && vim_key.key == self.sequence_buffer {
-                        let instruction = self.mappings.get_instruction(vim_key_str);
-                        self.sequence_buffer.clear();
-                        return instruction;
+                        found_instruction = self.mappings.get_instruction(vim_key_str);
+                        break;
                     }
                 }
+            }
+            if let Some(instruction) = found_instruction {
+                self.clear_buffers();
+                return Some((instruction, multiplier));
             }
             
             // Check if current buffer is a prefix of any multi-char sequence
@@ -213,8 +255,8 @@ impl VimKeyboardMapper {
             });
             
             if !is_prefix {
-                // No potential matches, clear the buffer
-                self.sequence_buffer.clear();
+                // No potential matches, clear the buffers
+                self.clear_buffers();
             }
         }
         
@@ -225,7 +267,16 @@ impl VimKeyboardMapper {
         self.sequence_buffer.clear();
     }
     
+    pub fn clear_buffers(&mut self) {
+        self.sequence_buffer.clear();
+        self.multiplier_buffer.clear();
+    }
+    
     pub fn has_pending_sequence(&self) -> bool {
-        !self.sequence_buffer.is_empty()
+        !self.sequence_buffer.is_empty() || !self.multiplier_buffer.is_empty()
+    }
+    
+    pub fn get_current_input_display(&self) -> String {
+        format!("{}{}", self.multiplier_buffer, self.sequence_buffer)
     }
 }
