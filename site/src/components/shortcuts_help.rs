@@ -87,6 +87,11 @@ pub fn ShortcutsHelp() -> impl IntoView {
                         </div>
                         
                         <div class="flex items-center justify-between">
+                            <span class="text-black">Switch to Previous Chapter</span>
+                            <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">S</kbd>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
                             <span class="text-black">Previous Chapter</span>
                             <div class="flex items-center gap-2">
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Left Arrow</kbd>
