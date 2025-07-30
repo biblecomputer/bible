@@ -21,7 +21,7 @@
     "c": "CopyRawVerse",
     "<S-C>": "CopyVerseWithReference",
     
-    "<C-b>": "ToggleSidebar",
+    "b": "ToggleSidebar",
     "r": "ToggleCrossReferences",
     "<C-S-R>": "ToggleCrossReferences",
     
