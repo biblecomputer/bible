@@ -476,6 +476,11 @@ fn KeyboardNavigationHandler(
     
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
+        // Skip all keyboard processing if command palette is open (let it handle input)
+        if palette_open.get() {
+            return;
+        }
+        
         // Get instruction from vim-style keyboard mapper
         let mut mapper = vim_mapper.get();
         let instruction_opt = mapper.map_to_instruction(&e);
@@ -550,11 +555,6 @@ fn KeyboardNavigationHandler(
                     return;
                 }
                 _ => {
-                    // Skip navigation if command palette is open
-                    if palette_open.get() {
-                        return;
-                    }
-                    
                     // For all other instructions, create context and process
                     let pathname = location.pathname.get();
                     let search = location.search.get();
