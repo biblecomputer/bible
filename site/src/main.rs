@@ -2,12 +2,13 @@ use crate::views::ChapterDetail;
 use crate::components::{CommandPalette, Sidebar, ShortcutsHelp, CrossReferencesSidebar};
 use crate::views::HomeTranslationPicker;
 use crate::api::init_bible;
-use crate::core::{get_bible, Chapter, VerseRange, parse_verse_ranges_from_url};
+use crate::core::{get_bible, Chapter, parse_verse_ranges_from_url};
 use crate::utils::is_mobile_screen;
 use crate::storage::{get_sidebar_open, save_sidebar_open};
 use crate::storage::translations::get_current_translation;
 use crate::translation_map::translation::Translation;
 use crate::core::types::Language;
+use crate::instructions::{Instruction, KeyCombination, KeyboardMapper, InstructionProcessor, InstructionContext};
 use urlencoding::decode;
 use leptos::prelude::*;
 use leptos::ev;
@@ -17,7 +18,6 @@ use leptos_router::NavigateOptions;
 use leptos_router::path;
 use leptos::web_sys::KeyboardEvent;
 use wasm_bindgen_futures::spawn_local;
-use wasm_bindgen_futures::JsFuture;
 
 // Helper function to convert storage language to translation language
 fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
@@ -44,9 +44,28 @@ fn get_translated_book_name(book_name: &str) -> String {
     book_name.to_string()
 }
 
+// Helper function to create instruction context from URL
+fn create_instruction_context(pathname: &str, search: &str) -> Option<InstructionContext> {
+    let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
+    if path_parts.len() == 2 {
+        let book_name = path_parts[0].replace('_', " ");
+        if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
+            if let Ok(current_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
+                return Some(InstructionContext::new(
+                    current_chapter,
+                    search.to_string(),
+                    pathname.to_string(),
+                ));
+            }
+        }
+    }
+    None
+}
+
 mod api;
 mod components;
 mod core;
+mod instructions;
 mod storage;
 mod translation_map;
 mod utils;
@@ -453,359 +472,133 @@ fn KeyboardNavigationHandler(
         });
     }
     
+    // Create instruction processor
+    let processor = InstructionProcessor::new(navigate.clone());
+    
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
-        // Handle Cmd/Ctrl+K to open command palette
-        if e.key() == "k" && (e.meta_key() || e.ctrl_key()) {
-            e.prevent_default();
-            set_palette_open.set(true);
-            // Close sidebar on mobile when command palette opens
-            if is_mobile_screen() {
-                set_left_sidebar_open.set(false);
-                save_sidebar_open(false);
+        // Create key combination from event
+        let key_combination = KeyCombination::from_event(&e);
+        
+        // Map to instruction
+        let instruction = KeyboardMapper::map_to_instruction(&key_combination);
+        
+        // Handle UI-specific instructions that need direct component access
+        match instruction {
+            Instruction::OpenCommandPalette => {
+                e.prevent_default();
+                set_palette_open.set(true);
+                // Close sidebar on mobile when command palette opens
+                if is_mobile_screen() {
+                    set_left_sidebar_open.set(false);
+                    save_sidebar_open(false);
+                }
+                return;
             }
-            return;
+            Instruction::ToggleSidebar => {
+                e.prevent_default();
+                set_left_sidebar_open.update(|open| {
+                    *open = !*open;
+                    save_sidebar_open(*open);
+                });
+                return;
+            }
+            Instruction::ToggleCrossReferences => {
+                e.prevent_default();
+                set_right_sidebar_open.update(|open| *open = !*open);
+                return;
+            }
+            _ => {}
         }
         
-        // Handle Ctrl+B to toggle left sidebar (books/chapters)
-        if e.key() == "b" && e.ctrl_key() {
-            e.prevent_default();
-            set_left_sidebar_open.update(|open| {
-                *open = !*open;
-                save_sidebar_open(*open);
-            });
-            return;
-        }
-        
-        // Handle Ctrl+Shift+R to toggle right sidebar (cross-references)
-        if e.key() == "R" && e.ctrl_key() && e.shift_key() {
-            e.prevent_default();
-            set_right_sidebar_open.update(|open| *open = !*open);
-            return;
-        }
-        
-        // Skip arrow key navigation if command palette is open
+        // Skip navigation if command palette is open
         if palette_open.get() {
             return;
         }
         
+        // Handle special instructions that need additional state management
+        match instruction {
+            Instruction::SwitchToPreviousChapter => {
+                e.prevent_default();
+                if let Some(prev_path) = previous_chapter_path.get() {
+                    let current_path = location.pathname.get();
+                    set_previous_chapter_path.set(Some(current_path));
+                    navigate(&prev_path, NavigateOptions { scroll: false, ..Default::default() });
+                }
+                return;
+            }
+            Instruction::PendingG => {
+                e.prevent_default();
+                if pending_g.get() {
+                    // Second 'g' pressed - execute BeginningOfChapter
+                    let pathname = location.pathname.get();
+                    let search = location.search.get();
+                    if let Some(context) = create_instruction_context(&pathname, &search) {
+                        processor.process(Instruction::BeginningOfChapter, &context);
+                    }
+                    set_pending_g.set(false);
+                } else {
+                    // First 'g' pressed - set pending state with timeout
+                    set_pending_g.set(true);
+                    let current_gen = g_timeout_generation.get();
+                    let new_gen = current_gen + 1;
+                    set_g_timeout_generation.set(new_gen);
+                    
+                    let pending_setter = set_pending_g;
+                    let gen_getter = g_timeout_generation;
+                    spawn_local(async move {
+                        gloo_timers::future::TimeoutFuture::new(1000).await;
+                        if gen_getter.get() == new_gen {
+                            pending_setter.set(false);
+                        }
+                    });
+                }
+                return;
+            }
+            Instruction::GoToVerse(verse_num) => {
+                // Handle instant verse navigation with typing buffer
+                e.prevent_default();
+                
+                let current_gen = verse_typing_generation.get();
+                let new_gen = current_gen + 1;
+                set_verse_typing_generation.set(new_gen);
+                
+                let current_buffer = verse_typing_buffer.get();
+                let new_buffer = format!("{}{}", current_buffer, verse_num);
+                set_verse_typing_buffer.set(new_buffer.clone());
+                
+                // Process the instruction if we have a valid context
+                let pathname = location.pathname.get();
+                let search = location.search.get();
+                if let Some(context) = create_instruction_context(&pathname, &search) {
+                    if let Ok(parsed_verse) = new_buffer.parse::<u32>() {
+                        processor.process(Instruction::GoToVerse(parsed_verse), &context);
+                    }
+                }
+                
+                // Set timeout to clear buffer
+                let buffer_setter = set_verse_typing_buffer;
+                let gen_getter = verse_typing_generation;
+                spawn_local(async move {
+                    gloo_timers::future::TimeoutFuture::new(1500).await;
+                    if gen_getter.get() == new_gen {
+                        buffer_setter.set(String::new());
+                    }
+                });
+                return;
+            }
+            Instruction::NoOp => return,
+            _ => {}
+        }
+        
+        // For all other instructions, create context and process
         let pathname = location.pathname.get();
         let search = location.search.get();
         
-        // Parse current path to get book and chapter
-        let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
-        if path_parts.len() == 2 {
-            let book_name = path_parts[0].replace('_', " ");
-            if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
-                if let Ok(current_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
-                    // Handle instant verse navigation (typing numbers like Finder)
-                    if let Some(digit) = e.key().chars().next() {
-                        if digit.is_ascii_digit() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
-                            e.prevent_default();
-                            
-                            // Increment generation to cancel previous timeouts
-                            let current_gen = verse_typing_generation.get();
-                            let new_gen = current_gen + 1;
-                            set_verse_typing_generation.set(new_gen);
-                            
-                            // Add digit to buffer
-                            let current_buffer = verse_typing_buffer.get();
-                            let new_buffer = format!("{}{}", current_buffer, digit);
-                            set_verse_typing_buffer.set(new_buffer.clone());
-                            
-                            // Try to navigate to the verse
-                            if let Ok(verse_num) = new_buffer.parse::<u32>() {
-                                if verse_num > 0 && verse_num <= current_chapter.verses.len() as u32 {
-                                    let verse_range = VerseRange { start: verse_num, end: verse_num };
-                                    let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                                }
-                            }
-                            
-                            // Set timeout to clear buffer after 1.5 seconds using generation check
-                            let buffer_setter = set_verse_typing_buffer;
-                            let gen_getter = verse_typing_generation;
-                            spawn_local(async move {
-                                gloo_timers::future::TimeoutFuture::new(1500).await;
-                                // Only clear if this generation is still current
-                                if gen_getter.get() == new_gen {
-                                    buffer_setter.set(String::new());
-                                }
-                            });
-                            
-                            return;
-                        }
-                    }
-                    
-                    match e.key().as_str() {
-                        "ArrowRight" | "l" => {
-                            if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
-                                navigate(&next_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-                            }
-                        }
-                        "ArrowLeft" | "h" => {
-                            if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
-                                navigate(&prev_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-                            }
-                        }
-                        "ArrowDown" | "j" => {
-                            e.prevent_default();
-                            // Get current verse from URL, 0 means chapter heading, no verses param means start from heading
-                            let current_verse = if search.contains("verses=") {
-                                let verse_param = search.split("verses=").nth(1).unwrap_or("1").split('&').next().unwrap_or("1");
-                                // Handle single verse from comma-separated list
-                                verse_param.split(',').next().unwrap_or("1").split('-').next().unwrap_or("1").parse().unwrap_or(1)
-                            } else {
-                                0 // No verse selected = chapter heading is selected
-                            };
-                            
-                            if current_verse == 0 {
-                                // Currently on chapter heading, navigate to first verse
-                                let verse_range = VerseRange { start: 1, end: 1 };
-                                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                            } else if let Some(next_verse) = current_chapter.get_next_verse(current_verse) {
-                                // Navigate to next verse in current chapter
-                                let verse_range = VerseRange { start: next_verse, end: next_verse };
-                                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                            } else if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
-                                // Navigate to chapter heading of next chapter (no verses param)
-                                navigate(&next_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-                            }
-                        }
-                        "ArrowUp" | "k" => {
-                            e.prevent_default();
-                            // Get current verse from URL, 0 means chapter heading, no verses param means start from heading
-                            let current_verse = if search.contains("verses=") {
-                                let verse_param = search.split("verses=").nth(1).unwrap_or("1").split('&').next().unwrap_or("1");
-                                // Handle single verse from comma-separated list  
-                                verse_param.split(',').next().unwrap_or("1").split('-').next().unwrap_or("1").parse().unwrap_or(1)
-                            } else {
-                                0 // No verse selected = chapter heading is selected
-                            };
-                            
-                            if current_verse == 0 {
-                                // Currently on chapter heading, navigate to previous chapter heading
-                                if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
-                                    navigate(&prev_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-                                }
-                            } else if current_verse == 1 {
-                                // Currently on first verse, navigate to chapter heading (no verses param)
-                                let new_path = current_chapter.to_path();
-                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                            } else if let Some(prev_verse) = current_chapter.get_previous_verse(current_verse) {
-                                // Navigate to previous verse in current chapter
-                                let verse_range = VerseRange { start: prev_verse, end: prev_verse };
-                                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                            }
-                        }
-                        "r" => {
-                            // r: Toggle references sidebar
-                            if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
-                                e.prevent_default();
-                                set_right_sidebar_open.update(|open| *open = !*open);
-                            }
-                        }
-                        "s" => {
-                            // s: Switch to previous chapter (alt-tab like functionality)
-                            if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
-                                e.prevent_default();
-                                if let Some(prev_path) = previous_chapter_path.get() {
-                                    let current_path = location.pathname.get();
-                                    // Swap current and previous paths
-                                    set_previous_chapter_path.set(Some(current_path));
-                                    navigate(&prev_path, NavigateOptions { scroll: false, ..Default::default() });
-                                }
-                            }
-                        }
-                        "c" | "C" => {
-                            // c: Copy raw verse text (no verse numbers, no references)
-                            // C: Copy verse text with reference and link
-                            let is_shift = e.key() == "C" || e.shift_key();
-                            if !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
-                                e.prevent_default();
-                                
-                                // Debug logging
-                                leptos::web_sys::console::log_1(&format!("Copy key pressed: '{}', is_shift: {}", e.key(), is_shift).into());
-                                
-                                // Parse verse ranges from URL manually (can't use hook in event handler)
-                                let verse_ranges = if search.contains("verses=") {
-                                    search
-                                        .split('&')
-                                        .find_map(|param| {
-                                            let mut parts = param.split('=');
-                                            if parts.next()? == "verses" {
-                                                parts.next()
-                                            } else {
-                                                None
-                                            }
-                                        })
-                                        .map(|verses_param| {
-                                            verses_param
-                                                .split(',')
-                                                .filter_map(|range_str| VerseRange::from_string(range_str))
-                                                .collect()
-                                        })
-                                        .unwrap_or_else(Vec::new)
-                                } else {
-                                    Vec::new()
-                                };
-                                let mut copy_text = String::new();
-                                
-                                if !verse_ranges.is_empty() {
-                                    // Copy selected verses
-                                    let mut verses_to_copy = Vec::new();
-                                    
-                                    // Collect all verses in the selected ranges
-                                    for verse in &current_chapter.verses {
-                                        for range in &verse_ranges {
-                                            if range.contains(verse.verse) {
-                                                verses_to_copy.push(verse);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    
-                                    if !verses_to_copy.is_empty() {
-                                        if is_shift {
-                                            // Shift+C: Copy with reference and link
-                                            // Add verse text
-                                            for (i, verse) in verses_to_copy.iter().enumerate() {
-                                                if i > 0 {
-                                                    copy_text.push(' ');
-                                                }
-                                                copy_text.push_str(&verse.text);
-                                            }
-                                            
-                                            // Add reference and link on separate lines
-                                            copy_text.push_str("\n\n");
-                                            
-                                            // Format reference (e.g., "Genesis 1:1-5" or "Matteüs 1:1-5" for Dutch)
-                                            let book_name = current_chapter.name.split_whitespace().next().unwrap_or("");
-                                            let translated_book_name = get_translated_book_name(book_name);
-                                            let chapter_num = current_chapter.name.split_whitespace().nth(1).unwrap_or("1");
-                                            
-                                            if verse_ranges.len() == 1 && verse_ranges[0].start == verse_ranges[0].end {
-                                                // Single verse
-                                                copy_text.push_str(&format!("{} {}:{}", translated_book_name, chapter_num, verse_ranges[0].start));
-                                            } else {
-                                                // Multiple verses or ranges
-                                                let mut range_strs = Vec::new();
-                                                for range in &verse_ranges {
-                                                    if range.start == range.end {
-                                                        range_strs.push(range.start.to_string());
-                                                    } else {
-                                                        range_strs.push(format!("{}-{}", range.start, range.end));
-                                                    }
-                                                }
-                                                copy_text.push_str(&format!("{} {}:{}", translated_book_name, chapter_num, range_strs.join(",")));
-                                            }
-                                            
-                                            // Add link on separate line
-                                            copy_text.push('\n');
-                                            let book_name_url = book_name.replace(' ', "_").to_lowercase();
-                                            let verses_param = search.split("verses=").nth(1).unwrap_or("").split('&').next().unwrap_or("");
-                                            copy_text.push_str(&format!("https://bible.pruijs.net/{}/{}?verses={}", book_name_url, chapter_num, verses_param));
-                                        } else {
-                                            // Regular c: Copy raw text only
-                                            for (i, verse) in verses_to_copy.iter().enumerate() {
-                                                if i > 0 {
-                                                    copy_text.push(' ');
-                                                }
-                                                copy_text.push_str(&verse.text);
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    // No verses selected - copy chapter title only
-                                    copy_text.push_str(&current_chapter.name);
-                                }
-                                
-                                if !copy_text.is_empty() {
-                                    // Copy to clipboard using web-sys
-                                    let copy_text_clone = copy_text.clone();
-                                    spawn_local(async move {
-                                        if let Some(window) = leptos::web_sys::window() {
-                                            let clipboard = window.navigator().clipboard();
-                                            match JsFuture::from(clipboard.write_text(&copy_text_clone)).await {
-                                                Ok(_) => {
-                                                    // Show brief success message
-                                                    leptos::web_sys::console::log_1(&"Copied to clipboard!".into());
-                                                }
-                                                Err(_) => {
-                                                    leptos::web_sys::console::log_1(&"Failed to copy to clipboard".into());
-                                                }
-                                            }
-                                        }
-                                    });
-                                }
-                            }
-                        }
-                        "H" => {
-                            // Shift+H: Go to previous book (first chapter)
-                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
-                                e.prevent_default();
-                                if let Some(prev_book_chapter) = get_bible().get_previous_book(&current_chapter) {
-                                    navigate(&prev_book_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-                                }
-                            }
-                        }
-                        "L" => {
-                            // Shift+L: Go to next book (first chapter)
-                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
-                                e.prevent_default();
-                                if let Some(next_book_chapter) = get_bible().get_next_book(&current_chapter) {
-                                    navigate(&next_book_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-                                }
-                            }
-                        }
-                        "g" => {
-                            // Handle 'g' key for gg (go to first verse of current chapter) or single g (pending)
-                            if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
-                                e.prevent_default();
-                                if pending_g.get() {
-                                    // Second 'g' pressed - go to chapter heading (no verses param)
-                                    let new_path = current_chapter.to_path();
-                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                                    set_pending_g.set(false);
-                                } else {
-                                    // First 'g' pressed - set pending state
-                                    set_pending_g.set(true);
-                                    
-                                    // Set timeout to clear pending state after 1 second
-                                    let current_gen = g_timeout_generation.get();
-                                    let new_gen = current_gen + 1;
-                                    set_g_timeout_generation.set(new_gen);
-                                    
-                                    let pending_setter = set_pending_g;
-                                    let gen_getter = g_timeout_generation;
-                                    spawn_local(async move {
-                                        gloo_timers::future::TimeoutFuture::new(1000).await;
-                                        // Only clear if this generation is still current
-                                        if gen_getter.get() == new_gen {
-                                            pending_setter.set(false);
-                                        }
-                                    });
-                                }
-                            }
-                        }
-                        "G" => {
-                            // Shift+G: Go to last verse of current chapter
-                            if e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
-                                e.prevent_default();
-                                let last_verse = current_chapter.verses.len() as u32;
-                                if last_verse > 0 {
-                                    let verse_range = VerseRange { start: last_verse, end: last_verse };
-                                    let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-                                    navigate(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
+        if let Some(context) = create_instruction_context(&pathname, &search) {
+            if KeyboardMapper::should_handle_key(&key_combination) {
+                e.prevent_default();
+                processor.process(instruction, &context);
             }
         }
     };
