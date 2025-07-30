@@ -85,13 +85,17 @@ where
     }
     
     pub fn process(&self, instruction: Instruction, context: &InstructionContext) -> bool {
+        self.process_with_multiplier(instruction, context, 1)
+    }
+    
+    pub fn process_with_multiplier(&self, instruction: Instruction, context: &InstructionContext, multiplier: u32) -> bool {
         match instruction {
-            Instruction::NextVerse => self.handle_next_verse(context),
-            Instruction::PreviousVerse => self.handle_previous_verse(context),
-            Instruction::NextChapter => self.handle_next_chapter(context),
-            Instruction::PreviousChapter => self.handle_previous_chapter(context),
-            Instruction::NextBook => self.handle_next_book(context),
-            Instruction::PreviousBook => self.handle_previous_book(context),
+            Instruction::NextVerse => self.handle_next_verse_with_multiplier(context, multiplier),
+            Instruction::PreviousVerse => self.handle_previous_verse_with_multiplier(context, multiplier),
+            Instruction::NextChapter => self.handle_next_chapter_with_multiplier(context, multiplier),
+            Instruction::PreviousChapter => self.handle_previous_chapter_with_multiplier(context, multiplier),
+            Instruction::NextBook => self.handle_next_book_with_multiplier(context, multiplier),
+            Instruction::PreviousBook => self.handle_previous_book_with_multiplier(context, multiplier),
             Instruction::BeginningOfChapter => self.handle_beginning_of_chapter(context),
             Instruction::EndOfChapter => self.handle_end_of_chapter(context),
             Instruction::GoToVerse(verse_num) => self.handle_go_to_verse(context, verse_num),
@@ -349,5 +353,139 @@ where
             }
         }
         book_name.to_string()
+    }
+    
+    // Multiplier versions of navigation methods
+    fn handle_next_verse_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
+        let mut current_verse = context.get_current_verse();
+        let mut current_chapter = context.current_chapter.clone();
+        
+        for _ in 0..multiplier {
+            if current_verse == 0 {
+                // Currently on chapter heading, navigate to first verse
+                current_verse = 1;
+            } else if let Some(next_verse) = current_chapter.get_next_verse(current_verse) {
+                // Move to next verse in current chapter
+                current_verse = next_verse;
+            } else if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
+                // Move to chapter heading of next chapter
+                current_chapter = next_chapter;
+                current_verse = 0;
+            } else {
+                // Reached the end
+                break;
+            }
+        }
+        
+        // Navigate to final position
+        if current_verse == 0 {
+            (self.navigate)(&current_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
+        } else {
+            let verse_range = VerseRange { start: current_verse, end: current_verse };
+            let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+            (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+        }
+        true
+    }
+    
+    fn handle_previous_verse_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
+        let mut current_verse = context.get_current_verse();
+        let mut current_chapter = context.current_chapter.clone();
+        
+        for _ in 0..multiplier {
+            if current_verse == 0 {
+                // Currently on chapter heading, navigate to previous chapter heading
+                if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
+                    current_chapter = prev_chapter;
+                    current_verse = 0;
+                } else {
+                    // Reached the beginning
+                    break;
+                }
+            } else if current_verse == 1 {
+                // Currently on first verse, navigate to chapter heading
+                current_verse = 0;
+            } else if let Some(prev_verse) = current_chapter.get_previous_verse(current_verse) {
+                // Move to previous verse in current chapter
+                current_verse = prev_verse;
+            } else {
+                // This shouldn't happen, but handle it gracefully
+                break;
+            }
+        }
+        
+        // Navigate to final position
+        if current_verse == 0 {
+            (self.navigate)(&current_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
+        } else {
+            let verse_range = VerseRange { start: current_verse, end: current_verse };
+            let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+            (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+        }
+        true
+    }
+    
+    fn handle_next_chapter_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
+        let mut current_chapter = context.current_chapter.clone();
+        
+        for _ in 0..multiplier {
+            if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
+                current_chapter = next_chapter;
+            } else {
+                // Reached the end
+                break;
+            }
+        }
+        
+        (self.navigate)(&current_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
+        true
+    }
+    
+    fn handle_previous_chapter_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
+        let mut current_chapter = context.current_chapter.clone();
+        
+        for _ in 0..multiplier {
+            if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
+                current_chapter = prev_chapter;
+            } else {
+                // Reached the beginning
+                break;
+            }
+        }
+        
+        (self.navigate)(&current_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
+        true
+    }
+    
+    fn handle_next_book_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
+        let mut current_chapter = context.current_chapter.clone();
+        
+        for _ in 0..multiplier {
+            if let Some(next_book_chapter) = get_bible().get_next_book(&current_chapter) {
+                current_chapter = next_book_chapter;
+            } else {
+                // Reached the end
+                break;
+            }
+        }
+        
+        (self.navigate)(&current_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
+        true
+    }
+    
+    fn handle_previous_book_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
+        let mut current_chapter = context.current_chapter.clone();
+        
+        for _ in 0..multiplier {
+            if let Some(prev_book_chapter) = get_bible().get_previous_book(&current_chapter) {
+                current_chapter = prev_book_chapter;
+            } else {
+                // Reached the beginning
+                break;
+            }
+        }
+        
+        (self.navigate)(&current_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
+        true
     }
 }

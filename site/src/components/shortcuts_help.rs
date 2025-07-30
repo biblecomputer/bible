@@ -160,40 +160,30 @@ pub fn ShortcutsHelp() -> impl IntoView {
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-black">Go to Verse (instant)</span>
+                            <span class="text-black">Go to Verse</span>
                             <div class="flex items-center gap-1">
-                                <span class="text-gray-600 text-xs">Type</span>
-                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">5</kbd>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">5g</kbd>
                                 <span class="text-gray-400">or</span>
-                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">16</kbd>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">33g</kbd>
                             </div>
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-black">First Verse of Chapter</span>
+                            <span class="text-black">Vim-style Multipliers</span>
                             <div class="flex items-center gap-1">
-                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Shift</kbd>
-                                <span class="text-black">+</span>
-                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">K</kbd>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">5j</kbd>
+                                <span class="text-gray-400">or</span>
+                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">3h</kbd>
                             </div>
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-black">Last Verse of Chapter</span>
-                            <div class="flex items-center gap-1">
-                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Shift</kbd>
-                                <span class="text-black">+</span>
-                                <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">J</kbd>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-center justify-between">
-                            <span class="text-black">First Chapter of Bible</span>
+                            <span class="text-black">Beginning of Chapter</span>
                             <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">gg</kbd>
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-black">Last Chapter of Bible</span>
+                            <span class="text-black">End of Chapter</span>
                             <div class="flex items-center gap-1">
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">Shift</kbd>
                                 <span class="text-black">+</span>

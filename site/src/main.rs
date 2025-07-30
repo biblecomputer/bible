@@ -449,12 +449,6 @@ fn KeyboardNavigationHandler(
     let navigate = use_navigate();
     let location = use_location();
     
-    // Verse typing buffer state (for instant verse navigation like Finder)
-    let (verse_typing_buffer, set_verse_typing_buffer) = signal(String::new());
-    let (verse_typing_generation, set_verse_typing_generation) = signal(0u32);
-    
-    // These are now handled by the VimKeyboardMapper
-    
     // Previous chapter tracking for "alt-tab" like switching
     let (previous_chapter_path, set_previous_chapter_path) = signal(Option::<String>::None);
     
@@ -474,6 +468,17 @@ fn KeyboardNavigationHandler(
     let processor = InstructionProcessor::new(navigate.clone());
     let (vim_mapper, set_vim_mapper) = signal(VimKeyboardMapper::new());
     
+    // Visual display for vim command buffer
+    let vim_display = Memo::new(move |_| {
+        let mapper = vim_mapper.get();
+        let display = mapper.get_current_input_display();
+        if display.is_empty() {
+            None
+        } else {
+            Some(display)
+        }
+    });
+    
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
         // Skip all keyboard processing if command palette is open (let it handle input)
@@ -483,11 +488,11 @@ fn KeyboardNavigationHandler(
         
         // Get instruction from vim-style keyboard mapper
         let mut mapper = vim_mapper.get();
-        let instruction_opt = mapper.map_to_instruction(&e);
+        let instruction_result = mapper.map_to_instruction(&e);
         set_vim_mapper.set(mapper);
         
         // Handle instruction if we got one
-        if let Some(instruction) = instruction_opt {
+        if let Some((instruction, multiplier)) = instruction_result {
             // Handle UI-specific instructions that need direct component access
             match instruction {
                 Instruction::OpenCommandPalette => {
@@ -523,35 +528,15 @@ fn KeyboardNavigationHandler(
                     return;
                 }
                 Instruction::GoToVerse(verse_num) => {
-                    // Handle instant verse navigation with typing buffer
+                    // Handle go to verse navigation
                     e.prevent_default();
-                    
-                    let current_gen = verse_typing_generation.get();
-                    let new_gen = current_gen + 1;
-                    set_verse_typing_generation.set(new_gen);
-                    
-                    let current_buffer = verse_typing_buffer.get();
-                    let new_buffer = format!("{}{}", current_buffer, verse_num);
-                    set_verse_typing_buffer.set(new_buffer.clone());
                     
                     // Process the instruction if we have a valid context
                     let pathname = location.pathname.get();
                     let search = location.search.get();
                     if let Some(context) = create_instruction_context(&pathname, &search) {
-                        if let Ok(parsed_verse) = new_buffer.parse::<u32>() {
-                            processor.process(Instruction::GoToVerse(parsed_verse), &context);
-                        }
+                        processor.process(Instruction::GoToVerse(verse_num), &context);
                     }
-                    
-                    // Set timeout to clear buffer
-                    let buffer_setter = set_verse_typing_buffer;
-                    let gen_getter = verse_typing_generation;
-                    spawn_local(async move {
-                        gloo_timers::future::TimeoutFuture::new(1500).await;
-                        if gen_getter.get() == new_gen {
-                            buffer_setter.set(String::new());
-                        }
-                    });
                     return;
                 }
                 _ => {
@@ -561,7 +546,7 @@ fn KeyboardNavigationHandler(
                     
                     if let Some(context) = create_instruction_context(&pathname, &search) {
                         e.prevent_default();
-                        processor.process(instruction, &context);
+                        processor.process_with_multiplier(instruction, &context, multiplier);
                     }
                 }
             }
@@ -572,10 +557,10 @@ fn KeyboardNavigationHandler(
     window_event_listener(ev::keydown, handle_keydown);
 
     view! {
-        // Visual feedback for verse typing (like Finder's typing indicator)
-        <Show when=move || !verse_typing_buffer.get().is_empty()>
+        // Visual feedback for vim command buffer
+        <Show when=move || vim_display.get().is_some()>
             <div class="fixed top-4 right-4 bg-black bg-opacity-75 text-white px-3 py-2 rounded-lg text-sm font-mono z-50">
-                "Go to verse: " {move || verse_typing_buffer.get()}
+                {move || vim_display.get().unwrap_or_default()}
             </div>
         </Show>
     }

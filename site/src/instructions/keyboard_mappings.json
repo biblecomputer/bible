@@ -27,17 +27,5 @@
     
     "<C-k>": "OpenCommandPalette",
     "<M-k>": "OpenCommandPalette"
-  },
-  "digit_mappings": {
-    "0": "GoToVerse",
-    "1": "GoToVerse",
-    "2": "GoToVerse",
-    "3": "GoToVerse",
-    "4": "GoToVerse",
-    "5": "GoToVerse",
-    "6": "GoToVerse",
-    "7": "GoToVerse",
-    "8": "GoToVerse",
-    "9": "GoToVerse"
   }
 }
