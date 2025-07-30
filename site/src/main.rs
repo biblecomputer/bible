@@ -5,6 +5,9 @@ use crate::api::init_bible;
 use crate::core::{get_bible, Chapter, VerseRange, parse_verse_ranges_from_url};
 use crate::utils::is_mobile_screen;
 use crate::storage::{get_sidebar_open, save_sidebar_open};
+use crate::storage::translations::get_current_translation;
+use crate::translation_map::translation::Translation;
+use crate::core::types::Language;
 use urlencoding::decode;
 use leptos::prelude::*;
 use leptos::ev;
@@ -15,6 +18,31 @@ use leptos_router::path;
 use leptos::web_sys::KeyboardEvent;
 use wasm_bindgen_futures::spawn_local;
 use wasm_bindgen_futures::JsFuture;
+
+// Helper function to convert storage language to translation language
+fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
+    match storage_lang {
+        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
+        crate::storage::translation_storage::Language::English => Language::English,
+    }
+}
+
+// Helper function to get translated book name for current translation
+fn get_translated_book_name(book_name: &str) -> String {
+    if let Some(current_translation) = get_current_translation() {
+        if let Some(first_language) = current_translation.languages.first() {
+            let translation = Translation::from_language(convert_language(first_language));
+            
+            // Use the get_book method to get localized book name
+            if let Some(translated_name) = translation.get_book(&book_name.to_lowercase()) {
+                return translated_name.to_string();
+            }
+        }
+    }
+    
+    // Return original name if no translation found
+    book_name.to_string()
+}
 
 mod api;
 mod components;
@@ -654,13 +682,14 @@ fn KeyboardNavigationHandler(
                                             // Add reference and link on separate lines
                                             copy_text.push_str("\n\n");
                                             
-                                            // Format reference (e.g., "Genesis 1:1-5")
+                                            // Format reference (e.g., "Genesis 1:1-5" or "Matteüs 1:1-5" for Dutch)
                                             let book_name = current_chapter.name.split_whitespace().next().unwrap_or("");
+                                            let translated_book_name = get_translated_book_name(book_name);
                                             let chapter_num = current_chapter.name.split_whitespace().nth(1).unwrap_or("1");
                                             
                                             if verse_ranges.len() == 1 && verse_ranges[0].start == verse_ranges[0].end {
                                                 // Single verse
-                                                copy_text.push_str(&format!("{} {}:{}", book_name, chapter_num, verse_ranges[0].start));
+                                                copy_text.push_str(&format!("{} {}:{}", translated_book_name, chapter_num, verse_ranges[0].start));
                                             } else {
                                                 // Multiple verses or ranges
                                                 let mut range_strs = Vec::new();
@@ -671,7 +700,7 @@ fn KeyboardNavigationHandler(
                                                         range_strs.push(format!("{}-{}", range.start, range.end));
                                                     }
                                                 }
-                                                copy_text.push_str(&format!("{} {}:{}", book_name, chapter_num, range_strs.join(",")));
+                                                copy_text.push_str(&format!("{} {}:{}", translated_book_name, chapter_num, range_strs.join(",")));
                                             }
                                             
                                             // Add link on separate line
