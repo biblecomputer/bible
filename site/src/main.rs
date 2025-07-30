@@ -14,6 +14,7 @@ use leptos_router::NavigateOptions;
 use leptos_router::path;
 use leptos::web_sys::KeyboardEvent;
 use wasm_bindgen_futures::spawn_local;
+use wasm_bindgen_futures::JsFuture;
 
 mod api;
 mod components;
@@ -588,6 +589,86 @@ fn KeyboardNavigationHandler(
                                     // Swap current and previous paths
                                     set_previous_chapter_path.set(Some(current_path));
                                     navigate(&prev_path, NavigateOptions { scroll: false, ..Default::default() });
+                                }
+                            }
+                        }
+                        "c" => {
+                            // c: Copy selected verses to clipboard
+                            if !e.shift_key() && !e.ctrl_key() && !e.meta_key() && !e.alt_key() {
+                                e.prevent_default();
+                                
+                                // Parse verse ranges from URL manually (can't use hook in event handler)
+                                let verse_ranges = if search.contains("verses=") {
+                                    search
+                                        .split('&')
+                                        .find_map(|param| {
+                                            let mut parts = param.split('=');
+                                            if parts.next()? == "verses" {
+                                                parts.next()
+                                            } else {
+                                                None
+                                            }
+                                        })
+                                        .map(|verses_param| {
+                                            verses_param
+                                                .split(',')
+                                                .filter_map(|range_str| VerseRange::from_string(range_str))
+                                                .collect()
+                                        })
+                                        .unwrap_or_else(Vec::new)
+                                } else {
+                                    Vec::new()
+                                };
+                                let mut copy_text = String::new();
+                                
+                                if !verse_ranges.is_empty() {
+                                    // Copy selected verses
+                                    let mut verses_to_copy = Vec::new();
+                                    
+                                    // Collect all verses in the selected ranges
+                                    for verse in &current_chapter.verses {
+                                        for range in &verse_ranges {
+                                            if range.contains(verse.verse) {
+                                                verses_to_copy.push(verse);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    
+                                    if !verses_to_copy.is_empty() {
+                                        // Add chapter header
+                                        copy_text.push_str(&format!("{}\n\n", current_chapter.name));
+                                        
+                                        // Add verses
+                                        for (i, verse) in verses_to_copy.iter().enumerate() {
+                                            if i > 0 {
+                                                copy_text.push('\n');
+                                            }
+                                            copy_text.push_str(&format!("{} {}", verse.verse, verse.text));
+                                        }
+                                    }
+                                } else {
+                                    // No verses selected - copy chapter title only
+                                    copy_text.push_str(&current_chapter.name);
+                                }
+                                
+                                if !copy_text.is_empty() {
+                                    // Copy to clipboard using web-sys
+                                    let copy_text_clone = copy_text.clone();
+                                    spawn_local(async move {
+                                        if let Some(window) = leptos::web_sys::window() {
+                                            let clipboard = window.navigator().clipboard();
+                                            match JsFuture::from(clipboard.write_text(&copy_text_clone)).await {
+                                                Ok(_) => {
+                                                    // Show brief success message
+                                                    leptos::web_sys::console::log_1(&"Copied to clipboard!".into());
+                                                }
+                                                Err(_) => {
+                                                    leptos::web_sys::console::log_1(&"Failed to copy to clipboard".into());
+                                                }
+                                            }
+                                        }
+                                    });
                                 }
                             }
                         }
