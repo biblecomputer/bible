@@ -1,0 +1,43 @@
+{
+  "mappings": {
+    "j": "NextVerse",
+    "k": "PreviousVerse",
+    "<Down>": "NextVerse",
+    "<Up>": "PreviousVerse",
+    
+    "l": "NextChapter",
+    "h": "PreviousChapter",
+    "<Right>": "NextChapter",
+    "<Left>": "PreviousChapter",
+    
+    "<S-H>": "PreviousBook",
+    "<S-L>": "NextBook",
+    
+    "gg": "BeginningOfChapter",
+    "<S-G>": "EndOfChapter",
+    
+    "s": "SwitchToPreviousChapter",
+    
+    "c": "CopyRawVerse",
+    "<S-C>": "CopyVerseWithReference",
+    
+    "<C-b>": "ToggleSidebar",
+    "r": "ToggleCrossReferences",
+    "<C-S-R>": "ToggleCrossReferences",
+    
+    "<C-k>": "OpenCommandPalette",
+    "<M-k>": "OpenCommandPalette"
+  },
+  "digit_mappings": {
+    "0": "GoToVerse",
+    "1": "GoToVerse",
+    "2": "GoToVerse",
+    "3": "GoToVerse",
+    "4": "GoToVerse",
+    "5": "GoToVerse",
+    "6": "GoToVerse",
+    "7": "GoToVerse",
+    "8": "GoToVerse",
+    "9": "GoToVerse"
+  }
+}

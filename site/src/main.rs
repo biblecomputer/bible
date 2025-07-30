@@ -8,7 +8,7 @@ use crate::storage::{get_sidebar_open, save_sidebar_open};
 use crate::storage::translations::get_current_translation;
 use crate::translation_map::translation::Translation;
 use crate::core::types::Language;
-use crate::instructions::{Instruction, KeyCombination, KeyboardMapper, InstructionProcessor, InstructionContext};
+use crate::instructions::{Instruction, VimKeyboardMapper, InstructionProcessor, InstructionContext};
 use urlencoding::decode;
 use leptos::prelude::*;
 use leptos::ev;
@@ -453,9 +453,7 @@ fn KeyboardNavigationHandler(
     let (verse_typing_buffer, set_verse_typing_buffer) = signal(String::new());
     let (verse_typing_generation, set_verse_typing_generation) = signal(0u32);
     
-    // Global navigation state (for gg detection)
-    let (pending_g, set_pending_g) = signal(false);
-    let (g_timeout_generation, set_g_timeout_generation) = signal(0u32);
+    // These are now handled by the VimKeyboardMapper
     
     // Previous chapter tracking for "alt-tab" like switching
     let (previous_chapter_path, set_previous_chapter_path) = signal(Option::<String>::None);
@@ -472,133 +470,100 @@ fn KeyboardNavigationHandler(
         });
     }
     
-    // Create instruction processor
+    // Create instruction processor and vim keyboard mapper
     let processor = InstructionProcessor::new(navigate.clone());
+    let (vim_mapper, set_vim_mapper) = signal(VimKeyboardMapper::new());
     
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
-        // Create key combination from event
-        let key_combination = KeyCombination::from_event(&e);
+        // Get instruction from vim-style keyboard mapper
+        let mut mapper = vim_mapper.get();
+        let instruction_opt = mapper.map_to_instruction(&e);
+        set_vim_mapper.set(mapper);
         
-        // Map to instruction
-        let instruction = KeyboardMapper::map_to_instruction(&key_combination);
-        
-        // Handle UI-specific instructions that need direct component access
-        match instruction {
-            Instruction::OpenCommandPalette => {
-                e.prevent_default();
-                set_palette_open.set(true);
-                // Close sidebar on mobile when command palette opens
-                if is_mobile_screen() {
-                    set_left_sidebar_open.set(false);
-                    save_sidebar_open(false);
+        // Handle instruction if we got one
+        if let Some(instruction) = instruction_opt {
+            // Handle UI-specific instructions that need direct component access
+            match instruction {
+                Instruction::OpenCommandPalette => {
+                    e.prevent_default();
+                    set_palette_open.set(true);
+                    // Close sidebar on mobile when command palette opens
+                    if is_mobile_screen() {
+                        set_left_sidebar_open.set(false);
+                        save_sidebar_open(false);
+                    }
+                    return;
                 }
-                return;
-            }
-            Instruction::ToggleSidebar => {
-                e.prevent_default();
-                set_left_sidebar_open.update(|open| {
-                    *open = !*open;
-                    save_sidebar_open(*open);
-                });
-                return;
-            }
-            Instruction::ToggleCrossReferences => {
-                e.prevent_default();
-                set_right_sidebar_open.update(|open| *open = !*open);
-                return;
-            }
-            _ => {}
-        }
-        
-        // Skip navigation if command palette is open
-        if palette_open.get() {
-            return;
-        }
-        
-        // Handle special instructions that need additional state management
-        match instruction {
-            Instruction::SwitchToPreviousChapter => {
-                e.prevent_default();
-                if let Some(prev_path) = previous_chapter_path.get() {
-                    let current_path = location.pathname.get();
-                    set_previous_chapter_path.set(Some(current_path));
-                    navigate(&prev_path, NavigateOptions { scroll: false, ..Default::default() });
+                Instruction::ToggleSidebar => {
+                    e.prevent_default();
+                    set_left_sidebar_open.update(|open| {
+                        *open = !*open;
+                        save_sidebar_open(*open);
+                    });
+                    return;
                 }
-                return;
-            }
-            Instruction::PendingG => {
-                e.prevent_default();
-                if pending_g.get() {
-                    // Second 'g' pressed - execute BeginningOfChapter
+                Instruction::ToggleCrossReferences => {
+                    e.prevent_default();
+                    set_right_sidebar_open.update(|open| *open = !*open);
+                    return;
+                }
+                Instruction::SwitchToPreviousChapter => {
+                    e.prevent_default();
+                    if let Some(prev_path) = previous_chapter_path.get() {
+                        let current_path = location.pathname.get();
+                        set_previous_chapter_path.set(Some(current_path));
+                        navigate(&prev_path, NavigateOptions { scroll: false, ..Default::default() });
+                    }
+                    return;
+                }
+                Instruction::GoToVerse(verse_num) => {
+                    // Handle instant verse navigation with typing buffer
+                    e.prevent_default();
+                    
+                    let current_gen = verse_typing_generation.get();
+                    let new_gen = current_gen + 1;
+                    set_verse_typing_generation.set(new_gen);
+                    
+                    let current_buffer = verse_typing_buffer.get();
+                    let new_buffer = format!("{}{}", current_buffer, verse_num);
+                    set_verse_typing_buffer.set(new_buffer.clone());
+                    
+                    // Process the instruction if we have a valid context
                     let pathname = location.pathname.get();
                     let search = location.search.get();
                     if let Some(context) = create_instruction_context(&pathname, &search) {
-                        processor.process(Instruction::BeginningOfChapter, &context);
+                        if let Ok(parsed_verse) = new_buffer.parse::<u32>() {
+                            processor.process(Instruction::GoToVerse(parsed_verse), &context);
+                        }
                     }
-                    set_pending_g.set(false);
-                } else {
-                    // First 'g' pressed - set pending state with timeout
-                    set_pending_g.set(true);
-                    let current_gen = g_timeout_generation.get();
-                    let new_gen = current_gen + 1;
-                    set_g_timeout_generation.set(new_gen);
                     
-                    let pending_setter = set_pending_g;
-                    let gen_getter = g_timeout_generation;
+                    // Set timeout to clear buffer
+                    let buffer_setter = set_verse_typing_buffer;
+                    let gen_getter = verse_typing_generation;
                     spawn_local(async move {
-                        gloo_timers::future::TimeoutFuture::new(1000).await;
+                        gloo_timers::future::TimeoutFuture::new(1500).await;
                         if gen_getter.get() == new_gen {
-                            pending_setter.set(false);
+                            buffer_setter.set(String::new());
                         }
                     });
+                    return;
                 }
-                return;
-            }
-            Instruction::GoToVerse(verse_num) => {
-                // Handle instant verse navigation with typing buffer
-                e.prevent_default();
-                
-                let current_gen = verse_typing_generation.get();
-                let new_gen = current_gen + 1;
-                set_verse_typing_generation.set(new_gen);
-                
-                let current_buffer = verse_typing_buffer.get();
-                let new_buffer = format!("{}{}", current_buffer, verse_num);
-                set_verse_typing_buffer.set(new_buffer.clone());
-                
-                // Process the instruction if we have a valid context
-                let pathname = location.pathname.get();
-                let search = location.search.get();
-                if let Some(context) = create_instruction_context(&pathname, &search) {
-                    if let Ok(parsed_verse) = new_buffer.parse::<u32>() {
-                        processor.process(Instruction::GoToVerse(parsed_verse), &context);
+                _ => {
+                    // Skip navigation if command palette is open
+                    if palette_open.get() {
+                        return;
+                    }
+                    
+                    // For all other instructions, create context and process
+                    let pathname = location.pathname.get();
+                    let search = location.search.get();
+                    
+                    if let Some(context) = create_instruction_context(&pathname, &search) {
+                        e.prevent_default();
+                        processor.process(instruction, &context);
                     }
                 }
-                
-                // Set timeout to clear buffer
-                let buffer_setter = set_verse_typing_buffer;
-                let gen_getter = verse_typing_generation;
-                spawn_local(async move {
-                    gloo_timers::future::TimeoutFuture::new(1500).await;
-                    if gen_getter.get() == new_gen {
-                        buffer_setter.set(String::new());
-                    }
-                });
-                return;
-            }
-            Instruction::NoOp => return,
-            _ => {}
-        }
-        
-        // For all other instructions, create context and process
-        let pathname = location.pathname.get();
-        let search = location.search.get();
-        
-        if let Some(context) = create_instruction_context(&pathname, &search) {
-            if KeyboardMapper::should_handle_key(&key_combination) {
-                e.prevent_default();
-                processor.process(instruction, &context);
             }
         }
     };

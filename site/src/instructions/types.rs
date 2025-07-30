@@ -24,10 +24,4 @@ pub enum Instruction {
     ToggleSidebar,
     ToggleCrossReferences,
     OpenCommandPalette,
-    
-    // Vim-like commands
-    PendingG, // For gg sequence
-    
-    // No operation (for invalid combinations)
-    NoOp,
 }
