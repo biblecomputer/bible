@@ -180,6 +180,20 @@ fn reference_to_url(reference: &Reference) -> String {
     }
 }
 
+fn get_verse_content_for_reference(reference: &Reference) -> String {
+    use crate::core::get_bible;
+    
+    // Try to get the verse content for the reference
+    if let Ok(bible) = get_bible().get_chapter(&reference.to_book_name, reference.to_chapter) {
+        if let Some(verse) = bible.verses.iter().find(|v| v.verse == reference.to_verse_start) {
+            return verse.text.clone();
+        }
+    }
+    
+    // Fallback if verse content not found
+    "Verse content not available".to_string()
+}
+
 #[component]
 pub fn CrossReferencesSidebar(
     book_name: String,
@@ -271,9 +285,11 @@ pub fn CrossReferencesSidebar(
                                 if let Some(html_element) = element.dyn_ref::<web_sys::HtmlElement>() {
                                     let _ = html_element.focus();
                                     
-                                    // Create a screen reader announcement
+                                    // Create a screen reader announcement with verse content
                                     let reference_text = format_reference_text(&refs[next]);
-                                    let announcement = format!("Selected reference {} of {}: {}", next + 1, refs.len(), reference_text);
+                                    let verse_content = get_verse_content_for_reference(&refs[next]);
+                                    let announcement = format!("{} of {}: {}, {} votes, {}", 
+                                        next + 1, refs.len(), reference_text, refs[next].votes, verse_content);
                                     
                                     // Set aria-live region for announcements
                                     if let Some(live_region) = document.get_element_by_id("references-live-region") {
@@ -298,9 +314,11 @@ pub fn CrossReferencesSidebar(
                                 if let Some(html_element) = element.dyn_ref::<web_sys::HtmlElement>() {
                                     let _ = html_element.focus();
                                     
-                                    // Create a screen reader announcement
+                                    // Create a screen reader announcement with verse content
                                     let reference_text = format_reference_text(&refs[prev]);
-                                    let announcement = format!("Selected reference {} of {}: {}", prev + 1, refs.len(), reference_text);
+                                    let verse_content = get_verse_content_for_reference(&refs[prev]);
+                                    let announcement = format!("{} of {}: {}, {} votes, {}", 
+                                        prev + 1, refs.len(), reference_text, refs[prev].votes, verse_content);
                                     
                                     // Set aria-live region for announcements
                                     if let Some(live_region) = document.get_element_by_id("references-live-region") {
@@ -414,7 +432,10 @@ fn ReferenceItem(
                     }
                 )
                 aria-selected=move || is_selected.get().to_string()
-                aria-label=move || format!("Reference {}: {}", reference.votes, format_reference_text(&reference))
+                aria-label=move || {
+                    let verse_content = get_verse_content_for_reference(&reference);
+                    format!("{}, {} votes, {}", format_reference_text(&reference), reference.votes, verse_content)
+                }
                 role="option"
                 tabindex="0"
                 on:click=move |_| {
