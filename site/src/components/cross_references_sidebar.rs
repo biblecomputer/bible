@@ -356,7 +356,7 @@ fn ReferenceItem(
                 class=move || format!(
                     "w-full text-left p-3 rounded-lg border transition-colors duration-150 group {}",
                     if is_selected.get() {
-                        "border-blue-500 bg-blue-100 text-blue-900"
+                        "border-blue-600 bg-blue-500 text-white shadow-lg"
                     } else {
                         "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
                     }
@@ -372,12 +372,26 @@ fn ReferenceItem(
             >
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
-                        <div class="text-sm font-medium text-black group-hover:text-blue-700">
+                        <div class=move || format!(
+                            "text-sm font-medium {}",
+                            if is_selected.get() {
+                                "text-white"
+                            } else {
+                                "text-black group-hover:text-blue-700"
+                            }
+                        )>
                             {reference_text}
                         </div>
                     </div>
                     <div class="ml-2 flex-shrink-0">
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 group-hover:bg-blue-100 group-hover:text-blue-800">
+                        <span class=move || format!(
+                            "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {}",
+                            if is_selected.get() {
+                                "bg-blue-400 text-white"
+                            } else {
+                                "bg-gray-100 text-gray-700 group-hover:bg-blue-100 group-hover:text-blue-800"
+                            }
+                        )>
                             {votes_text}
                         </span>
                     </div>
