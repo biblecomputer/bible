@@ -518,6 +518,11 @@ fn KeyboardNavigationHandler(
                     set_right_sidebar_open.update(|open| *open = !*open);
                     return;
                 }
+                Instruction::NextReference | Instruction::PreviousReference => {
+                    // Reference navigation is handled by the CrossReferencesSidebar component
+                    // These instructions are processed there via direct keyboard events
+                    return;
+                }
                 Instruction::SwitchToPreviousChapter => {
                     e.prevent_default();
                     if let Some(prev_path) = previous_chapter_path.get() {

@@ -10,6 +10,8 @@ use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
 use urlencoding::encode;
 use std::sync::OnceLock;
+use leptos::ev;
+use leptos::web_sys::KeyboardEvent;
 
 // Global cross-references cache
 static CROSS_REFERENCES: OnceLock<References> = OnceLock::new();
@@ -184,6 +186,9 @@ pub fn CrossReferencesSidebar(
     verse: u32,
     set_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
+    // Reference selection state for keyboard navigation
+    let (selected_reference_index, set_selected_reference_index) = signal(0usize);
+    let navigate = use_navigate();
     
     // Convert display book name (e.g. "I Samuël") to canonical English name (e.g. "1 Samuel") 
     // for cross-reference lookup
@@ -237,6 +242,56 @@ pub fn CrossReferencesSidebar(
         }
     });
     
+    // Reset selection when references change
+    Effect::new(move |_| {
+        let _refs = sorted_references.get();
+        set_selected_reference_index.set(0);
+    });
+    
+    // Keyboard navigation for references
+    let handle_keydown = move |e: KeyboardEvent| {
+        if let Some(refs) = sorted_references.get() {
+            if refs.is_empty() {
+                return;
+            }
+            
+            match (e.key().as_str(), e.ctrl_key(), e.shift_key()) {
+                ("j", true, false) => {
+                    // Ctrl+J: Next reference
+                    e.prevent_default();
+                    let current = selected_reference_index.get();
+                    let next = if current + 1 < refs.len() { current + 1 } else { 0 };
+                    set_selected_reference_index.set(next);
+                }
+                ("k", true, false) => {
+                    // Ctrl+K: Previous reference
+                    e.prevent_default();
+                    let current = selected_reference_index.get();
+                    let prev = if current > 0 { current - 1 } else { refs.len() - 1 };
+                    set_selected_reference_index.set(prev);
+                }
+                ("Enter", false, false) => {
+                    // Enter: Navigate to selected reference
+                    e.prevent_default();
+                    let current = selected_reference_index.get();
+                    if let Some(reference) = refs.get(current) {
+                        let reference_url = reference_to_url(reference);
+                        navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
+                        // Close sidebar on mobile when reference is selected
+                        if is_mobile_screen() {
+                            set_sidebar_open.set(false);
+                            save_sidebar_open(false);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    };
+    
+    // Add keyboard event listener to the sidebar
+    window_event_listener(ev::keydown, handle_keydown);
+    
     view! {
         <div class="cross-references-sidebar">
             <div class="mb-4">
@@ -256,12 +311,19 @@ pub fn CrossReferencesSidebar(
             >
                 <div class="space-y-3">
                     <For
-                        each=move || sorted_references.get().unwrap_or_default()
-                        key=|reference| (reference.to_book_name.clone(), reference.to_chapter, reference.to_verse_start, reference.to_verse_end, reference.votes)
-                        children=move |reference| {
+                        each=move || {
+                            sorted_references.get().unwrap_or_default()
+                                .into_iter()
+                                .enumerate()
+                                .collect::<Vec<_>>()
+                        }
+                        key=|(index, reference)| (*index, reference.to_book_name.clone(), reference.to_chapter, reference.to_verse_start, reference.to_verse_end, reference.votes)
+                        children=move |(index, reference)| {
+                            let is_selected = Memo::new(move |_| selected_reference_index.get() == index);
                             view! {
                                 <ReferenceItem 
-                                    reference=reference 
+                                    reference=reference
+                                    is_selected=is_selected
                                     set_sidebar_open=set_sidebar_open
                                 />
                             }
@@ -276,6 +338,7 @@ pub fn CrossReferencesSidebar(
 #[component]
 fn ReferenceItem(
     reference: Reference,
+    is_selected: Memo<bool>,
     set_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
@@ -290,7 +353,14 @@ fn ReferenceItem(
     view! {
         <div class="reference-item">
             <button
-                class="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors duration-150 group"
+                class=move || format!(
+                    "w-full text-left p-3 rounded-lg border transition-colors duration-150 group {}",
+                    if is_selected.get() {
+                        "border-blue-500 bg-blue-100 text-blue-900"
+                    } else {
+                        "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                    }
+                )
                 on:click=move |_| {
                     navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
                     // Close sidebar on mobile when reference is selected

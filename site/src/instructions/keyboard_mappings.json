@@ -25,7 +25,10 @@
     "r": "ToggleCrossReferences",
     "<C-S-R>": "ToggleCrossReferences",
     
-    "<C-k>": "OpenCommandPalette",
-    "<M-k>": "OpenCommandPalette"
+    "<C-o>": "OpenCommandPalette",
+    "<M-o>": "OpenCommandPalette",
+    
+    "<C-j>": "NextReference",
+    "<C-k>": "PreviousReference"
   }
 }
