@@ -194,6 +194,16 @@ fn get_verse_content_for_reference(reference: &Reference) -> String {
     "Verse content not available".to_string()
 }
 
+fn format_votes_with_emoji(votes: i32) -> String {
+    if votes > 0 {
+        format!("👍 {}", votes)
+    } else if votes < 0 {
+        format!("👎 {}", votes.abs())
+    } else {
+        "👍 0".to_string()
+    }
+}
+
 #[component]
 pub fn CrossReferencesSidebar(
     book_name: String,
@@ -288,8 +298,8 @@ pub fn CrossReferencesSidebar(
                                     // Create a screen reader announcement with verse content
                                     let reference_text = format_reference_text(&refs[next]);
                                     let verse_content = get_verse_content_for_reference(&refs[next]);
-                                    let announcement = format!("{} of {}: {}, {} votes, {}", 
-                                        next + 1, refs.len(), reference_text, refs[next].votes, verse_content);
+                                    let announcement = format!("{} of {}: {}, {}, {}", 
+                                        next + 1, refs.len(), reference_text, format_votes_with_emoji(refs[next].votes), verse_content);
                                     
                                     // For now, we rely on focus changes for screen reader announcements
                                     // The aria-label and focus will provide the accessibility
@@ -315,8 +325,8 @@ pub fn CrossReferencesSidebar(
                                     // Create a screen reader announcement with verse content
                                     let reference_text = format_reference_text(&refs[prev]);
                                     let verse_content = get_verse_content_for_reference(&refs[prev]);
-                                    let announcement = format!("{} of {}: {}, {} votes, {}", 
-                                        prev + 1, refs.len(), reference_text, refs[prev].votes, verse_content);
+                                    let announcement = format!("{} of {}: {}, {}, {}", 
+                                        prev + 1, refs.len(), reference_text, format_votes_with_emoji(refs[prev].votes), verse_content);
                                     
                                     // For now, we rely on focus changes for screen reader announcements
                                     // The aria-label and focus will provide the accessibility
@@ -439,11 +449,7 @@ fn ReferenceItem(
     let navigate = use_navigate();
     let reference_text = format_reference_text(&reference);
     let reference_url = reference_to_url(&reference);
-    let votes_text = if reference.votes == 1 {
-        format!("1 {}", get_ui_text("votes").trim_end_matches('s'))
-    } else {
-        format!("{} {}", reference.votes, get_ui_text("votes"))
-    };
+    let votes_text = format_votes_with_emoji(reference.votes);
     
     view! {
         <div class="reference-item">
@@ -460,7 +466,7 @@ fn ReferenceItem(
                 aria-selected=move || is_selected.get().to_string()
                 aria-label=move || {
                     let verse_content = get_verse_content_for_reference(&reference);
-                    format!("{}, {} votes, {}", format_reference_text(&reference), reference.votes, verse_content)
+                    format!("{}, {}, {}", format_reference_text(&reference), format_votes_with_emoji(reference.votes), verse_content)
                 }
                 role="option"
                 tabindex="0"
