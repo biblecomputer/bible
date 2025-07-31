@@ -291,10 +291,8 @@ pub fn CrossReferencesSidebar(
                                     let announcement = format!("{} of {}: {}, {} votes, {}", 
                                         next + 1, refs.len(), reference_text, refs[next].votes, verse_content);
                                     
-                                    // Set aria-live region for announcements
-                                    if let Some(live_region) = document.get_element_by_id("references-live-region") {
-                                        live_region.set_text_content(Some(&announcement));
-                                    }
+                                    // For now, we rely on focus changes for screen reader announcements
+                                    // The aria-label and focus will provide the accessibility
                                 }
                             }
                         }
@@ -320,10 +318,8 @@ pub fn CrossReferencesSidebar(
                                     let announcement = format!("{} of {}: {}, {} votes, {}", 
                                         prev + 1, refs.len(), reference_text, refs[prev].votes, verse_content);
                                     
-                                    // Set aria-live region for announcements
-                                    if let Some(live_region) = document.get_element_by_id("references-live-region") {
-                                        live_region.set_text_content(Some(&announcement));
-                                    }
+                                    // For now, we rely on focus changes for screen reader announcements
+                                    // The aria-label and focus will provide the accessibility
                                 }
                             }
                         }
@@ -353,13 +349,6 @@ pub fn CrossReferencesSidebar(
     
     view! {
         <div class="cross-references-sidebar">
-            // Hidden live region for screen reader announcements
-            <div 
-                id="references-live-region" 
-                aria-live="polite" 
-                aria-atomic="true" 
-                class="sr-only absolute -left-10000px w-1 h-1 overflow-hidden"
-            ></div>
             <div class="mb-4">
                 <h2 class="text-lg font-bold text-black mb-2">{get_ui_text("cross_references")}</h2>
                 <div class="text-sm text-gray-600 mb-4">
@@ -398,6 +387,43 @@ pub fn CrossReferencesSidebar(
                         }
                     />
                 </div>
+                
+                // Live preview section for selected reference
+                <Show when=move || sorted_references.get().is_some_and(|refs| !refs.is_empty())>
+                    <div class="mt-4 border-t border-gray-200 pt-4">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">Preview</h3>
+                        <div class="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+                            <div class="text-xs text-gray-500 mb-1">
+                                {move || {
+                                    if let Some(refs) = sorted_references.get() {
+                                        let current_index = selected_reference_index.get();
+                                        if let Some(reference) = refs.get(current_index) {
+                                            format_reference_text(reference)
+                                        } else {
+                                            String::new()
+                                        }
+                                    } else {
+                                        String::new()
+                                    }
+                                }}
+                            </div>
+                            <div class="text-sm text-gray-900 leading-relaxed">
+                                {move || {
+                                    if let Some(refs) = sorted_references.get() {
+                                        let current_index = selected_reference_index.get();
+                                        if let Some(reference) = refs.get(current_index) {
+                                            get_verse_content_for_reference(reference)
+                                        } else {
+                                            String::new()
+                                        }
+                                    } else {
+                                        String::new()
+                                    }
+                                }}
+                            </div>
+                        </div>
+                    </div>
+                </Show>
             </Show>
         </div>
     }
