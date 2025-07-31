@@ -7,19 +7,21 @@ pub enum Instruction {
     PreviousChapter,
     NextBook,
     PreviousBook,
-    
+    NextReference,
+    PreviousReference,
+
     // Chapter/Verse jumping
     BeginningOfChapter,
     EndOfChapter,
     GoToVerse(u32),
-    
+
     // Special navigation
     SwitchToPreviousChapter,
-    
+
     // Copy operations
     CopyRawVerse,
     CopyVerseWithReference,
-    
+
     // UI toggles
     ToggleSidebar,
     ToggleCrossReferences,
