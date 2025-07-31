@@ -43,6 +43,11 @@ fn get_canonical_book_name(display_name: &str) -> String {
         "II John" => "2 John".to_string(),
         "III John" => "3 John".to_string(),
         
+        // Alternative book names to canonical English names
+        "Revelation of John" => "Revelation".to_string(),
+        "The Revelation" => "Revelation".to_string(),
+        "The Revelation of John" => "Revelation".to_string(),
+        
         // Dutch translations back to English
         "I Samuël" => "1 Samuel".to_string(),
         "II Samuël" => "2 Samuel".to_string(),
@@ -94,6 +99,7 @@ fn get_canonical_book_name(display_name: &str) -> String {
         "III Johannes" => "3 John".to_string(),
         "Judas" => "Jude".to_string(),
         "Openbaring" => "Revelation".to_string(),
+        "Openbaringen" => "Revelation".to_string(),
         
         // If no translation found, return as-is (might already be English)
         _ => display_name.to_string(),
@@ -383,6 +389,11 @@ mod tests {
         assert_eq!(get_canonical_book_name("II Corinthians"), "2 Corinthians");
         assert_eq!(get_canonical_book_name("III John"), "3 John");
         
+        // Test Revelation alternative names
+        assert_eq!(get_canonical_book_name("Revelation of John"), "Revelation");
+        assert_eq!(get_canonical_book_name("The Revelation"), "Revelation");
+        assert_eq!(get_canonical_book_name("The Revelation of John"), "Revelation");
+        
         // Test Dutch to English conversion for numbered books
         assert_eq!(get_canonical_book_name("I Samuël"), "1 Samuel");
         assert_eq!(get_canonical_book_name("II Samuël"), "2 Samuel");
@@ -392,12 +403,66 @@ mod tests {
         // Test other Dutch translations
         assert_eq!(get_canonical_book_name("Psalmen"), "Psalms");
         assert_eq!(get_canonical_book_name("Prediker"), "Ecclesiastes");
+        assert_eq!(get_canonical_book_name("Openbaring"), "Revelation");
+        assert_eq!(get_canonical_book_name("Openbaringen"), "Revelation");
         
         // Test that Arabic numeral English names pass through unchanged
         assert_eq!(get_canonical_book_name("1 Samuel"), "1 Samuel");
         assert_eq!(get_canonical_book_name("Genesis"), "Genesis");
+        assert_eq!(get_canonical_book_name("Revelation"), "Revelation");
         
         // Test unknown names pass through unchanged
         assert_eq!(get_canonical_book_name("Unknown Book"), "Unknown Book");
+    }
+
+    #[test]
+    fn test_revelation_verse_id_creation() {
+        // Test that "Revelation of John" can successfully create a VerseId
+        use crate::core::types::VerseId;
+        
+        let canonical_name = get_canonical_book_name("Revelation of John");
+        assert_eq!(canonical_name, "Revelation");
+        
+        let verse_id = VerseId::from_book_name(&canonical_name, 22, 1);
+        assert!(verse_id.is_some(), "Should be able to create VerseId for Revelation 22:1");
+        
+        if let Some(id) = verse_id {
+            // Verify the VerseId was created correctly  
+            // Book ID 66 for Revelation, chapter 22, verse 1
+            assert_eq!(id.0, 0x42016001); // 66 << 24 | 22 << 12 | 1
+        }
+    }
+
+    #[test]
+    fn test_revelation_cross_references_lookup() {
+        // Test that we can actually find cross-references for "Revelation of John" 22:1
+        use crate::core::types::VerseId;
+        
+        let canonical_name = get_canonical_book_name("Revelation of John");
+        let verse_id = VerseId::from_book_name(&canonical_name, 22, 1).unwrap();
+        
+        let references = get_cross_references();
+        let verse_references = references.0.get(&verse_id);
+        
+        // We know from the data file that Rev.22.1 has many cross-references
+        assert!(verse_references.is_some(), "Revelation 22:1 should have cross-references");
+        
+        if let Some(refs) = verse_references {
+            assert!(!refs.is_empty(), "Revelation 22:1 should have at least one cross-reference");
+            
+            // Check for some specific references we know exist from the data
+            let has_rev_7_17 = refs.iter().any(|r| {
+                r.to_book_name == "Revelation" && r.to_chapter == 7 && r.to_verse_start == 17
+            });
+            
+            let has_john_4_14 = refs.iter().any(|r| {
+                r.to_book_name == "John" && r.to_chapter == 4 && r.to_verse_start == 14
+            });
+            
+            // At least one of these should exist based on our cross-reference data
+            assert!(has_rev_7_17 || has_john_4_14, 
+                "Should find at least one expected cross-reference for Revelation 22:1. Found {} references", 
+                refs.len());
+        }
     }
 }
