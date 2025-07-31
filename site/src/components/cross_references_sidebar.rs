@@ -172,7 +172,9 @@ fn format_reference_text(reference: &Reference) -> String {
 }
 
 fn reference_to_url(reference: &Reference) -> String {
-    let encoded_book = encode(&reference.to_book_name);
+    // Convert canonical book name back to display book name used in the Bible
+    let display_book_name = get_display_book_name(&reference.to_book_name);
+    let encoded_book = encode(&display_book_name);
     if let Some(end_verse) = reference.to_verse_end {
         format!("/{}/{}?verses={}-{}", encoded_book, reference.to_chapter, reference.to_verse_start, end_verse)
     } else {
@@ -201,6 +203,35 @@ fn format_votes_with_emoji(votes: i32) -> String {
         format!("👎 {}", votes.abs())
     } else {
         "👍 0".to_string()
+    }
+}
+
+fn get_display_book_name(canonical_name: &str) -> String {
+    // Convert canonical English names back to the display names used in the Bible
+    // This is the reverse of get_canonical_book_name
+    match canonical_name {
+        // Convert back to display names that the Bible uses
+        "Revelation" => "Revelation of John".to_string(),
+        "1 Samuel" => "I Samuel".to_string(),
+        "2 Samuel" => "II Samuel".to_string(),
+        "1 Kings" => "I Kings".to_string(),
+        "2 Kings" => "II Kings".to_string(),
+        "1 Chronicles" => "I Chronicles".to_string(),
+        "2 Chronicles" => "II Chronicles".to_string(),
+        "1 Corinthians" => "I Corinthians".to_string(),
+        "2 Corinthians" => "II Corinthians".to_string(),
+        "1 Thessalonians" => "I Thessalonians".to_string(),
+        "2 Thessalonians" => "II Thessalonians".to_string(),
+        "1 Timothy" => "I Timothy".to_string(),
+        "2 Timothy" => "II Timothy".to_string(),
+        "1 Peter" => "I Peter".to_string(),
+        "2 Peter" => "II Peter".to_string(),
+        "1 John" => "I John".to_string(),
+        "2 John" => "II John".to_string(),
+        "3 John" => "III John".to_string(),
+        
+        // For all other books, return the canonical name as-is
+        _ => canonical_name.to_string(),
     }
 }
 
