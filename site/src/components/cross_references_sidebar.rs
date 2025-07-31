@@ -12,6 +12,7 @@ use urlencoding::encode;
 use std::sync::OnceLock;
 use leptos::ev;
 use leptos::web_sys::KeyboardEvent;
+use leptos::wasm_bindgen::JsCast;
 
 // Global cross-references cache
 static CROSS_REFERENCES: OnceLock<References> = OnceLock::new();
@@ -262,6 +263,26 @@ pub fn CrossReferencesSidebar(
                     let current = selected_reference_index.get();
                     let next = if current + 1 < refs.len() { current + 1 } else { 0 };
                     set_selected_reference_index.set(next);
+                    
+                    // Focus and announce for screen readers
+                    if let Some(window) = web_sys::window() {
+                        if let Some(document) = window.document() {
+                            if let Some(element) = document.get_element_by_id(&format!("reference-{}", next)) {
+                                if let Some(html_element) = element.dyn_ref::<web_sys::HtmlElement>() {
+                                    let _ = html_element.focus();
+                                    
+                                    // Create a screen reader announcement
+                                    let reference_text = format_reference_text(&refs[next]);
+                                    let announcement = format!("Selected reference {} of {}: {}", next + 1, refs.len(), reference_text);
+                                    
+                                    // Set aria-live region for announcements
+                                    if let Some(live_region) = document.get_element_by_id("references-live-region") {
+                                        live_region.set_text_content(Some(&announcement));
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 ("k", true, false) => {
                     // Ctrl+K: Previous reference
@@ -269,6 +290,26 @@ pub fn CrossReferencesSidebar(
                     let current = selected_reference_index.get();
                     let prev = if current > 0 { current - 1 } else { refs.len() - 1 };
                     set_selected_reference_index.set(prev);
+                    
+                    // Focus and announce for screen readers
+                    if let Some(window) = web_sys::window() {
+                        if let Some(document) = window.document() {
+                            if let Some(element) = document.get_element_by_id(&format!("reference-{}", prev)) {
+                                if let Some(html_element) = element.dyn_ref::<web_sys::HtmlElement>() {
+                                    let _ = html_element.focus();
+                                    
+                                    // Create a screen reader announcement
+                                    let reference_text = format_reference_text(&refs[prev]);
+                                    let announcement = format!("Selected reference {} of {}: {}", prev + 1, refs.len(), reference_text);
+                                    
+                                    // Set aria-live region for announcements
+                                    if let Some(live_region) = document.get_element_by_id("references-live-region") {
+                                        live_region.set_text_content(Some(&announcement));
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
                 ("Enter", false, false) => {
                     // Enter: Navigate to selected reference
@@ -294,6 +335,13 @@ pub fn CrossReferencesSidebar(
     
     view! {
         <div class="cross-references-sidebar">
+            // Hidden live region for screen reader announcements
+            <div 
+                id="references-live-region" 
+                aria-live="polite" 
+                aria-atomic="true" 
+                class="sr-only absolute -left-10000px w-1 h-1 overflow-hidden"
+            ></div>
             <div class="mb-4">
                 <h2 class="text-lg font-bold text-black mb-2">{get_ui_text("cross_references")}</h2>
                 <div class="text-sm text-gray-600 mb-4">
@@ -309,7 +357,7 @@ pub fn CrossReferencesSidebar(
                     </div>
                 }
             >
-                <div class="space-y-3">
+                <div class="space-y-3" role="listbox" aria-label="Cross references" aria-activedescendant=move || format!("reference-{}", selected_reference_index.get())>
                     <For
                         each=move || {
                             sorted_references.get().unwrap_or_default()
@@ -320,11 +368,13 @@ pub fn CrossReferencesSidebar(
                         key=|(index, reference)| (*index, reference.to_book_name.clone(), reference.to_chapter, reference.to_verse_start, reference.to_verse_end, reference.votes)
                         children=move |(index, reference)| {
                             let is_selected = Memo::new(move |_| selected_reference_index.get() == index);
+                            let reference_id = format!("reference-{}", index);
                             view! {
                                 <ReferenceItem 
                                     reference=reference
                                     is_selected=is_selected
                                     set_sidebar_open=set_sidebar_open
+                                    reference_id=reference_id
                                 />
                             }
                         }
@@ -340,6 +390,7 @@ fn ReferenceItem(
     reference: Reference,
     is_selected: Memo<bool>,
     set_sidebar_open: WriteSignal<bool>,
+    reference_id: String,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let reference_text = format_reference_text(&reference);
@@ -353,6 +404,7 @@ fn ReferenceItem(
     view! {
         <div class="reference-item">
             <button
+                id=reference_id.clone()
                 class=move || format!(
                     "w-full text-left p-3 rounded-lg border transition-colors duration-150 group {}",
                     if is_selected.get() {
@@ -361,6 +413,10 @@ fn ReferenceItem(
                         "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
                     }
                 )
+                aria-selected=move || is_selected.get().to_string()
+                aria-label=move || format!("Reference {}: {}", reference.votes, format_reference_text(&reference))
+                role="option"
+                tabindex="0"
                 on:click=move |_| {
                     navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
                     // Close sidebar on mobile when reference is selected
