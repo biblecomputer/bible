@@ -368,11 +368,11 @@ where
                 // Move to next verse in current chapter
                 current_verse = next_verse;
             } else if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
-                // Move to chapter heading of next chapter
+                // Reached end of chapter, move to first verse of next chapter
                 current_chapter = next_chapter;
-                current_verse = 0;
+                current_verse = 1;
             } else {
-                // Reached the end
+                // Reached the end of the Bible
                 break;
             }
         }
@@ -394,17 +394,23 @@ where
         
         for _ in 0..multiplier {
             if current_verse == 0 {
-                // Currently on chapter heading, navigate to previous chapter heading
+                // Currently on chapter heading, navigate to last verse of previous chapter
                 if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
                     current_chapter = prev_chapter;
-                    current_verse = 0;
+                    current_verse = current_chapter.verses.len() as u32;
                 } else {
-                    // Reached the beginning
+                    // Reached the beginning of the Bible
                     break;
                 }
             } else if current_verse == 1 {
-                // Currently on first verse, navigate to chapter heading
-                current_verse = 0;
+                // Currently on first verse, navigate to last verse of previous chapter
+                if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
+                    current_chapter = prev_chapter;
+                    current_verse = current_chapter.verses.len() as u32;
+                } else {
+                    // No previous chapter, go to chapter heading
+                    current_verse = 0;
+                }
             } else if let Some(prev_verse) = current_chapter.get_previous_verse(current_verse) {
                 // Move to previous verse in current chapter
                 current_verse = prev_verse;

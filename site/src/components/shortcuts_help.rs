@@ -160,6 +160,11 @@ pub fn ShortcutsHelp() -> impl IntoView {
                         </div>
                         
                         <div class="flex items-center justify-between">
+                            <span class="text-black text-xs italic">Seamless cross-chapter navigation</span>
+                            <span class="text-gray-500 text-xs">Auto-flow between chapters</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
                             <span class="text-black">Go to Verse</span>
                             <div class="flex items-center gap-1">
                                 <kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs">5g</kbd>
