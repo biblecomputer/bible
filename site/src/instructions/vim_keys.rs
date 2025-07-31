@@ -159,8 +159,15 @@ impl VimKeyboardMapper {
     }
     
     pub fn map_to_instruction(&mut self, e: &KeyboardEvent) -> Option<(Instruction, u32)> {
-        // Skip processing if any modifier keys are pressed (except shift for some keys)
-        if e.ctrl_key() || e.meta_key() || e.alt_key() {
+        // Handle modified keys (including shift)
+        if e.ctrl_key() || e.meta_key() || e.alt_key() || e.shift_key() {
+            // Get current multiplier before processing modified keys
+            let multiplier = if self.multiplier_buffer.is_empty() {
+                1
+            } else {
+                self.multiplier_buffer.parse().unwrap_or(1)
+            };
+            
             // Try to match modified keys first
             let mut found_instruction = None;
             for (vim_key_str, _) in &self.mappings.mappings {
@@ -173,7 +180,7 @@ impl VimKeyboardMapper {
             }
             if let Some(instruction) = found_instruction {
                 self.clear_buffers();
-                return Some((instruction, 1));
+                return Some((instruction, multiplier));
             }
             return None;
         }
