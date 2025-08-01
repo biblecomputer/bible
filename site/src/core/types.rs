@@ -53,6 +53,136 @@ pub enum Language {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct References(pub HashMap<VerseId, Vec<Reference>>);
 
+// Compact cross-references - only stores what's absolutely needed
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompactCrossReferences(pub HashMap<String, Vec<String>>);
+
+// Lazily parsed cross-references for a specific chapter
+#[derive(Debug, Clone)]
+pub struct ChapterCrossReferences {
+    pub verse_refs: HashMap<u32, Vec<CompactReference>>, // verse number -> references
+}
+
+// Ultra-compact reference format
+#[derive(Debug, Clone)]
+pub struct CompactReference {
+    pub book_id: u8,      // 1 byte instead of String
+    pub chapter: u16,     // 2 bytes (enough for any chapter)
+    pub verse: u16,       // 2 bytes (enough for any verse)
+    pub votes: i16,       // 2 bytes (i16 is sufficient for vote counts)
+}
+
+impl CompactReference {
+    pub fn to_reference(&self) -> Reference {
+        Reference {
+            to_book_name: book_id_to_name(self.book_id).to_string(),
+            to_chapter: self.chapter as u32,
+            to_verse_start: self.verse as u32,
+            to_verse_end: None,
+            votes: self.votes as i32,
+        }
+    }
+    
+    pub fn from_raw(raw_ref: &str) -> Option<Self> {
+        let parts: Vec<&str> = raw_ref.trim().split_whitespace().collect();
+        if parts.len() != 2 {
+            return None;
+        }
+        
+        let ref_parts: Vec<&str> = parts[0].split('.').collect();
+        if ref_parts.len() != 3 {
+            return None;
+        }
+        
+        let book_abbrev = ref_parts[0];
+        let chapter: u16 = ref_parts[1].parse().ok()?;
+        let verse: u16 = ref_parts[2].parse().ok()?;
+        let votes: i16 = parts[1].parse().ok()?;
+        
+        let book_id = abbreviation_to_book_id(book_abbrev)?;
+        
+        Some(CompactReference {
+            book_id,
+            chapter,
+            verse,
+            votes,
+        })
+    }
+}
+
+// Convert book abbreviation to single byte ID
+fn abbreviation_to_book_id(abbrev: &str) -> Option<u8> {
+    match abbrev {
+        "Gen" => Some(1),
+        "Exod" => Some(2),
+        "Lev" => Some(3),
+        "Num" => Some(4),
+        "Deut" => Some(5),
+        "Josh" => Some(6),
+        "Judg" => Some(7),
+        "Ruth" => Some(8),
+        "1Sam" => Some(9),
+        "2Sam" => Some(10),
+        "1Kgs" => Some(11),
+        "2Kgs" => Some(12),
+        "1Chr" => Some(13),
+        "2Chr" => Some(14),
+        "Ezra" => Some(15),
+        "Neh" => Some(16),
+        "Esth" => Some(17),
+        "Job" => Some(18),
+        "Ps" => Some(19),
+        "Prov" => Some(20),
+        "Eccl" => Some(21),
+        "Song" => Some(22),
+        "Isa" => Some(23),
+        "Jer" => Some(24),
+        "Lam" => Some(25),
+        "Ezek" => Some(26),
+        "Dan" => Some(27),
+        "Hos" => Some(28),
+        "Joel" => Some(29),
+        "Amos" => Some(30),
+        "Obad" => Some(31),
+        "Jonah" => Some(32),
+        "Mic" => Some(33),
+        "Nah" => Some(34),
+        "Hab" => Some(35),
+        "Zeph" => Some(36),
+        "Hag" => Some(37),
+        "Zech" => Some(38),
+        "Mal" => Some(39),
+        "Matt" => Some(40),
+        "Mark" => Some(41),
+        "Luke" => Some(42),
+        "John" => Some(43),
+        "Acts" => Some(44),
+        "Rom" => Some(45),
+        "1Cor" => Some(46),
+        "2Cor" => Some(47),
+        "Gal" => Some(48),
+        "Eph" => Some(49),
+        "Phil" => Some(50),
+        "Col" => Some(51),
+        "1Thess" => Some(52),
+        "2Thess" => Some(53),
+        "1Tim" => Some(54),
+        "2Tim" => Some(55),
+        "Titus" => Some(56),
+        "Phlm" => Some(57),
+        "Heb" => Some(58),
+        "Jas" => Some(59),
+        "1Pet" => Some(60),
+        "2Pet" => Some(61),
+        "1John" => Some(62),
+        "2John" => Some(63),
+        "3John" => Some(64),
+        "Jude" => Some(65),
+        "Rev" => Some(66),
+        _ => None,
+    }
+}
+
 /// Highly optimized verse identifier using a single u32
 /// Format: book_id (8 bits) | chapter (12 bits) | verse (12 bits)
 /// Supports: 256 books, 4096 chapters, 4096 verses
