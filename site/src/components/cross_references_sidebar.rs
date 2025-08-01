@@ -266,8 +266,8 @@ pub fn CrossReferencesSidebar(
     web_sys::console::log_1(&format!("Cross-reference lookup: '{}' -> '{}' {}:{}", 
         book_name, canonical_book_name, chapter, verse).into());
     
-    // Create the optimized verse ID for lookup
-    let verse_id = match VerseId::from_book_name(&canonical_book_name, chapter, verse) {
+    // Create the optimized verse ID for lookup (now used only for validation)
+    let _verse_id = match VerseId::from_book_name(&canonical_book_name, chapter, verse) {
         Some(id) => {
             web_sys::console::log_1(&format!("VerseId created successfully: {:?}", id).into());
             id
@@ -291,23 +291,44 @@ pub fn CrossReferencesSidebar(
         }
     };
     
-    // Get cross-references for this verse (using your existing optimized system)
-    let references = get_cross_references();
-    let verse_references = references.0.get(&verse_id);
+    // Debug logging for the chapter-based approach
+    web_sys::console::log_1(&format!("Loading references for entire chapter: {} {}", 
+        canonical_book_name, chapter).into());
     
-    // Debug logging for cross-reference lookup results
-    web_sys::console::log_1(&format!("Cross-references found: {}", 
-        verse_references.map(|refs| refs.len()).unwrap_or(0)).into());
-    
-    // Sort references by votes (highest to lowest)
-    let sorted_references = Memo::new(move |_| {
-        if let Some(refs) = verse_references {
-            let mut sorted = refs.clone();
-            sorted.sort_by(|a, b| b.votes.cmp(&a.votes));
-            Some(sorted)
-        } else {
-            None
+    // Load all references for the current chapter at once (performance optimization)
+    // This memo only recalculates when book_name or chapter changes, NOT when verse changes
+    let chapter_references = Memo::new({
+        let canonical_book_name = canonical_book_name.clone();
+        move |_| {
+            let mut chapter_refs = std::collections::HashMap::new();
+            let references = get_cross_references();
+            
+            web_sys::console::log_1(&format!("Pre-loading references for chapter: {} {}", 
+                canonical_book_name, chapter).into());
+            
+            // Load all verses in the chapter at once to prevent per-verse lookups during fast scrolling
+            for verse_num in 1..=200 { // Conservative upper bound for verses in a chapter
+                if let Some(verse_id) = VerseId::from_book_name(&canonical_book_name, chapter, verse_num) {
+                    if let Some(refs) = references.0.get(&verse_id) {
+                        let mut sorted = refs.clone();
+                        sorted.sort_by(|a, b| b.votes.cmp(&a.votes));
+                        chapter_refs.insert(verse_num, sorted);
+                    }
+                }
+            }
+            
+            web_sys::console::log_1(&format!("Pre-loaded references for {} verses in chapter {} {}", 
+                chapter_refs.len(), canonical_book_name, chapter).into());
+            
+            chapter_refs
         }
+    });
+    
+    // Get references for current verse from the pre-loaded chapter data
+    // This is now extremely fast - just a HashMap lookup, no reactive recalculation per verse
+    let sorted_references = Memo::new(move |_| {
+        let chapter_data = chapter_references.get();
+        chapter_data.get(&verse).cloned()
     });
     
     // Reset selection when references change - with debouncing
