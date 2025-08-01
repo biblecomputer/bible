@@ -14,7 +14,7 @@ use leptos::ev;
 use leptos::web_sys::KeyboardEvent;
 use leptos::wasm_bindgen::JsCast;
 
-// Global cross-references cache
+// Global cross-references cache (already optimized with your compile-time system)
 static CROSS_REFERENCES: OnceLock<References> = OnceLock::new();
 
 fn get_cross_references() -> &'static References {
@@ -279,7 +279,7 @@ pub fn CrossReferencesSidebar(
         }
     };
     
-    // Get cross-references for this verse
+    // Get cross-references for this verse (using your existing optimized system)
     let references = get_cross_references();
     let verse_references = references.0.get(&verse_id);
     

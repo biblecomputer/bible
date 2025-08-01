@@ -24,7 +24,7 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             name: String::from("King james version"),
             short_name: String::from("kjv"),
             description: String::from("The King James Version is an English translation of the Bible published in 1611, commissioned by King James I of England. It was created by 47 scholars and is known for its literary excellence and enduring influence on English literature and Protestant Christianity. The KJV uses formal equivalence translation and features majestic, archaic English that has shaped religious language for centuries."),
-            wikipedia: String::from("https://nl.wikipedia.org/wiki/King_James_Version"),
+            wikipedia: String::from("https://en.wikipedia.org/wiki/King_James_Version"),
             release_year: 1611,
             languages: vec![Language::English],
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4NjYzMDBlMTNjNGI2YzhhMmU1Yzc2:MzI3ZTY3NjBmMDAwMzBlMDVlZGM3NGQxNjU5MDIxMDdlNTE0MDA2ZWJkNTRkMjAyZGJjZWE1ZTlhMTQzNmYzNg"),
