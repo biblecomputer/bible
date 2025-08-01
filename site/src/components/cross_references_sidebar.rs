@@ -185,15 +185,25 @@ fn reference_to_url(reference: &Reference) -> String {
 fn get_verse_content_for_reference(reference: &Reference) -> String {
     use crate::core::get_bible;
     
-    // Try to get the verse content for the reference
-    if let Ok(bible) = get_bible().get_chapter(&reference.to_book_name, reference.to_chapter) {
-        if let Some(verse) = bible.verses.iter().find(|v| v.verse == reference.to_verse_start) {
-            return verse.text.clone();
+    // Safe verse content retrieval with error handling
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        // Try to get the verse content for the reference
+        if let Ok(bible) = get_bible().get_chapter(&reference.to_book_name, reference.to_chapter) {
+            if let Some(verse) = bible.verses.iter().find(|v| v.verse == reference.to_verse_start) {
+                return verse.text.clone();
+            }
+        }
+        
+        // Fallback if verse content not found
+        "Verse content not available".to_string()
+    })) {
+        Ok(content) => content,
+        Err(_) => {
+            web_sys::console::warn_1(&format!("Failed to get verse content for {} {}:{}", 
+                reference.to_book_name, reference.to_chapter, reference.to_verse_start).into());
+            "Verse content unavailable".to_string()
         }
     }
-    
-    // Fallback if verse content not found
-    "Verse content not available".to_string()
 }
 
 fn format_votes_with_emoji(votes: i32) -> String {
@@ -242,8 +252,10 @@ pub fn CrossReferencesSidebar(
     verse: u32,
     set_sidebar_open: WriteSignal<bool>,
 ) -> impl IntoView {
-    // Reference selection state for keyboard navigation
+    // Reference selection state for keyboard navigation with debouncing
     let (selected_reference_index, set_selected_reference_index) = signal(0usize);
+    let (is_navigating, set_is_navigating) = signal(false);
+    let (_sidebar_has_focus, set_sidebar_has_focus) = signal(false);
     let navigate = use_navigate();
     
     // Convert display book name (e.g. "I Samuël") to canonical English name (e.g. "1 Samuel") 
@@ -298,39 +310,109 @@ pub fn CrossReferencesSidebar(
         }
     });
     
-    // Reset selection when references change
+    // Reset selection when references change - with debouncing
     Effect::new(move |_| {
         let _refs = sorted_references.get();
+        // Always reset to 0 when references change to prevent out-of-bounds
         set_selected_reference_index.set(0);
     });
     
-    // Keyboard navigation for references
+    // Keyboard navigation for references - with comprehensive safety checks and debouncing
     let handle_keydown = move |e: KeyboardEvent| {
-        if let Some(refs) = sorted_references.get() {
-            if refs.is_empty() {
-                return;
+        // Only handle specific Ctrl combinations to avoid conflicts with vim navigation
+        if !e.ctrl_key() {
+            return; // Let vim navigation handle non-Ctrl keys
+        }
+        
+        // Only handle navigation when references are available and we're specifically targeting cross-refs
+        if !sorted_references.get().is_some_and(|refs| !refs.is_empty()) {
+            return;
+        }
+        
+        // Only handle Ctrl+J and Ctrl+K specifically for cross-references
+        if !matches!((e.key().as_str(), e.ctrl_key()), ("j", true) | ("k", true)) {
+            return;
+        }
+        
+        // Prevent rapid-fire navigation that can cause memory issues
+        if is_navigating.get() {
+            return; // Skip if already processing navigation
+        }
+        
+        // Get current references safely with additional checks
+        let refs = match sorted_references.get() {
+            Some(refs) if !refs.is_empty() => refs,
+            _ => return, // No references available
+        };
+        
+        // Bounds check current selection before processing with recovery
+        let current = selected_reference_index.get();
+        if current >= refs.len() {
+            web_sys::console::warn_1(&"Reference index out of bounds, resetting to 0".into());
+            set_selected_reference_index.set(0);
+            return;
+        }
+        
+        // Additional safety: check if we're in a valid state for navigation
+        if refs.is_empty() || current >= refs.len() {
+            return;
+        }
+        
+        // Set navigation flag to prevent rapid firing
+        set_is_navigating.set(true);
+        
+        match (e.key().as_str(), e.ctrl_key(), e.shift_key()) {
+            ("j", true, false) => {
+                // Ctrl+J: Next reference
+                e.prevent_default();
+                let next = if current + 1 < refs.len() { current + 1 } else { 0 };
+                set_selected_reference_index.set(next);
+                set_is_navigating.set(false); // Clear navigation flag
+                    
+                // Safe focus and announce for screen readers with bounds checking
+                if let Some(window) = web_sys::window() {
+                    if let Some(document) = window.document() {
+                        if let Some(element) = document.get_element_by_id(&format!("reference-{}", next)) {
+                            if let Some(html_element) = element.dyn_ref::<web_sys::HtmlElement>() {
+                                let _ = html_element.focus();
+                                
+                                // Safe access to reference data with bounds checking
+                                if let Some(reference) = refs.get(next) {
+                                    // Create a screen reader announcement with verse content
+                                    let reference_text = format_reference_text(reference);
+                                    let verse_content = get_verse_content_for_reference(reference);
+                                    let _announcement = format!("{} of {}: {}, {}, {}", 
+                                        next + 1, refs.len(), reference_text, format_votes_with_emoji(reference.votes), verse_content);
+                                    
+                                    // For now, we rely on focus changes for screen reader announcements
+                                    // The aria-label and focus will provide the accessibility
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            
-            match (e.key().as_str(), e.ctrl_key(), e.shift_key()) {
-                ("j", true, false) => {
-                    // Ctrl+J: Next reference
-                    e.prevent_default();
-                    let current = selected_reference_index.get();
-                    let next = if current + 1 < refs.len() { current + 1 } else { 0 };
-                    set_selected_reference_index.set(next);
-                    
-                    // Focus and announce for screen readers
-                    if let Some(window) = web_sys::window() {
-                        if let Some(document) = window.document() {
-                            if let Some(element) = document.get_element_by_id(&format!("reference-{}", next)) {
-                                if let Some(html_element) = element.dyn_ref::<web_sys::HtmlElement>() {
-                                    let _ = html_element.focus();
-                                    
+            ("k", true, false) => {
+                // Ctrl+K: Previous reference
+                e.prevent_default();
+                let prev = if current > 0 { current - 1 } else { refs.len() - 1 };
+                set_selected_reference_index.set(prev);
+                set_is_navigating.set(false); // Clear navigation flag
+                
+                // Safe focus and announce for screen readers with bounds checking
+                if let Some(window) = web_sys::window() {
+                    if let Some(document) = window.document() {
+                        if let Some(element) = document.get_element_by_id(&format!("reference-{}", prev)) {
+                            if let Some(html_element) = element.dyn_ref::<web_sys::HtmlElement>() {
+                                let _ = html_element.focus();
+                                
+                                // Safe access to reference data with bounds checking
+                                if let Some(reference) = refs.get(prev) {
                                     // Create a screen reader announcement with verse content
-                                    let reference_text = format_reference_text(&refs[next]);
-                                    let verse_content = get_verse_content_for_reference(&refs[next]);
-                                    let announcement = format!("{} of {}: {}, {}, {}", 
-                                        next + 1, refs.len(), reference_text, format_votes_with_emoji(refs[next].votes), verse_content);
+                                    let reference_text = format_reference_text(reference);
+                                    let verse_content = get_verse_content_for_reference(reference);
+                                    let _announcement = format!("{} of {}: {}, {}, {}", 
+                                        prev + 1, refs.len(), reference_text, format_votes_with_emoji(reference.votes), verse_content);
                                     
                                     // For now, we rely on focus changes for screen reader announcements
                                     // The aria-label and focus will provide the accessibility
@@ -339,57 +421,41 @@ pub fn CrossReferencesSidebar(
                         }
                     }
                 }
-                ("k", true, false) => {
-                    // Ctrl+K: Previous reference
-                    e.prevent_default();
-                    let current = selected_reference_index.get();
-                    let prev = if current > 0 { current - 1 } else { refs.len() - 1 };
-                    set_selected_reference_index.set(prev);
-                    
-                    // Focus and announce for screen readers
-                    if let Some(window) = web_sys::window() {
-                        if let Some(document) = window.document() {
-                            if let Some(element) = document.get_element_by_id(&format!("reference-{}", prev)) {
-                                if let Some(html_element) = element.dyn_ref::<web_sys::HtmlElement>() {
-                                    let _ = html_element.focus();
-                                    
-                                    // Create a screen reader announcement with verse content
-                                    let reference_text = format_reference_text(&refs[prev]);
-                                    let verse_content = get_verse_content_for_reference(&refs[prev]);
-                                    let announcement = format!("{} of {}: {}, {}, {}", 
-                                        prev + 1, refs.len(), reference_text, format_votes_with_emoji(refs[prev].votes), verse_content);
-                                    
-                                    // For now, we rely on focus changes for screen reader announcements
-                                    // The aria-label and focus will provide the accessibility
-                                }
-                            }
-                        }
+            }
+            ("Enter", false, false) => {
+                // Enter: Navigate to selected reference with bounds checking
+                e.prevent_default();
+                if let Some(reference) = refs.get(current) {
+                    let reference_url = reference_to_url(reference);
+                    navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
+                    // Close sidebar on mobile when reference is selected
+                    if is_mobile_screen() {
+                        set_sidebar_open.set(false);
+                        save_sidebar_open(false);
                     }
+                } else {
+                    web_sys::console::warn_1(&"Attempted to navigate to reference at invalid index".into());
                 }
-                ("Enter", false, false) => {
-                    // Enter: Navigate to selected reference
-                    e.prevent_default();
-                    let current = selected_reference_index.get();
-                    if let Some(reference) = refs.get(current) {
-                        let reference_url = reference_to_url(reference);
-                        navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
-                        // Close sidebar on mobile when reference is selected
-                        if is_mobile_screen() {
-                            set_sidebar_open.set(false);
-                            save_sidebar_open(false);
-                        }
-                    }
-                }
-                _ => {}
+                set_is_navigating.set(false); // Clear navigation flag
+            }
+            _ => {
+                set_is_navigating.set(false); // Clear navigation flag for any other key
             }
         }
     };
     
-    // Add keyboard event listener to the sidebar
+    // Add keyboard event listener - with proper bounds checking to prevent WASM errors
     window_event_listener(ev::keydown, handle_keydown);
     
     view! {
-        <div class="cross-references-sidebar">
+        <div 
+            class="cross-references-sidebar"
+            tabindex="0"
+            on:focus=move |_| set_sidebar_has_focus.set(true)
+            on:blur=move |_| set_sidebar_has_focus.set(false)
+            on:mouseenter=move |_| set_sidebar_has_focus.set(true)
+            on:mouseleave=move |_| set_sidebar_has_focus.set(false)
+        >
             <div class="mb-4">
                 <h2 class="text-lg font-bold text-black mb-2">{get_ui_text("cross_references")}</h2>
                 <div class="text-sm text-gray-600 mb-4">
@@ -437,9 +503,18 @@ pub fn CrossReferencesSidebar(
                             <div class="text-xs text-gray-500 mb-1">
                                 {move || {
                                     if let Some(refs) = sorted_references.get() {
-                                        let current_index = selected_reference_index.get();
-                                        if let Some(reference) = refs.get(current_index) {
-                                            format_reference_text(reference)
+                                        if !refs.is_empty() {
+                                            let current_index = selected_reference_index.get();
+                                            // Bounds check before access to prevent WASM errors
+                                            if current_index < refs.len() {
+                                                if let Some(reference) = refs.get(current_index) {
+                                                    format_reference_text(reference)
+                                                } else {
+                                                    String::new()
+                                                }
+                                            } else {
+                                                String::new()
+                                            }
                                         } else {
                                             String::new()
                                         }
@@ -451,9 +526,18 @@ pub fn CrossReferencesSidebar(
                             <div class="text-sm text-gray-900 leading-relaxed">
                                 {move || {
                                     if let Some(refs) = sorted_references.get() {
-                                        let current_index = selected_reference_index.get();
-                                        if let Some(reference) = refs.get(current_index) {
-                                            get_verse_content_for_reference(reference)
+                                        if !refs.is_empty() {
+                                            let current_index = selected_reference_index.get();
+                                            // Bounds check before access to prevent WASM errors
+                                            if current_index < refs.len() {
+                                                if let Some(reference) = refs.get(current_index) {
+                                                    get_verse_content_for_reference(reference)
+                                                } else {
+                                                    String::new()
+                                                }
+                                            } else {
+                                                String::new()
+                                            }
                                         } else {
                                             String::new()
                                         }
@@ -496,8 +580,14 @@ fn ReferenceItem(
                 )
                 aria-selected=move || is_selected.get().to_string()
                 aria-label=move || {
-                    let verse_content = get_verse_content_for_reference(&reference);
-                    format!("{}, {}, {}", format_reference_text(&reference), format_votes_with_emoji(reference.votes), verse_content)
+                    // Safe access to reference data
+                    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        let verse_content = get_verse_content_for_reference(&reference);
+                        format!("{}, {}, {}", format_reference_text(&reference), format_votes_with_emoji(reference.votes), verse_content)
+                    })) {
+                        Ok(label) => label,
+                        Err(_) => format!("{}, {}", format_reference_text(&reference), format_votes_with_emoji(reference.votes))
+                    }
                 }
                 role="option"
                 tabindex="0"
