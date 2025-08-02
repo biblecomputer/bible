@@ -15,6 +15,11 @@ pub enum SearchResult {
         verse_number: u32,
         verse_text: String,
     },
+    Instruction {
+        name: String,
+        description: String,
+        shortcut: String,
+    },
 }
 
 impl SearchResult {
@@ -24,6 +29,7 @@ impl SearchResult {
             SearchResult::Verse { chapter, verse_number, .. } => {
                 format!("{} verse {}", get_translated_chapter_name(&chapter.name), verse_number)
             }
+            SearchResult::Instruction { name, .. } => name.clone(),
         }
     }
     
@@ -33,6 +39,10 @@ impl SearchResult {
             SearchResult::Verse { chapter, verse_number, .. } => {
                 let verse_range = VerseRange { start: *verse_number, end: *verse_number };
                 chapter.to_path_with_verses(&[verse_range])
+            }
+            SearchResult::Instruction { .. } => {
+                // Instructions don't navigate to a path, they execute actions
+                String::new()
             }
         }
     }
@@ -120,6 +130,101 @@ fn convert_language(storage_lang: &crate::storage::translation_storage::Language
     }
 }
 
+fn get_all_instructions() -> Vec<SearchResult> {
+    vec![
+        SearchResult::Instruction {
+            name: "Next Verse".to_string(),
+            description: "Navigate to the next verse".to_string(),
+            shortcut: "j, ↓".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Previous Verse".to_string(),
+            description: "Navigate to the previous verse".to_string(),
+            shortcut: "k, ↑".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Next Chapter".to_string(),
+            description: "Navigate to the next chapter".to_string(),
+            shortcut: "l, →".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Previous Chapter".to_string(),
+            description: "Navigate to the previous chapter".to_string(),
+            shortcut: "h, ←".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Next Book".to_string(),
+            description: "Navigate to the next book".to_string(),
+            shortcut: "Shift+L".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Previous Book".to_string(),
+            description: "Navigate to the previous book".to_string(),
+            shortcut: "Shift+H".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Beginning of Chapter".to_string(),
+            description: "Go to the first verse of the chapter".to_string(),
+            shortcut: "gg".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "End of Chapter".to_string(),
+            description: "Go to the last verse of the chapter".to_string(),
+            shortcut: "Shift+G".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Switch to Previous Chapter".to_string(),
+            description: "Go back to the previously viewed chapter".to_string(),
+            shortcut: "s".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Copy Raw Verse".to_string(),
+            description: "Copy the verse text to clipboard".to_string(),
+            shortcut: "c".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Copy Verse with Reference".to_string(),
+            description: "Copy verse with reference to clipboard".to_string(),
+            shortcut: "Shift+C".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Toggle Sidebar".to_string(),
+            description: "Show/hide the books sidebar".to_string(),
+            shortcut: "b".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Toggle Cross References".to_string(),
+            description: "Show/hide cross-references panel".to_string(),
+            shortcut: "r, Ctrl+Shift+R".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Open Command Palette".to_string(),
+            description: "Open this command palette".to_string(),
+            shortcut: "Ctrl+O, Alt+O".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Next Reference".to_string(),
+            description: "Navigate to next cross-reference".to_string(),
+            shortcut: "Ctrl+J".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Previous Reference".to_string(),
+            description: "Navigate to previous cross-reference".to_string(),
+            shortcut: "Ctrl+K".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Next Palette Result".to_string(),
+            description: "Navigate to next search result".to_string(),
+            shortcut: "Ctrl+J, ↓".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Previous Palette Result".to_string(),
+            description: "Navigate to previous search result".to_string(),
+            shortcut: "Ctrl+K, ↑".to_string(),
+        },
+    ]
+}
+
 fn get_translated_chapter_name(chapter_name: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
@@ -166,13 +271,43 @@ pub fn CommandPalette(
     // Create a node ref for the input element
     let input_ref = NodeRef::<leptos::html::Input>::new();
 
-    // Create a memo for filtered search results (chapters and verses)
+    // Create a memo for filtered search results (chapters, verses, and instructions)
     let filtered_results = Memo::new(move |_| {
-        let query = search_query.get().to_lowercase();
+        let query = search_query.get();
         if query.is_empty() {
             return Vec::new();
         }
 
+        // Check if this is an instruction search (starts with ">")
+        if query.starts_with('>') {
+            let instruction_query = query.strip_prefix('>').unwrap_or("").to_lowercase();
+            let instructions = get_all_instructions();
+            
+            if instruction_query.is_empty() {
+                // Just ">" - show all instructions
+                return instructions.into_iter().map(|inst| (inst, 1000)).collect();
+            } else {
+                // Filter instructions by name or description
+                return instructions.into_iter()
+                    .filter_map(|inst| {
+                        if let SearchResult::Instruction { name, description, .. } = &inst {
+                            let name_lower = name.to_lowercase();
+                            let desc_lower = description.to_lowercase();
+                            if name_lower.contains(&instruction_query) || desc_lower.contains(&instruction_query) {
+                                let score = if name_lower.starts_with(&instruction_query) { 1000 } else { 500 };
+                                Some((inst, score))
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+            }
+        }
+
+        let query = query.to_lowercase();
         let mut results: Vec<(SearchResult, usize)> = Vec::new();
         
         // Check if this is a current chapter verse shortcut (e.g., ":5" or ":")
@@ -308,8 +443,7 @@ pub fn CommandPalette(
         results
             .into_iter()
             .take(10)
-            .map(|(result, _)| result)
-            .collect::<Vec<SearchResult>>()
+            .collect::<Vec<(SearchResult, usize)>>()
     });
 
     // Handle NextPaletteResult navigation signal
@@ -370,7 +504,7 @@ pub fn CommandPalette(
                         if !results.is_empty() {
                             let current = selected_index.get();
                             let valid_index = if current >= results.len() { 0 } else { current };
-                            if let Some(result) = results.get(valid_index) {
+                            if let Some((result, _)) = results.get(valid_index) {
                                 set_navigate_to.set(Some(result.to_path()));
                                 set_is_open.set(false);
                                 set_search_query.set(String::new());
@@ -437,7 +571,7 @@ pub fn CommandPalette(
                         <input
                             node_ref=input_ref
                             type="text"
-                            placeholder="Search chapters or verses... (e.g., 'Genesis 1', 'gen 1:', 'john 3:16')"
+                            placeholder="Search chapters or verses... (e.g., 'Genesis 1', 'gen 1:', 'john 3:16', '>' for shortcuts)"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             prop:value=search_query
                             on:input=move |e| set_search_query.set(event_target_value(&e))
@@ -478,7 +612,7 @@ pub fn CommandPalette(
                                             current_selected.min(results.len() - 1) 
                                         };
                                         
-                                        results.into_iter().enumerate().map(|(index, result)| {
+                                        results.into_iter().enumerate().map(|(index, (result, _score))| {
                                             let is_selected = index == bounded_selected;
                                             let result_path = result.to_path();
                                             let display_name = result.get_display_name();
@@ -504,16 +638,31 @@ pub fn CommandPalette(
                                                                     }
                                                                 )
                                                             }
-                                                            SearchResult::Chapter(_) => display_name.clone()
+                                                            SearchResult::Chapter(_) => display_name.clone(),
+                                                            SearchResult::Instruction { name, description, shortcut } => {
+                                                                format!("{}, {}, shortcut: {}", name, description, shortcut)
+                                                            }
                                                         }
                                                     }
                                                     on:click={
                                                         let path = result_path.clone();
+                                                        let result_clone = result.clone();
                                                         move |_| {
-                                                            set_navigate_to.set(Some(path.clone()));
-                                                            set_is_open.set(false);
-                                                            set_search_query.set(String::new());
-                                                            set_selected_index.set(0);
+                                                            match &result_clone {
+                                                                SearchResult::Instruction { .. } => {
+                                                                    // Instructions just close the palette
+                                                                    set_is_open.set(false);
+                                                                    set_search_query.set(String::new());
+                                                                    set_selected_index.set(0);
+                                                                }
+                                                                _ => {
+                                                                    // Navigate for chapters and verses
+                                                                    set_navigate_to.set(Some(path.clone()));
+                                                                    set_is_open.set(false);
+                                                                    set_search_query.set(String::new());
+                                                                    set_selected_index.set(0);
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 >
@@ -535,6 +684,13 @@ pub fn CommandPalette(
                                                             }
                                                             SearchResult::Chapter(_) => {
                                                                 view! { <div></div> }.into_any()
+                                                            }
+                                                            SearchResult::Instruction { description, shortcut, .. } => {
+                                                                view! {
+                                                                    <div class="text-xs opacity-75 mt-1 truncate">
+                                                                        {format!("{} • {}", description, shortcut)}
+                                                                    </div>
+                                                                }.into_any()
                                                             }
                                                         }}
                                                     </div>
