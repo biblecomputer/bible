@@ -1,22 +1,26 @@
-use crate::views::ChapterDetail;
-use crate::components::{CommandPalette, Sidebar, ShortcutsHelp, CrossReferencesSidebar};
-use crate::views::HomeTranslationPicker;
 use crate::api::init_bible;
-use crate::core::{get_bible, Chapter, parse_verse_ranges_from_url};
-use crate::utils::is_mobile_screen;
-use crate::storage::{get_sidebar_open, save_sidebar_open, get_references_sidebar_open, save_references_sidebar_open};
-use crate::storage::translations::get_current_translation;
-use crate::translation_map::translation::Translation;
+use crate::components::{CommandPalette, CrossReferencesSidebar, ShortcutsHelp, Sidebar};
 use crate::core::types::Language;
-use crate::instructions::{Instruction, VimKeyboardMapper, InstructionProcessor, InstructionContext};
-use urlencoding::decode;
-use leptos::prelude::*;
+use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
+use crate::instructions::{
+    Instruction, InstructionContext, InstructionProcessor, VimKeyboardMapper,
+};
+use crate::storage::translations::get_current_translation;
+use crate::storage::{
+    get_references_sidebar_open, get_sidebar_open, save_references_sidebar_open, save_sidebar_open,
+};
+use crate::translation_map::translation::Translation;
+use crate::utils::is_mobile_screen;
+use crate::views::ChapterDetail;
+use crate::views::HomeTranslationPicker;
 use leptos::ev;
+use leptos::prelude::*;
+use leptos::web_sys::KeyboardEvent;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::hooks::{use_location, use_navigate};
-use leptos_router::NavigateOptions;
 use leptos_router::path;
-use leptos::web_sys::KeyboardEvent;
+use leptos_router::NavigateOptions;
+use urlencoding::decode;
 use wasm_bindgen_futures::spawn_local;
 
 // Helper function to convert storage language to translation language
@@ -32,14 +36,14 @@ fn get_translated_book_name(book_name: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
             let translation = Translation::from_language(convert_language(first_language));
-            
+
             // Use the get_book method to get localized book name
             if let Some(translated_name) = translation.get_book(&book_name.to_lowercase()) {
                 return translated_name.to_string();
             }
         }
     }
-    
+
     // Return original name if no translation found
     book_name.to_string()
 }
@@ -95,7 +99,7 @@ fn App() -> impl IntoView {
     });
 
     view! {
-        <Show 
+        <Show
             when=move || is_bible_loaded.get()
             fallback=move || view! {
                 <div class="flex items-center justify-center min-h-screen">
@@ -136,17 +140,20 @@ fn BibleApp() -> impl IntoView {
 fn BibleWithSidebar() -> impl IntoView {
     // Command palette state
     let (is_palette_open, set_is_palette_open) = signal(false);
+    // Command palette navigation signals
+    let next_in_list = RwSignal::new(false);
+    let previous_in_list = RwSignal::new(false);
     // Left sidebar (books/chapters) visibility state - initialize from localStorage
     let (is_left_sidebar_open, set_is_left_sidebar_open) = signal(get_sidebar_open());
     // Right sidebar (cross-references) visibility state - load from storage
     let (is_right_sidebar_open, set_is_right_sidebar_open) = signal(get_references_sidebar_open());
     let location = use_location();
-    
+
     // Detect if we have cross-references data to show
     let cross_references_data = Memo::new(move |_| {
         let pathname = location.pathname.get();
         let _search = location.search.get();
-        
+
         // Parse URL to get book, chapter, and verse info
         let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
         if path_parts.len() == 2 {
@@ -155,7 +162,7 @@ fn BibleWithSidebar() -> impl IntoView {
             } else {
                 path_parts[0].replace('_', " ")
             };
-            
+
             if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
                 // Check if there are verse parameters and if it's exactly one verse
                 let verse_ranges = parse_verse_ranges_from_url();
@@ -168,268 +175,275 @@ fn BibleWithSidebar() -> impl IntoView {
                 }
             }
         }
-        
+
         None // No cross-references data available
     });
-        
-        view! {
-            <KeyboardNavigationHandler 
-                palette_open=is_palette_open 
-                set_palette_open=set_is_palette_open 
-                _left_sidebar_open=is_left_sidebar_open
-                set_left_sidebar_open=set_is_left_sidebar_open
-                _right_sidebar_open=is_right_sidebar_open
-                set_right_sidebar_open=set_is_right_sidebar_open
-            />
-            <SidebarAutoHide set_sidebar_open=set_is_left_sidebar_open />
-            <CommandPalette is_open=is_palette_open set_is_open=set_is_palette_open />
-            <nav class="bg-white border-b border-gray-200 px-4 py-2">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                        <button
-                            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                            on:click=move |_| {
-                                set_is_left_sidebar_open.update(|open| {
-                                    *open = !*open;
-                                    save_sidebar_open(*open);
-                                });
-                            }
-                            aria-label=move || if is_left_sidebar_open.get() { "Hide books sidebar" } else { "Show books sidebar" }
-                            title=move || if is_left_sidebar_open.get() { "Hide books sidebar" } else { "Show books sidebar" }
-                        >
-                                <svg 
-                                    width="24" 
-                                    height="24" 
-                                    viewBox="0 0 24 24" 
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    aria-hidden="true"
-                                >
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="9" y1="9" x2="21" y2="9"/>
-                                    <line x1="9" y1="15" x2="21" y2="15"/>
-                                    <line x1="3" y1="9" x2="7" y2="9"/>
-                                    <line x1="3" y1="15" x2="7" y2="15"/>
-                                </svg>
-                            </button>
-                            <a 
-                                href="/?choose=true" 
-                                class="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                                aria-label="Kies vertaling"
-                                title="Terug naar vertalingskeuze"
-                            >
-                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                                "Kies vertaling"
-                            </a>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <button
-                                class=move || format!(
-                                    "p-2 rounded transition-colors {}",
-                                    if cross_references_data.get().is_some() {
-                                        "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                                    } else {
-                                        "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                                    }
-                                )
-                                on:click=move |_| {
-                                    if cross_references_data.get().is_some() {
-                                        set_is_right_sidebar_open.update(|open| {
-                                            *open = !*open;
-                                            save_references_sidebar_open(*open);
-                                        });
-                                    } else {
-                                        // Show sidebar with helpful message
-                                        set_is_right_sidebar_open.set(true);
-                                        save_references_sidebar_open(true);
-                                    }
-                                }
-                                aria-label=move || {
-                                    if cross_references_data.get().is_some() {
-                                        if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
-                                    } else {
-                                        "Show references help"
-                                    }
-                                }
-                                title=move || {
-                                    if cross_references_data.get().is_some() {
-                                        if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
-                                    } else {
-                                        "References (select a verse first)"
-                                    }
-                                }
-                            >
-                                <svg 
-                                    width="24" 
-                                    height="24" 
-                                    viewBox="0 0 24 24" 
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    aria-hidden="true"
-                                >
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14,2 14,8 20,8"/>
-                                    <line x1="16" y1="13" x2="8" y2="13"/>
-                                    <line x1="16" y1="17" x2="8" y2="17"/>
-                                    <polyline points="10,9 9,9 8,9"/>
-                                </svg>
-                            </button>
-                            <a 
-                                href="https://github.com/sempruijs/bible" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                class="text-black hover:text-gray-600 transition-colors"
-                                aria-label="GitHub repository"
-                                title="View source on GitHub"
-                            >
-                            <svg 
-                                width="20" 
-                                height="20" 
-                                viewBox="0 0 24 24" 
-                                fill="currentColor"
-                                class="text-black hover:text-gray-600"
+
+    view! {
+        <KeyboardNavigationHandler
+            palette_open=is_palette_open
+            set_palette_open=set_is_palette_open
+            _left_sidebar_open=is_left_sidebar_open
+            set_left_sidebar_open=set_is_left_sidebar_open
+            _right_sidebar_open=is_right_sidebar_open
+            set_right_sidebar_open=set_is_right_sidebar_open
+            next_in_list=next_in_list
+            previous_in_list=previous_in_list
+        />
+        <SidebarAutoHide set_sidebar_open=set_is_left_sidebar_open />
+        <CommandPalette 
+            is_open=is_palette_open 
+            set_is_open=set_is_palette_open 
+            next_in_list=next_in_list
+            previous_in_list=previous_in_list
+        />
+        <nav class="bg-white border-b border-gray-200 px-4 py-2">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <button
+                        class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                        on:click=move |_| {
+                            set_is_left_sidebar_open.update(|open| {
+                                *open = !*open;
+                                save_sidebar_open(*open);
+                            });
+                        }
+                        aria-label=move || if is_left_sidebar_open.get() { "Hide books sidebar" } else { "Show books sidebar" }
+                        title=move || if is_left_sidebar_open.get() { "Hide books sidebar" } else { "Show books sidebar" }
+                    >
+                            <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
                                 aria-hidden="true"
                             >
-                                <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.30 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="9" y1="9" x2="21" y2="9"/>
+                                <line x1="9" y1="15" x2="21" y2="15"/>
+                                <line x1="3" y1="9" x2="7" y2="9"/>
+                                <line x1="3" y1="15" x2="7" y2="15"/>
                             </svg>
+                        </button>
+                        <a
+                            href="/?choose=true"
+                            class="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                            aria-label="Kies vertaling"
+                            title="Terug naar vertalingskeuze"
+                        >
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            "Kies vertaling"
                         </a>
                     </div>
-                </div>
-            </nav>
-            <div class="flex h-screen relative">
-                // Left sidebar (books/chapters)
-                <Show
-                        when=move || is_left_sidebar_open.get()
-                        fallback=|| view! { <></> }
-                    >
-                        <aside class="w-64 bg-white border-r border-black p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto">
-                            <Sidebar set_sidebar_open=set_is_left_sidebar_open />
-                        </aside>
-                    </Show>
-                    
-                    // Left sidebar mobile overlay
-                    <Show
-                        when=move || {
-                            is_left_sidebar_open.get() && is_mobile_screen()
-                        }
-                        fallback=|| view! { <></> }
-                    >
-                        <div 
-                            class="fixed inset-0 bg-black bg-opacity-50 z-30"
-                            on:click=move |_| {
-                                set_is_left_sidebar_open.set(false);
-                                save_sidebar_open(false);
-                            }
-                        />
-                    </Show>
-                    
-                    // Main content area
-                    <main class="flex-1 p-4 md:p-6 overflow-y-auto">
-                        <Routes fallback=|| "Not found.">
-                            <Route
-                                path=path!("/:book/:chapter")
-                                view=move || {
-                                    let chapter = Chapter::from_url().unwrap();
-                                    view! {
-                                        <ChapterDetail chapter=chapter />
-                                    }
-                                }
-                            />
-                        </Routes>
-                    </main>
-                    
-                    // Right sidebar (cross-references)
-                    <Show
-                        when=move || is_right_sidebar_open.get()
-                        fallback=|| view! { <></> }
-                    >
-                        <aside class="w-64 bg-white border-l border-black p-3 overflow-y-auto md:relative absolute inset-y-0 right-0 z-40 md:z-auto">
-                            {move || {
-                                if let Some((book_name, chapter, verse)) = cross_references_data.get() {
-                                    view! {
-                                        <CrossReferencesSidebar 
-                                            book_name=book_name
-                                            chapter=chapter
-                                            verse=verse
-                                            set_sidebar_open=set_is_right_sidebar_open
-                                        />
-                                    }.into_any()
+                    <div class="flex items-center space-x-2">
+                        <button
+                            class=move || format!(
+                                "p-2 rounded transition-colors {}",
+                                if cross_references_data.get().is_some() {
+                                    "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                                 } else {
-                                    view! { 
-                                        <div class="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500">
-                                            <svg 
-                                                width="48" 
-                                                height="48" 
-                                                viewBox="0 0 24 24" 
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="1.5"
-                                                class="mb-4 text-gray-400"
-                                                aria-hidden="true"
-                                            >
-                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                                <polyline points="14,2 14,8 20,8"/>
-                                                <line x1="16" y1="13" x2="8" y2="13"/>
-                                                <line x1="16" y1="17" x2="8" y2="17"/>
-                                                <polyline points="10,9 9,9 8,9"/>
-                                            </svg>
-                                            <h3 class="text-lg font-medium text-gray-700 mb-2">References</h3>
-                                            <p class="text-sm leading-relaxed">
-                                                Please select a verse by navigating with arrow keys or 
-                                                <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs font-mono">j</kbd>
-                                                /
-                                                <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs font-mono">k</kbd>
-                                                to see cross-references.
-                                            </p>
-                                            <button 
-                                                class="mt-4 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-                                                on:click=move |_| {
-                                                    set_is_right_sidebar_open.set(false);
-                                                    save_references_sidebar_open(false);
-                                                }
-                                            >
-                                                Close
-                                            </button>
-                                        </div>
-                                    }.into_any()
+                                    "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
                                 }
-                            }}
-                        </aside>
-                    </Show>
-                    
-                    // Right sidebar mobile overlay
-                    <Show
-                        when=move || {
-                            is_right_sidebar_open.get() && is_mobile_screen()
-                        }
-                        fallback=|| view! { <></> }
-                    >
-                        <div 
-                            class="fixed inset-0 bg-black bg-opacity-50 z-35"
+                            )
                             on:click=move |_| {
-                                set_is_right_sidebar_open.set(false);
-                                save_references_sidebar_open(false);
+                                if cross_references_data.get().is_some() {
+                                    set_is_right_sidebar_open.update(|open| {
+                                        *open = !*open;
+                                        save_references_sidebar_open(*open);
+                                    });
+                                } else {
+                                    // Show sidebar with helpful message
+                                    set_is_right_sidebar_open.set(true);
+                                    save_references_sidebar_open(true);
+                                }
+                            }
+                            aria-label=move || {
+                                if cross_references_data.get().is_some() {
+                                    if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
+                                } else {
+                                    "Show references help"
+                                }
+                            }
+                            title=move || {
+                                if cross_references_data.get().is_some() {
+                                    if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
+                                } else {
+                                    "References (select a verse first)"
+                                }
+                            }
+                        >
+                            <svg
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                aria-hidden="true"
+                            >
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14,2 14,8 20,8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10,9 9,9 8,9"/>
+                            </svg>
+                        </button>
+                        <a
+                            href="https://github.com/sempruijs/bible"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-black hover:text-gray-600 transition-colors"
+                            aria-label="GitHub repository"
+                            title="View source on GitHub"
+                        >
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            class="text-black hover:text-gray-600"
+                            aria-hidden="true"
+                        >
+                            <path d="M12 0C5.374 0 0 5.373 0 12 0 17.302 3.438 21.8 8.207 23.387c.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.30 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="flex h-screen relative">
+            // Left sidebar (books/chapters)
+            <Show
+                    when=move || is_left_sidebar_open.get()
+                    fallback=|| view! { <></> }
+                >
+                    <aside class="w-64 bg-white border-r border-black p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto">
+                        <Sidebar set_sidebar_open=set_is_left_sidebar_open />
+                    </aside>
+                </Show>
+
+                // Left sidebar mobile overlay
+                <Show
+                    when=move || {
+                        is_left_sidebar_open.get() && is_mobile_screen()
+                    }
+                    fallback=|| view! { <></> }
+                >
+                    <div
+                        class="fixed inset-0 bg-black bg-opacity-50 z-30"
+                        on:click=move |_| {
+                            set_is_left_sidebar_open.set(false);
+                            save_sidebar_open(false);
+                        }
+                    />
+                </Show>
+
+                // Main content area
+                <main class="flex-1 p-4 md:p-6 overflow-y-auto">
+                    <Routes fallback=|| "Not found.">
+                        <Route
+                            path=path!("/:book/:chapter")
+                            view=move || {
+                                let chapter = Chapter::from_url().unwrap();
+                                view! {
+                                    <ChapterDetail chapter=chapter />
+                                }
                             }
                         />
-                    </Show>
-                </div>
-                <ShortcutsHelp />
-        }
+                    </Routes>
+                </main>
+
+                // Right sidebar (cross-references)
+                <Show
+                    when=move || is_right_sidebar_open.get()
+                    fallback=|| view! { <></> }
+                >
+                    <aside class="w-64 bg-white border-l border-black p-3 overflow-y-auto md:relative absolute inset-y-0 right-0 z-40 md:z-auto">
+                        {move || {
+                            if let Some((book_name, chapter, verse)) = cross_references_data.get() {
+                                view! {
+                                    <CrossReferencesSidebar
+                                        book_name=book_name
+                                        chapter=chapter
+                                        verse=verse
+                                        set_sidebar_open=set_is_right_sidebar_open
+                                    />
+                                }.into_any()
+                            } else {
+                                view! {
+                                    <div class="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500">
+                                        <svg
+                                            width="48"
+                                            height="48"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.5"
+                                            class="mb-4 text-gray-400"
+                                            aria-hidden="true"
+                                        >
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14,2 14,8 20,8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <polyline points="10,9 9,9 8,9"/>
+                                        </svg>
+                                        <h3 class="text-lg font-medium text-gray-700 mb-2">References</h3>
+                                        <p class="text-sm leading-relaxed">
+                                            Please select a verse by navigating with arrow keys or
+                                            <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs font-mono">j</kbd>
+                                            /
+                                            <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs font-mono">k</kbd>
+                                            to see cross-references.
+                                        </p>
+                                        <button
+                                            class="mt-4 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+                                            on:click=move |_| {
+                                                set_is_right_sidebar_open.set(false);
+                                                save_references_sidebar_open(false);
+                                            }
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
+                                }.into_any()
+                            }
+                        }}
+                    </aside>
+                </Show>
+
+                // Right sidebar mobile overlay
+                <Show
+                    when=move || {
+                        is_right_sidebar_open.get() && is_mobile_screen()
+                    }
+                    fallback=|| view! { <></> }
+                >
+                    <div
+                        class="fixed inset-0 bg-black bg-opacity-50 z-35"
+                        on:click=move |_| {
+                            set_is_right_sidebar_open.set(false);
+                            save_references_sidebar_open(false);
+                        }
+                    />
+                </Show>
+            </div>
+            <ShortcutsHelp />
+    }
 }
 
 #[component]
 fn SidebarAutoHide(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
     let location = use_location();
-    
+
     // Auto-hide sidebar on mobile when navigating to a chapter
     Effect::new(move |_| {
         let pathname = location.pathname.get();
         let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
-        
+
         // If we're on a chapter page and screen is mobile-sized, hide sidebar
         if path_parts.len() == 2 && !path_parts[0].is_empty() && !path_parts[1].is_empty() {
             if is_mobile_screen() {
@@ -453,13 +467,15 @@ fn KeyboardNavigationHandler(
     set_left_sidebar_open: WriteSignal<bool>,
     _right_sidebar_open: ReadSignal<bool>,
     set_right_sidebar_open: WriteSignal<bool>,
+    next_in_list: RwSignal<bool>,
+    previous_in_list: RwSignal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
-    
+
     // Previous chapter tracking for "alt-tab" like switching
     let (previous_chapter_path, set_previous_chapter_path) = signal(Option::<String>::None);
-    
+
     // Reactive effect to track all path changes
     {
         let mut last_path = String::new();
@@ -471,11 +487,11 @@ fn KeyboardNavigationHandler(
             last_path = current_path;
         });
     }
-    
+
     // Create instruction processor and vim keyboard mapper
     let processor = InstructionProcessor::new(navigate.clone());
     let (vim_mapper, set_vim_mapper) = signal(VimKeyboardMapper::new());
-    
+
     // Visual display for vim command buffer
     let vim_display = Memo::new(move |_| {
         let mapper = vim_mapper.get();
@@ -486,28 +502,41 @@ fn KeyboardNavigationHandler(
             Some(display)
         }
     });
-    
+
     // Cache location reads to avoid repeated reactive access during rapid navigation
     let cached_pathname = Memo::new(move |_| location.pathname.get());
     let cached_search = Memo::new(move |_| location.search.get());
-    
+
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
-        // Skip all keyboard processing if command palette is open (let it handle input)
-        if palette_open.get() {
-            return;
-        }
-        
-        // Get instruction from vim-style keyboard mapper
+        // Get instruction from vim-style keyboard mapper first
         let mut mapper = vim_mapper.get();
         let instruction_result = mapper.map_to_instruction(&e);
         
-        // Only update the signal if the mapper state actually changed
+        // Allow NextInList and PreviousInList to work when palette is open
+        if palette_open.get() {
+            if let Some((ref instruction, _)) = instruction_result {
+                match instruction {
+                    Instruction::NextInList | Instruction::PreviousInList => {
+                        // Let these instructions through to be processed below
+                    }
+                    _ => {
+                        // Skip all other keyboard processing when palette is open
+                        return;
+                    }
+                }
+            } else {
+                // No instruction, let palette handle regular keyboard input
+                return;
+            }
+        }
+
+        // Update the mapper state if needed
         // This prevents unnecessary reactive updates during rapid navigation
         if mapper.has_pending_sequence() || instruction_result.is_some() {
             set_vim_mapper.set(mapper);
         }
-        
+
         // Handle instruction if we got one
         if let Some((instruction, multiplier)) = instruction_result {
             // Handle UI-specific instructions that need direct component access
@@ -538,9 +567,22 @@ fn KeyboardNavigationHandler(
                     });
                     return;
                 }
-                Instruction::NextReference | Instruction::PreviousReference => {
-                    // Reference navigation is handled by the CrossReferencesSidebar component
-                    // These instructions are processed there via direct keyboard events
+                Instruction::NextInList => {
+                    e.prevent_default();
+                    if palette_open.get() {
+                        // Command palette is open, trigger navigation in palette
+                        next_in_list.set(true);
+                    }
+                    // If cross-references panel is open, it will handle these via keyboard events
+                    return;
+                }
+                Instruction::PreviousInList => {
+                    e.prevent_default();
+                    if palette_open.get() {
+                        // Command palette is open, trigger navigation in palette
+                        previous_in_list.set(true);
+                    }
+                    // If cross-references panel is open, it will handle these via keyboard events
                     return;
                 }
                 Instruction::SwitchToPreviousChapter => {
@@ -548,14 +590,20 @@ fn KeyboardNavigationHandler(
                     if let Some(prev_path) = previous_chapter_path.get() {
                         let current_path = location.pathname.get();
                         set_previous_chapter_path.set(Some(current_path));
-                        navigate(&prev_path, NavigateOptions { scroll: false, ..Default::default() });
+                        navigate(
+                            &prev_path,
+                            NavigateOptions {
+                                scroll: false,
+                                ..Default::default()
+                            },
+                        );
                     }
                     return;
                 }
                 Instruction::GoToVerse(verse_num) => {
                     // Handle go to verse navigation
                     e.prevent_default();
-                    
+
                     // Process the instruction if we have a valid context
                     let pathname = location.pathname.get();
                     let search = location.search.get();
@@ -568,7 +616,7 @@ fn KeyboardNavigationHandler(
                     // For all other instructions, create context and process
                     let pathname = cached_pathname.get();
                     let search = cached_search.get();
-                    
+
                     if let Some(context) = create_instruction_context(&pathname, &search) {
                         e.prevent_default();
                         processor.process_with_multiplier(instruction, &context, multiplier);
@@ -595,12 +643,12 @@ fn KeyboardNavigationHandler(
 fn Home() -> impl IntoView {
     use crate::core::get_current_bible;
     use crate::storage::{get_selected_translation, is_translation_downloaded};
-    use leptos_router::hooks::{use_navigate, use_location};
+    use leptos_router::hooks::{use_location, use_navigate};
     use urlencoding::encode;
-    
+
     let navigate = use_navigate();
     let location = use_location();
-    
+
     // Check if user has a selected translation that's downloaded
     Effect::new(move |_| {
         // Check if user explicitly wants to choose a translation (bypass auto-redirect)
@@ -608,7 +656,7 @@ fn Home() -> impl IntoView {
         if search_params.contains("choose=true") {
             return; // Don't auto-redirect if user explicitly wants to choose
         }
-        
+
         if let Some(selected_translation) = get_selected_translation() {
             if is_translation_downloaded(&selected_translation) {
                 // Get the current Bible to find Genesis 1
@@ -617,22 +665,33 @@ fn Home() -> impl IntoView {
                         if let Some(first_chapter) = genesis_book.chapters.first() {
                             let encoded_book = encode(&genesis_book.name);
                             let path = format!("/{}/{}", encoded_book, first_chapter.chapter);
-                            navigate(&path, NavigateOptions { scroll: false, ..Default::default() });
+                            navigate(
+                                &path,
+                                NavigateOptions {
+                                    scroll: false,
+                                    ..Default::default()
+                                },
+                            );
                             return;
                         }
                     }
                 }
-                
+
                 // Fallback: try to navigate to a standard Genesis path
-                navigate("/Genesis/1", NavigateOptions { scroll: false, ..Default::default() });
+                navigate(
+                    "/Genesis/1",
+                    NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    },
+                );
             }
         }
     });
-    
+
     view! {
         <div class="min-h-screen bg-gray-50">
             <HomeTranslationPicker />
         </div>
     }
 }
-

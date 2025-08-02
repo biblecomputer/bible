@@ -19,12 +19,12 @@ impl VimKey {
         let mut ctrl = false;
         let mut meta = false;
         let mut alt = false;
-        
+
         // Handle special key syntax like <C-k>, <S-G>, <M-k>
         if vim_key.starts_with('<') && vim_key.ends_with('>') {
-            let inner = &vim_key[1..vim_key.len()-1];
+            let inner = &vim_key[1..vim_key.len() - 1];
             let parts: Vec<&str> = inner.split('-').collect();
-            
+
             if parts.len() == 1 {
                 // Simple special keys like <Up>, <Down>, <Left>, <Right>
                 key = match parts[0] {
@@ -38,7 +38,7 @@ impl VimKey {
                 // Modified keys like <C-k>, <S-G>
                 let modifier = parts[0];
                 let base_key = parts[1];
-                
+
                 match modifier {
                     "C" => ctrl = true,
                     "S" => shift = true,
@@ -46,14 +46,14 @@ impl VimKey {
                     "A" => alt = true,
                     _ => return None,
                 }
-                
+
                 key = base_key.to_string();
             } else if parts.len() == 3 {
                 // Double modified keys like <C-S-R>
                 let mod1 = parts[0];
                 let mod2 = parts[1];
                 let base_key = parts[2];
-                
+
                 for modifier in [mod1, mod2] {
                     match modifier {
                         "C" => ctrl = true,
@@ -63,7 +63,7 @@ impl VimKey {
                         _ => return None,
                     }
                 }
-                
+
                 key = base_key.to_string();
             } else {
                 return None;
@@ -72,7 +72,7 @@ impl VimKey {
             // Regular keys or multi-character sequences like "gg"
             key = vim_key.to_string();
         }
-        
+
         Some(VimKey {
             key,
             shift,
@@ -81,20 +81,20 @@ impl VimKey {
             alt,
         })
     }
-    
+
     pub fn matches_event(&self, e: &KeyboardEvent) -> bool {
         // For multi-character sequences like "gg", we need special handling
         if self.key.len() > 1 && !self.key.starts_with("Arrow") {
             return false; // Multi-char sequences handled separately
         }
-        
-        e.key() == self.key &&
-        e.shift_key() == self.shift &&
-        e.ctrl_key() == self.ctrl &&
-        e.meta_key() == self.meta &&
-        e.alt_key() == self.alt
+
+        e.key() == self.key
+            && e.shift_key() == self.shift
+            && e.ctrl_key() == self.ctrl
+            && e.meta_key() == self.meta
+            && e.alt_key() == self.alt
     }
-    
+
     pub fn is_multi_char_sequence(&self) -> bool {
         self.key.len() > 1 && !self.key.starts_with("Arrow")
     }
@@ -112,7 +112,7 @@ impl KeyboardMappings {
         let json_str = include_str!("keyboard_mappings.json");
         serde_json::from_str(json_str).expect("Failed to parse keyboard mappings")
     }
-    
+
     pub fn get_instruction(&self, vim_key: &str) -> Option<Instruction> {
         if let Some(instruction_name) = self.mappings.get(vim_key) {
             self.parse_instruction(instruction_name)
@@ -120,7 +120,7 @@ impl KeyboardMappings {
             None
         }
     }
-    
+
     fn parse_instruction(&self, instruction_name: &str) -> Option<Instruction> {
         match instruction_name {
             "NextVerse" => Some(Instruction::NextVerse),
@@ -137,8 +137,8 @@ impl KeyboardMappings {
             "ToggleSidebar" => Some(Instruction::ToggleSidebar),
             "ToggleCrossReferences" => Some(Instruction::ToggleCrossReferences),
             "OpenCommandPalette" => Some(Instruction::OpenCommandPalette),
-            "NextReference" => Some(Instruction::NextReference),
-            "PreviousReference" => Some(Instruction::PreviousReference),
+            "NextReference" => Some(Instruction::NextInList),
+            "PreviousReference" => Some(Instruction::PreviousInList),
             _ => None,
         }
     }
@@ -159,7 +159,7 @@ impl VimKeyboardMapper {
             multiplier_buffer: String::new(),
         }
     }
-    
+
     pub fn map_to_instruction(&mut self, e: &KeyboardEvent) -> Option<(Instruction, u32)> {
         // Handle modified keys (including shift)
         if e.ctrl_key() || e.meta_key() || e.alt_key() || e.shift_key() {
@@ -169,7 +169,7 @@ impl VimKeyboardMapper {
             } else {
                 self.multiplier_buffer.parse().unwrap_or(1)
             };
-            
+
             // Try to match modified keys first
             let mut found_instruction = None;
             for (vim_key_str, _) in &self.mappings.mappings {
@@ -186,7 +186,7 @@ impl VimKeyboardMapper {
             }
             return None;
         }
-        
+
         // Handle digit input for multipliers
         if let Some(digit) = e.key().chars().next() {
             if digit.is_ascii_digit() {
@@ -194,14 +194,14 @@ impl VimKeyboardMapper {
                 return None; // Wait for the actual command
             }
         }
-        
+
         // Get current multiplier (default to 1)
         let multiplier = if self.multiplier_buffer.is_empty() {
             1
         } else {
             self.multiplier_buffer.parse().unwrap_or(1)
         };
-        
+
         // Handle 'g' specially - it can be "g" for GoToVerse or "gg" for BeginningOfChapter
         if e.key() == "g" {
             if self.sequence_buffer == "g" {
@@ -219,7 +219,7 @@ impl VimKeyboardMapper {
                 return None; // Wait for potential second 'g'
             }
         }
-        
+
         // Try to match single-key mappings
         let mut found_instruction = None;
         for (vim_key_str, _) in &self.mappings.mappings {
@@ -234,11 +234,13 @@ impl VimKeyboardMapper {
             self.clear_buffers();
             return Some((instruction, multiplier));
         }
-        
+
         // Handle other multi-character sequences
-        if !self.sequence_buffer.is_empty() || (!e.key().chars().next().unwrap_or(' ').is_ascii_digit() && e.key() != "g") {
+        if !self.sequence_buffer.is_empty()
+            || (!e.key().chars().next().unwrap_or(' ').is_ascii_digit() && e.key() != "g")
+        {
             self.sequence_buffer.push_str(&e.key());
-            
+
             // Check if current buffer matches any multi-char sequence
             let mut found_instruction = None;
             for (vim_key_str, _) in &self.mappings.mappings {
@@ -253,38 +255,39 @@ impl VimKeyboardMapper {
                 self.clear_buffers();
                 return Some((instruction, multiplier));
             }
-            
+
             // Check if current buffer is a prefix of any multi-char sequence
             let is_prefix = self.mappings.mappings.keys().any(|key| {
                 if let Some(vim_key) = VimKey::from_vim_syntax(key) {
-                    vim_key.is_multi_char_sequence() && vim_key.key.starts_with(&self.sequence_buffer)
+                    vim_key.is_multi_char_sequence()
+                        && vim_key.key.starts_with(&self.sequence_buffer)
                 } else {
                     false
                 }
             });
-            
+
             if !is_prefix {
                 // No potential matches, clear the buffers
                 self.clear_buffers();
             }
         }
-        
+
         None
     }
-    
+
     pub fn clear_sequence_buffer(&mut self) {
         self.sequence_buffer.clear();
     }
-    
+
     pub fn clear_buffers(&mut self) {
         self.sequence_buffer.clear();
         self.multiplier_buffer.clear();
     }
-    
+
     pub fn has_pending_sequence(&self) -> bool {
         !self.sequence_buffer.is_empty() || !self.multiplier_buffer.is_empty()
     }
-    
+
     pub fn get_current_input_display(&self) -> String {
         format!("{}{}", self.multiplier_buffer, self.sequence_buffer)
     }

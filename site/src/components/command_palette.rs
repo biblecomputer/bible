@@ -153,6 +153,8 @@ fn get_current_chapter(location_pathname: &str) -> Option<Chapter> {
 pub fn CommandPalette(
     is_open: ReadSignal<bool>,
     set_is_open: WriteSignal<bool>,
+    next_in_list: RwSignal<bool>,
+    previous_in_list: RwSignal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -307,6 +309,40 @@ pub fn CommandPalette(
             .take(10)
             .map(|(result, _)| result)
             .collect::<Vec<SearchResult>>()
+    });
+
+    // Handle NextInList navigation signal
+    Effect::new(move |_| {
+        if next_in_list.get() {
+            next_in_list.set(false); // Reset signal
+            let results = filtered_results.get();
+            if !results.is_empty() {
+                let current = selected_index.get();
+                let next = if current + 1 >= results.len() {
+                    0 // wrap to first
+                } else {
+                    current + 1
+                };
+                set_selected_index.set(next);
+            }
+        }
+    });
+
+    // Handle PreviousInList navigation signal
+    Effect::new(move |_| {
+        if previous_in_list.get() {
+            previous_in_list.set(false); // Reset signal
+            let results = filtered_results.get();
+            if !results.is_empty() {
+                let current = selected_index.get();
+                let next = if current == 0 {
+                    results.len() - 1 // wrap to last
+                } else {
+                    current - 1
+                };
+                set_selected_index.set(next);
+            }
+        }
     });
 
     // Set up global keyboard handling when palette is open
