@@ -1,5 +1,5 @@
 use crate::api::init_bible;
-use crate::components::{CommandPalette, CrossReferencesSidebar, ShortcutsHelp, Sidebar};
+use crate::components::{CommandPalette, CrossReferencesSidebar, Sidebar};
 use crate::core::types::Language;
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::instructions::{
@@ -444,7 +444,6 @@ fn BibleWithSidebar() -> impl IntoView {
                     />
                 </Show>
             </div>
-            <ShortcutsHelp />
     }
 }
 
