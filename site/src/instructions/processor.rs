@@ -151,8 +151,8 @@ where
     }
     
     fn handle_next_chapter(&self, context: &InstructionContext) -> bool {
-        if let Some(next_chapter) = get_bible().get_next_chapter(&context.current_chapter) {
-            (self.navigate)(&next_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
+        if let Some(next_path) = get_bible().get_next_chapter_path(&context.current_chapter) {
+            (self.navigate)(&next_path, NavigateOptions { scroll: false, ..Default::default() });
             true
         } else {
             false
@@ -160,8 +160,8 @@ where
     }
     
     fn handle_previous_chapter(&self, context: &InstructionContext) -> bool {
-        if let Some(prev_chapter) = get_bible().get_previous_chapter(&context.current_chapter) {
-            (self.navigate)(&prev_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
+        if let Some(prev_path) = get_bible().get_previous_chapter_path(&context.current_chapter) {
+            (self.navigate)(&prev_path, NavigateOptions { scroll: false, ..Default::default() });
             true
         } else {
             false
@@ -432,34 +432,16 @@ where
     }
     
     fn handle_next_chapter_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
-        let mut current_chapter = context.current_chapter.clone();
-        
-        for _ in 0..multiplier {
-            if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
-                current_chapter = next_chapter;
-            } else {
-                // Reached the end
-                break;
-            }
+        if let Some(target_path) = get_bible().get_nth_next_chapter_path(&context.current_chapter, multiplier) {
+            (self.navigate)(&target_path, NavigateOptions { scroll: false, ..Default::default() });
         }
-        
-        (self.navigate)(&current_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
         true
     }
     
     fn handle_previous_chapter_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
-        let mut current_chapter = context.current_chapter.clone();
-        
-        for _ in 0..multiplier {
-            if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
-                current_chapter = prev_chapter;
-            } else {
-                // Reached the beginning
-                break;
-            }
+        if let Some(target_path) = get_bible().get_nth_previous_chapter_path(&context.current_chapter, multiplier) {
+            (self.navigate)(&target_path, NavigateOptions { scroll: false, ..Default::default() });
         }
-        
-        (self.navigate)(&current_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
         true
     }
     

@@ -330,6 +330,7 @@ pub fn CrossReferencesSidebar(
     
     // Get references for current verse from the pre-loaded chapter data
     // This is now extremely fast - just a HashMap lookup, no reactive recalculation per verse
+    // Throttled to prevent excessive updates during rapid scrolling
     let sorted_references = Memo::new(move |_| {
         let chapter_data = chapter_references.get();
         chapter_data.get(&verse).cloned()

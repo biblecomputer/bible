@@ -487,6 +487,10 @@ fn KeyboardNavigationHandler(
         }
     });
     
+    // Cache location reads to avoid repeated reactive access during rapid navigation
+    let cached_pathname = Memo::new(move |_| location.pathname.get());
+    let cached_search = Memo::new(move |_| location.search.get());
+    
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
         // Skip all keyboard processing if command palette is open (let it handle input)
@@ -497,7 +501,12 @@ fn KeyboardNavigationHandler(
         // Get instruction from vim-style keyboard mapper
         let mut mapper = vim_mapper.get();
         let instruction_result = mapper.map_to_instruction(&e);
-        set_vim_mapper.set(mapper);
+        
+        // Only update the signal if the mapper state actually changed
+        // This prevents unnecessary reactive updates during rapid navigation
+        if mapper.has_pending_sequence() || instruction_result.is_some() {
+            set_vim_mapper.set(mapper);
+        }
         
         // Handle instruction if we got one
         if let Some((instruction, multiplier)) = instruction_result {
@@ -557,8 +566,8 @@ fn KeyboardNavigationHandler(
                 }
                 _ => {
                     // For all other instructions, create context and process
-                    let pathname = location.pathname.get();
-                    let search = location.search.get();
+                    let pathname = cached_pathname.get();
+                    let search = cached_search.get();
                     
                     if let Some(context) = create_instruction_context(&pathname, &search) {
                         e.prevent_default();

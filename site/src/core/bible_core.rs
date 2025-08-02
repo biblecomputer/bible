@@ -282,6 +282,145 @@ impl Bible {
     pub fn get_last_chapter(&self) -> Option<Chapter> {
         self.books.last()?.chapters.last().cloned()
     }
+
+    /// Fast navigation method that returns only the path string without cloning full Chapter data
+    pub fn get_next_chapter_path(&self, current: &Chapter) -> Option<String> {
+        for (book_idx, book) in self.books.iter().enumerate() {
+            if let Some(chapter_idx) = book
+                .chapters
+                .iter()
+                .position(|c| c.chapter == current.chapter && c.name == current.name)
+            {
+                if let Some(next_chapter) = book.chapters.get(chapter_idx + 1) {
+                    return Some(next_chapter.to_path());
+                }
+                if let Some(next_book) = self.books.get(book_idx + 1) {
+                    if let Some(first_chapter) = next_book.chapters.first() {
+                        return Some(first_chapter.to_path());
+                    }
+                }
+                return None;
+            }
+        }
+        None
+    }
+
+    /// Fast navigation method that returns only the path string without cloning full Chapter data
+    pub fn get_previous_chapter_path(&self, current: &Chapter) -> Option<String> {
+        for (book_idx, book) in self.books.iter().enumerate() {
+            if let Some(chapter_idx) = book
+                .chapters
+                .iter()
+                .position(|c| c.chapter == current.chapter && c.name == current.name)
+            {
+                if chapter_idx > 0 {
+                    if let Some(prev_chapter) = book.chapters.get(chapter_idx - 1) {
+                        return Some(prev_chapter.to_path());
+                    }
+                }
+                if book_idx > 0 {
+                    if let Some(prev_book) = self.books.get(book_idx - 1) {
+                        if let Some(last_chapter) = prev_book.chapters.last() {
+                            return Some(last_chapter.to_path());
+                        }
+                    }
+                }
+                return None;
+            }
+        }
+        None
+    }
+
+    /// Fast navigation method for multiple chapters ahead without cloning
+    pub fn get_nth_next_chapter_path(&self, current: &Chapter, n: u32) -> Option<String> {
+        let mut current_book_idx = None;
+        let mut current_chapter_idx = None;
+        
+        // Find current position
+        for (book_idx, book) in self.books.iter().enumerate() {
+            if let Some(chapter_idx) = book
+                .chapters
+                .iter()
+                .position(|c| c.chapter == current.chapter && c.name == current.name)
+            {
+                current_book_idx = Some(book_idx);
+                current_chapter_idx = Some(chapter_idx);
+                break;
+            }
+        }
+        
+        let (mut book_idx, mut chapter_idx) = match (current_book_idx, current_chapter_idx) {
+            (Some(b), Some(c)) => (b, c),
+            _ => return None,
+        };
+        
+        // Navigate n chapters forward without cloning
+        for _ in 0..n {
+            if let Some(book) = self.books.get(book_idx) {
+                if chapter_idx + 1 < book.chapters.len() {
+                    chapter_idx += 1;
+                } else {
+                    // Move to next book
+                    book_idx += 1;
+                    chapter_idx = 0;
+                    if book_idx >= self.books.len() {
+                        return None; // Reached end
+                    }
+                }
+            } else {
+                return None;
+            }
+        }
+        
+        // Get the final path
+        self.books.get(book_idx)?.chapters.get(chapter_idx).map(|c| c.to_path())
+    }
+
+    /// Fast navigation method for multiple chapters back without cloning
+    pub fn get_nth_previous_chapter_path(&self, current: &Chapter, n: u32) -> Option<String> {
+        let mut current_book_idx = None;
+        let mut current_chapter_idx = None;
+        
+        // Find current position
+        for (book_idx, book) in self.books.iter().enumerate() {
+            if let Some(chapter_idx) = book
+                .chapters
+                .iter()
+                .position(|c| c.chapter == current.chapter && c.name == current.name)
+            {
+                current_book_idx = Some(book_idx);
+                current_chapter_idx = Some(chapter_idx);
+                break;
+            }
+        }
+        
+        let (mut book_idx, mut chapter_idx) = match (current_book_idx, current_chapter_idx) {
+            (Some(b), Some(c)) => (b, c),
+            _ => return None,
+        };
+        
+        // Navigate n chapters backward without cloning
+        for _ in 0..n {
+            if chapter_idx > 0 {
+                chapter_idx -= 1;
+            } else {
+                // Move to previous book
+                if book_idx > 0 {
+                    book_idx -= 1;
+                    if let Some(prev_book) = self.books.get(book_idx) {
+                        chapter_idx = prev_book.chapters.len().saturating_sub(1);
+                    } else {
+                        return None;
+                    }
+                } else {
+                    return None; // Reached beginning
+                }
+            }
+        }
+        
+        // Get the final path
+        self.books.get(book_idx)?.chapters.get(chapter_idx).map(|c| c.to_path())
+    }
 }
 
 #[cfg(test)]
