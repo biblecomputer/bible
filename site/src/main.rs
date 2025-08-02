@@ -143,6 +143,16 @@ fn BibleWithSidebar() -> impl IntoView {
     // Command palette navigation signals
     let next_palette_result = RwSignal::new(false);
     let previous_palette_result = RwSignal::new(false);
+    // Command palette initial search query signal
+    let (initial_search_query, set_initial_search_query) = signal::<Option<String>>(None);
+    
+    // Clear initial search query after palette opens
+    Effect::new(move |_| {
+        if is_palette_open.get() && initial_search_query.get().is_some() {
+            // Clear the initial search query after a short delay to allow it to be processed
+            set_initial_search_query.set(None);
+        }
+    });
     // Left sidebar (books/chapters) visibility state - initialize from localStorage
     let (is_left_sidebar_open, set_is_left_sidebar_open) = signal(get_sidebar_open());
     // Right sidebar (cross-references) visibility state - load from storage
@@ -189,6 +199,7 @@ fn BibleWithSidebar() -> impl IntoView {
             set_right_sidebar_open=set_is_right_sidebar_open
             next_palette_result=next_palette_result
             previous_palette_result=previous_palette_result
+            set_initial_search_query=set_initial_search_query
         />
         <SidebarAutoHide set_sidebar_open=set_is_left_sidebar_open />
         <CommandPalette
@@ -196,6 +207,7 @@ fn BibleWithSidebar() -> impl IntoView {
             set_is_open=set_is_palette_open
             next_palette_result=next_palette_result
             previous_palette_result=previous_palette_result
+            initial_search_query=initial_search_query
         />
         <nav class="bg-white border-b border-gray-200 px-4 py-2">
             <div class="flex items-center justify-between">
@@ -470,6 +482,7 @@ fn KeyboardNavigationHandler(
     set_right_sidebar_open: WriteSignal<bool>,
     next_palette_result: RwSignal<bool>,
     previous_palette_result: RwSignal<bool>,
+    set_initial_search_query: WriteSignal<Option<String>>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -521,8 +534,8 @@ fn KeyboardNavigationHandler(
                     Instruction::NextPaletteResult | Instruction::PreviousPaletteResult => {
                         // Let palette navigation instructions through to be processed below
                     }
-                    Instruction::ToggleBiblePallate => {
-                        // Let palette toggle instruction through to be processed below
+                    Instruction::ToggleBiblePallate | Instruction::ToggleCommandPallate => {
+                        // Let palette toggle instructions through to be processed below
                     }
                     Instruction::NextReference | Instruction::PreviousReference => {
                         // Block reference navigation when palette is open
@@ -561,6 +574,18 @@ fn KeyboardNavigationHandler(
                     set_palette_open.set(!is_currently_open);
                     // Close sidebar on mobile when command palette opens
                     if !is_currently_open && is_mobile_screen() {
+                        set_left_sidebar_open.set(false);
+                        save_sidebar_open(false);
+                    }
+                    return;
+                }
+                Instruction::ToggleCommandPallate => {
+                    e.prevent_default();
+                    // Open the command palette with ">" pre-filled
+                    set_initial_search_query.set(Some(">".to_string()));
+                    set_palette_open.set(true);
+                    // Close sidebar on mobile when command palette opens
+                    if is_mobile_screen() {
                         set_left_sidebar_open.set(false);
                         save_sidebar_open(false);
                     }

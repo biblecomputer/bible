@@ -205,6 +205,11 @@ fn get_all_instructions() -> Vec<SearchResult> {
             shortcut: "Ctrl+O, Alt+O".to_string(),
         },
         SearchResult::Instruction {
+            name: "Open Command Palette".to_string(),
+            description: "Open command palette with shortcuts".to_string(),
+            shortcut: "> (shift+.)".to_string(),
+        },
+        SearchResult::Instruction {
             name: "Next Reference".to_string(),
             description: "Navigate to next cross-reference".to_string(),
             shortcut: "Ctrl+J".to_string(),
@@ -294,6 +299,7 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
         "Toggle Sidebar" => Some(Instruction::ToggleSidebar),
         "Toggle Cross References" => Some(Instruction::ToggleCrossReferences),
         "Toggle Command Palette" => Some(Instruction::ToggleBiblePallate),
+        "Open Command Palette" => Some(Instruction::ToggleCommandPallate),
         "Next Reference" => Some(Instruction::NextReference),
         "Previous Reference" => Some(Instruction::PreviousReference),
         "Next Palette Result" => Some(Instruction::NextPaletteResult),
@@ -309,6 +315,7 @@ pub fn CommandPalette(
     set_is_open: WriteSignal<bool>,
     next_palette_result: RwSignal<bool>,
     previous_palette_result: RwSignal<bool>,
+    initial_search_query: ReadSignal<Option<String>>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -333,6 +340,15 @@ pub fn CommandPalette(
                 processor.process(instruction, &context);
             }
             set_execute_instruction.set(None); // Reset
+        }
+    });
+
+    // Handle initial search query when palette opens
+    Effect::new(move |_| {
+        if let Some(query) = initial_search_query.get() {
+            set_search_query.set(query);
+            // Note: We can't clear the signal here because this is a ReadSignal
+            // The signal will be cleared by the parent component
         }
     });
 

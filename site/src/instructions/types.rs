@@ -28,6 +28,7 @@ pub enum Instruction {
     ToggleSidebar,
     ToggleCrossReferences,
     ToggleBiblePallate,
+    ToggleCommandPallate,
 
     OpenGithubRepository,
 }
