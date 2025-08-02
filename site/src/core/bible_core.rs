@@ -108,7 +108,7 @@ impl Chapter {
         let name_parts: Vec<&str> = self.name.split_whitespace().collect();
 
         let book_name = if name_parts.len() > 1 {
-            name_parts[..name_parts.len() - 1].join(" ")
+            name_parts[..name_parts.len().saturating_sub(1)].join(" ")
         } else {
             self.name.clone()
         };
@@ -202,11 +202,11 @@ impl Bible {
                 .iter()
                 .position(|c| c.chapter == current.chapter && c.name == current.name)
             {
-                if chapter_idx + 1 < book.chapters.len() {
-                    return Some(book.chapters[chapter_idx + 1].clone());
+                if let Some(next_chapter) = book.chapters.get(chapter_idx + 1) {
+                    return Some(next_chapter.clone());
                 }
-                if book_idx + 1 < self.books.len() {
-                    return self.books[book_idx + 1].chapters.first().cloned();
+                if let Some(next_book) = self.books.get(book_idx + 1) {
+                    return next_book.chapters.first().cloned();
                 }
                 return None;
             }
@@ -222,10 +222,14 @@ impl Bible {
                 .position(|c| c.chapter == current.chapter && c.name == current.name)
             {
                 if chapter_idx > 0 {
-                    return Some(book.chapters[chapter_idx - 1].clone());
+                    if let Some(prev_chapter) = book.chapters.get(chapter_idx - 1) {
+                        return Some(prev_chapter.clone());
+                    }
                 }
                 if book_idx > 0 {
-                    return self.books[book_idx - 1].chapters.last().cloned();
+                    if let Some(prev_book) = self.books.get(book_idx - 1) {
+                        return prev_book.chapters.last().cloned();
+                    }
                 }
                 return None;
             }
@@ -242,8 +246,8 @@ impl Bible {
                 .any(|c| c.chapter == current.chapter && c.name == current.name)
             {
                 // Found current book, get next book's first chapter
-                if book_idx + 1 < self.books.len() {
-                    return self.books[book_idx + 1].chapters.first().cloned();
+                if let Some(next_book) = self.books.get(book_idx + 1) {
+                    return next_book.chapters.first().cloned();
                 }
                 return None; // Already at last book
             }
@@ -261,7 +265,9 @@ impl Bible {
             {
                 // Found current book, get previous book's first chapter
                 if book_idx > 0 {
-                    return self.books[book_idx - 1].chapters.first().cloned();
+                    if let Some(prev_book) = self.books.get(book_idx - 1) {
+                        return prev_book.chapters.first().cloned();
+                    }
                 }
                 return None; // Already at first book
             }

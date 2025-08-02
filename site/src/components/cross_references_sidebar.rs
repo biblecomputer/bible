@@ -4,7 +4,7 @@ use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
 use crate::utils::is_mobile_screen;
-use crate::storage::save_sidebar_open;
+use crate::storage::save_references_sidebar_open;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
@@ -456,7 +456,7 @@ pub fn CrossReferencesSidebar(
                     // Close sidebar on mobile when reference is selected
                     if is_mobile_screen() {
                         set_sidebar_open.set(false);
-                        save_sidebar_open(false);
+                        save_references_sidebar_open(false);
                     }
                 } else {
                     web_sys::console::warn_1(&"Attempted to navigate to reference at invalid index".into());
@@ -621,7 +621,7 @@ fn ReferenceItem(
                     // Close sidebar on mobile when reference is selected
                     if is_mobile_screen() {
                         set_sidebar_open.set(false);
-                        save_sidebar_open(false);
+                        save_references_sidebar_open(false);
                     }
                 }
             >
