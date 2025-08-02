@@ -451,41 +451,59 @@ pub fn CommandPalette(
                         verse_ref.book_name.clone()
                     };
                     
-                    // Find the chapter
-                    for book in &get_bible().books {
-                        if book.name.to_lowercase().contains(&book_name_to_search.to_lowercase()) 
-                            || book.name.to_lowercase().contains(&verse_ref.book_name) {
-                            if let Some(chapter) = book.chapters.iter().find(|c| c.chapter == verse_ref.chapter) {
-                                match verse_ref.verse {
-                                    Some(verse_num) => {
-                                        // Specific verse requested - find exact match and similar verses
-                                        for verse in &chapter.verses {
-                                            let score = score_verse_number_match(verse.verse, verse_num);
-                                            if score > 0 {
-                                                results.push((
-                                                    SearchResult::Verse {
-                                                        chapter: chapter.clone(),
-                                                        verse_number: verse.verse,
-                                                        verse_text: verse.text.clone(),
-                                                    },
-                                                    score
-                                                ));
-                                            }
-                                        }
+                    // Find the chapter - optimize by searching more efficiently
+                    let bible = get_bible();
+                    let mut found_chapter = None;
+                    
+                    // First try exact book name match
+                    for book in &bible.books {
+                        if book.name.to_lowercase() == book_name_to_search.to_lowercase() 
+                            || book.name.to_lowercase() == verse_ref.book_name.to_lowercase() {
+                            found_chapter = book.chapters.iter().find(|c| c.chapter == verse_ref.chapter);
+                            break;
+                        }
+                    }
+                    
+                    // If no exact match, try partial match (but limit to avoid full scan)
+                    if found_chapter.is_none() {
+                        for book in bible.books.iter().take(20) { // Limit search to first 20 books
+                            if book.name.to_lowercase().contains(&book_name_to_search.to_lowercase()) 
+                                || book.name.to_lowercase().contains(&verse_ref.book_name) {
+                                found_chapter = book.chapters.iter().find(|c| c.chapter == verse_ref.chapter);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if let Some(chapter) = found_chapter {
+                        match verse_ref.verse {
+                            Some(verse_num) => {
+                                // Specific verse requested - find exact match and similar verses
+                                for verse in &chapter.verses {
+                                    let score = score_verse_number_match(verse.verse, verse_num);
+                                    if score > 0 {
+                                        results.push((
+                                            SearchResult::Verse {
+                                                chapter: chapter.clone(),
+                                                verse_number: verse.verse,
+                                                verse_text: verse.text.clone(),
+                                            },
+                                            score
+                                        ));
                                     }
-                                    None => {
-                                        // No specific verse, show all verses from chapter (limited to first 12)
-                                        for verse in chapter.verses.iter().take(12) {
-                                            results.push((
-                                                SearchResult::Verse {
-                                                    chapter: chapter.clone(),
-                                                    verse_number: verse.verse,
-                                                    verse_text: verse.text.clone(),
-                                                },
-                                                900 // High score for chapter verse suggestions
-                                            ));
-                                        }
-                                    }
+                                }
+                            }
+                            None => {
+                                // No specific verse, show all verses from chapter (limited to first 12)
+                                for verse in chapter.verses.iter().take(12) {
+                                    results.push((
+                                        SearchResult::Verse {
+                                            chapter: chapter.clone(),
+                                            verse_number: verse.verse,
+                                            verse_text: verse.text.clone(),
+                                        },
+                                        900 // High score for chapter verse suggestions
+                                    ));
                                 }
                             }
                         }
@@ -494,27 +512,37 @@ pub fn CommandPalette(
             }
         }
         
-        // Always include regular chapter search as well
-        let chapter_results: Vec<(SearchResult, usize)> = get_bible()
-            .books
-            .iter()
-            .flat_map(|book| book.chapters.iter())
-            .filter_map(|chapter| {
-                let original_name = chapter.name.to_lowercase();
-                let translated_name = get_translated_chapter_name(&chapter.name).to_lowercase();
-                
-                // Get the best score from either original or translated name
-                let original_score = fuzzy_score(&original_name, &query);
-                let translated_score = fuzzy_score(&translated_name, &query);
-                let score = original_score.max(translated_score);
-                
-                if score > 0 {
-                    Some((SearchResult::Chapter(chapter.clone()), score))
-                } else {
-                    None
+        // Optimized chapter search - limit scope and avoid expensive operations for short queries
+        let mut chapter_results: Vec<(SearchResult, usize)> = Vec::new();
+        
+        // Only do expensive chapter search if query is at least 2 characters
+        if query.len() >= 2 {
+            let mut found_count = 0;
+            'outer: for book in &get_bible().books {
+                for chapter in &book.chapters {
+                    // Early exit if we have enough results
+                    if found_count >= 20 {
+                        break 'outer;
+                    }
+                    
+                    let original_name = chapter.name.to_lowercase();
+                    let original_score = fuzzy_score(&original_name, &query);
+                    
+                    // Only compute expensive translation if original name doesn't match well
+                    let score = if original_score > 0 {
+                        original_score
+                    } else {
+                        let translated_name = get_translated_chapter_name(&chapter.name).to_lowercase();
+                        fuzzy_score(&translated_name, &query)
+                    };
+                    
+                    if score > 0 {
+                        chapter_results.push((SearchResult::Chapter(chapter.clone()), score));
+                        found_count += 1;
+                    }
                 }
-            })
-            .collect();
+            }
+        }
             
         results.extend(chapter_results);
 
