@@ -275,61 +275,6 @@ impl Bible {
         None
     }
 
-    pub fn get_first_chapter(&self) -> Option<Chapter> {
-        self.books.first()?.chapters.first().cloned()
-    }
-
-    pub fn get_last_chapter(&self) -> Option<Chapter> {
-        self.books.last()?.chapters.last().cloned()
-    }
-
-    /// Fast navigation method that returns only the path string without cloning full Chapter data
-    pub fn get_next_chapter_path(&self, current: &Chapter) -> Option<String> {
-        for (book_idx, book) in self.books.iter().enumerate() {
-            if let Some(chapter_idx) = book
-                .chapters
-                .iter()
-                .position(|c| c.chapter == current.chapter && c.name == current.name)
-            {
-                if let Some(next_chapter) = book.chapters.get(chapter_idx + 1) {
-                    return Some(next_chapter.to_path());
-                }
-                if let Some(next_book) = self.books.get(book_idx + 1) {
-                    if let Some(first_chapter) = next_book.chapters.first() {
-                        return Some(first_chapter.to_path());
-                    }
-                }
-                return None;
-            }
-        }
-        None
-    }
-
-    /// Fast navigation method that returns only the path string without cloning full Chapter data
-    pub fn get_previous_chapter_path(&self, current: &Chapter) -> Option<String> {
-        for (book_idx, book) in self.books.iter().enumerate() {
-            if let Some(chapter_idx) = book
-                .chapters
-                .iter()
-                .position(|c| c.chapter == current.chapter && c.name == current.name)
-            {
-                if chapter_idx > 0 {
-                    if let Some(prev_chapter) = book.chapters.get(chapter_idx - 1) {
-                        return Some(prev_chapter.to_path());
-                    }
-                }
-                if book_idx > 0 {
-                    if let Some(prev_book) = self.books.get(book_idx - 1) {
-                        if let Some(last_chapter) = prev_book.chapters.last() {
-                            return Some(last_chapter.to_path());
-                        }
-                    }
-                }
-                return None;
-            }
-        }
-        None
-    }
 
     /// Fast navigation method for multiple chapters ahead without cloning
     pub fn get_nth_next_chapter_path(&self, current: &Chapter, n: u32) -> Option<String> {
@@ -422,19 +367,6 @@ impl Bible {
         self.books.get(book_idx)?.chapters.get(chapter_idx).map(|c| c.to_path())
     }
     
-    /// Get chapter by reference to avoid cloning when possible
-    pub fn get_chapter_ref(&self, book_name: &str, chapter: u32) -> Result<&Chapter, ParamParseError> {
-        let book = self
-            .books
-            .iter()
-            .find(|b| b.name == book_name)
-            .ok_or(ParamParseError::BookNotFound)?;
-
-        book.chapters
-            .iter()
-            .find(|c| c.chapter == chapter)
-            .ok_or(ParamParseError::ChapterNotFound)
-    }
 }
 
 #[cfg(test)]
@@ -762,45 +694,5 @@ mod tests {
             }
         }
 
-        #[test]
-        fn test_global_navigation(
-            num_books in 2usize..5,
-            chapters_per_book in 1usize..3
-        ) {
-            let books: Vec<Book> = (0..num_books)
-                .map(|book_idx| {
-                    let chapters: Vec<Chapter> = (1..=chapters_per_book)
-                        .map(|chapter_idx| Chapter {
-                            chapter: chapter_idx as u32,
-                            name: format!("Book {} Chapter {}", book_idx, chapter_idx),
-                            verses: vec![],
-                        })
-                        .collect();
-
-                    Book {
-                        name: format!("Book {}", book_idx),
-                        chapters,
-                    }
-                })
-                .collect();
-
-            let bible = Bible { books };
-
-            // Test get_first_chapter - should return first chapter of first book
-            if let Some(first_chapter) = bible.get_first_chapter() {
-                prop_assert_eq!(first_chapter.chapter, 1);
-                prop_assert_eq!(first_chapter.name, "Book 0 Chapter 1".to_string());
-            } else {
-                prop_assert!(false, "get_first_chapter should return Some");
-            }
-
-            // Test get_last_chapter - should return last chapter of last book
-            if let Some(last_chapter) = bible.get_last_chapter() {
-                prop_assert_eq!(last_chapter.chapter, chapters_per_book as u32);
-                prop_assert_eq!(last_chapter.name, format!("Book {} Chapter {}", num_books - 1, chapters_per_book));
-            } else {
-                prop_assert!(false, "get_last_chapter should return Some");
-            }
-        }
     }
 }

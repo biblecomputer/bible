@@ -275,7 +275,6 @@ fn create_instruction_context(pathname: &str, search: &str) -> Option<Instructio
                 return Some(InstructionContext::new(
                     current_chapter,
                     search.to_string(),
-                    pathname.to_string(),
                 ));
             }
         }

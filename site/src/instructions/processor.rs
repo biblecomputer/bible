@@ -9,15 +9,13 @@ use wasm_bindgen_futures::{spawn_local, JsFuture};
 pub struct InstructionContext {
     pub current_chapter: Chapter,
     pub search_params: String,
-    pub pathname: String,
 }
 
 impl InstructionContext {
-    pub fn new(current_chapter: Chapter, search_params: String, pathname: String) -> Self {
+    pub fn new(current_chapter: Chapter, search_params: String) -> Self {
         Self {
             current_chapter,
             search_params,
-            pathname,
         }
     }
     
@@ -110,82 +108,11 @@ where
         }
     }
     
-    fn handle_next_verse(&self, context: &InstructionContext) -> bool {
-        let current_verse = context.get_current_verse();
-        
-        if current_verse == 0 {
-            // Currently on chapter heading, navigate to first verse
-            let verse_range = VerseRange { start: 1, end: 1 };
-            let new_path = context.current_chapter.to_path_with_verses(&[verse_range]);
-            (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-        } else if let Some(next_verse) = context.current_chapter.get_next_verse(current_verse) {
-            // Navigate to next verse in current chapter
-            let verse_range = VerseRange { start: next_verse, end: next_verse };
-            let new_path = context.current_chapter.to_path_with_verses(&[verse_range]);
-            (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-        } else if let Some(next_chapter) = get_bible().get_next_chapter(&context.current_chapter) {
-            // Navigate to chapter heading of next chapter
-            (self.navigate)(&next_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-        }
-        true
-    }
     
-    fn handle_previous_verse(&self, context: &InstructionContext) -> bool {
-        let current_verse = context.get_current_verse();
-        
-        if current_verse == 0 {
-            // Currently on chapter heading, navigate to previous chapter heading
-            if let Some(prev_chapter) = get_bible().get_previous_chapter(&context.current_chapter) {
-                (self.navigate)(&prev_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-            }
-        } else if current_verse == 1 {
-            // Currently on first verse, navigate to chapter heading
-            let new_path = context.current_chapter.to_path();
-            (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-        } else if let Some(prev_verse) = context.current_chapter.get_previous_verse(current_verse) {
-            // Navigate to previous verse in current chapter
-            let verse_range = VerseRange { start: prev_verse, end: prev_verse };
-            let new_path = context.current_chapter.to_path_with_verses(&[verse_range]);
-            (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
-        }
-        true
-    }
     
-    fn handle_next_chapter(&self, context: &InstructionContext) -> bool {
-        if let Some(next_path) = get_bible().get_next_chapter_path(&context.current_chapter) {
-            (self.navigate)(&next_path, NavigateOptions { scroll: false, ..Default::default() });
-            true
-        } else {
-            false
-        }
-    }
     
-    fn handle_previous_chapter(&self, context: &InstructionContext) -> bool {
-        if let Some(prev_path) = get_bible().get_previous_chapter_path(&context.current_chapter) {
-            (self.navigate)(&prev_path, NavigateOptions { scroll: false, ..Default::default() });
-            true
-        } else {
-            false
-        }
-    }
     
-    fn handle_next_book(&self, context: &InstructionContext) -> bool {
-        if let Some(next_book_chapter) = get_bible().get_next_book(&context.current_chapter) {
-            (self.navigate)(&next_book_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-            true
-        } else {
-            false
-        }
-    }
     
-    fn handle_previous_book(&self, context: &InstructionContext) -> bool {
-        if let Some(prev_book_chapter) = get_bible().get_previous_book(&context.current_chapter) {
-            (self.navigate)(&prev_book_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
-            true
-        } else {
-            false
-        }
-    }
     
     fn handle_beginning_of_chapter(&self, context: &InstructionContext) -> bool {
         let new_path = context.current_chapter.to_path();

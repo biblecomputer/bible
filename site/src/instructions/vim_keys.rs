@@ -14,7 +14,7 @@ pub struct VimKey {
 
 impl VimKey {
     pub fn from_vim_syntax(vim_key: &str) -> Option<Self> {
-        let mut key = String::new();
+        let key;
         let mut shift = false;
         let mut ctrl = false;
         let mut meta = false;
@@ -282,9 +282,6 @@ impl VimKeyboardMapper {
         None
     }
 
-    pub fn clear_sequence_buffer(&mut self) {
-        self.sequence_buffer.clear();
-    }
 
     pub fn clear_buffers(&mut self) {
         self.sequence_buffer.clear();
