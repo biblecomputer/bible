@@ -19,6 +19,7 @@ static CROSS_REFERENCES: OnceLock<References> = OnceLock::new();
 
 fn get_cross_references() -> &'static References {
     CROSS_REFERENCES.get_or_init(|| {
+        web_sys::console::log_1(&"Loading cross-references data for first time (panel opened)".into());
         load_cross_references().unwrap_or_else(|_| References(std::collections::HashMap::new()))
     })
 }
@@ -297,13 +298,16 @@ pub fn CrossReferencesSidebar(
     
     // Load all references for the current chapter at once (performance optimization)
     // This memo only recalculates when book_name or chapter changes, NOT when verse changes
+    // NOTE: References are only loaded when this component is actually rendered (panel is open)
     let chapter_references = Memo::new({
         let canonical_book_name = canonical_book_name.clone();
         move |_| {
             let mut chapter_refs = std::collections::HashMap::new();
+            
+            // Only load references if the panel is actually open (this component exists)
             let references = get_cross_references();
             
-            web_sys::console::log_1(&format!("Pre-loading references for chapter: {} {}", 
+            web_sys::console::log_1(&format!("Pre-loading references for chapter: {} {} (panel open)", 
                 canonical_book_name, chapter).into());
             
             // Load all verses in the chapter at once to prevent per-verse lookups during fast scrolling
@@ -317,7 +321,7 @@ pub fn CrossReferencesSidebar(
                 }
             }
             
-            web_sys::console::log_1(&format!("Pre-loaded references for {} verses in chapter {} {}", 
+            web_sys::console::log_1(&format!("Pre-loaded references for {} verses in chapter {} {} (panel open)", 
                 chapter_refs.len(), canonical_book_name, chapter).into());
             
             chapter_refs
