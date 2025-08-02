@@ -1,5 +1,6 @@
 use crate::core::{Chapter, get_bible, VerseRange};
 use crate::storage::translations::get_current_translation;
+use crate::storage::recent_chapters::get_recent_chapters;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
 use crate::instructions::types::Instruction;
@@ -24,6 +25,12 @@ pub enum SearchResult {
         description: String,
         shortcut: String,
     },
+    RecentChapter {
+        book_name: String,
+        chapter: u32,
+        display_name: String,
+        path: String,
+    },
 }
 
 impl SearchResult {
@@ -34,6 +41,7 @@ impl SearchResult {
                 format!("{} verse {}", get_translated_chapter_name(&chapter.name), verse_number)
             }
             SearchResult::Instruction { name, .. } => name.clone(),
+            SearchResult::RecentChapter { display_name, .. } => display_name.clone(),
         }
     }
     
@@ -48,6 +56,7 @@ impl SearchResult {
                 // Instructions don't navigate to a path, they execute actions
                 String::new()
             }
+            SearchResult::RecentChapter { path, .. } => path.clone(),
         }
     }
 }
@@ -347,7 +356,20 @@ pub fn CommandPalette(
     let filtered_results = Memo::new(move |_| {
         let query = search_query.get();
         if query.is_empty() {
-            return Vec::new();
+            // Show recent chapters when empty
+            let recent_chapters = get_recent_chapters();
+            return recent_chapters.into_iter()
+                .enumerate()
+                .map(|(index, recent)| {
+                    let score = 1000 - index; // Higher score for more recent
+                    (SearchResult::RecentChapter {
+                        book_name: recent.book_name,
+                        chapter: recent.chapter,
+                        display_name: recent.display_name,
+                        path: recent.path,
+                    }, score)
+                })
+                .collect();
         }
 
         // Check if this is an instruction search (starts with ">")
@@ -709,7 +731,7 @@ pub fn CommandPalette(
                     <div class="flex-1 overflow-y-auto">
                         <div class="py-2">
                             <Show
-                                when=move || !search_query.get().is_empty()
+                                when=move || !search_query.get().is_empty() || !filtered_results.get().is_empty()
                                 fallback=|| view! { <div class="px-4 py-2 text-black">"Start typing to search chapters or verses..."</div> }
                             >
                                 <div 
@@ -756,6 +778,9 @@ pub fn CommandPalette(
                                                             SearchResult::Chapter(_) => display_name.clone(),
                                                             SearchResult::Instruction { name, description, shortcut } => {
                                                                 format!("{}, {}, shortcut: {}", name, description, shortcut)
+                                                            }
+                                                            SearchResult::RecentChapter { display_name, .. } => {
+                                                                format!("Recent chapter: {}", display_name)
                                                             }
                                                         }
                                                     }
@@ -808,6 +833,16 @@ pub fn CommandPalette(
                                                                 view! {
                                                                     <div class="text-xs opacity-75 mt-1 truncate">
                                                                         {format!("{} • {}", description, shortcut)}
+                                                                    </div>
+                                                                }.into_any()
+                                                            }
+                                                            SearchResult::RecentChapter { .. } => {
+                                                                view! {
+                                                                    <div class="text-xs opacity-75 mt-1 flex items-center">
+                                                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                                                        </svg>
+                                                                        "Recent chapter"
                                                                     </div>
                                                                 }.into_any()
                                                             }
