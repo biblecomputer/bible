@@ -526,6 +526,11 @@ fn KeyboardNavigationHandler(
                         e.prevent_default();
                         return;
                     }
+                    Instruction::NextVerse | Instruction::PreviousVerse => {
+                        // Block verse navigation when palette is open (arrow keys should navigate palette)
+                        e.prevent_default();
+                        return;
+                    }
                     _ => {
                         // Skip all other keyboard processing when palette is open
                         return;

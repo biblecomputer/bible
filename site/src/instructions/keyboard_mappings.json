@@ -32,6 +32,9 @@
     "<C-k>": "PreviousReference",
     
     "<C-j>": "NextPaletteResult",
-    "<C-k>": "PreviousPaletteResult"
+    "<C-k>": "PreviousPaletteResult",
+    
+    "<Down>": "NextPaletteResult",
+    "<Up>": "PreviousPaletteResult"
   }
 }
