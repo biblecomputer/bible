@@ -8,6 +8,7 @@ use crate::instructions::{
 use crate::storage::translations::get_current_translation;
 use crate::storage::{
     get_references_sidebar_open, get_sidebar_open, save_references_sidebar_open, save_sidebar_open,
+    add_recent_chapter,
 };
 use crate::translation_map::translation::Translation;
 use crate::utils::is_mobile_screen;
@@ -187,6 +188,28 @@ fn BibleWithSidebar() -> impl IntoView {
         }
 
         None // No cross-references data available
+    });
+
+    // Track recent chapters when URL changes
+    Effect::new(move |_| {
+        let pathname = location.pathname.get();
+        let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
+        
+        if path_parts.len() == 2 {
+            let book_name = if let Ok(decoded) = urlencoding::decode(path_parts[0]) {
+                decoded.into_owned()
+            } else {
+                path_parts[0].replace('_', " ")
+            };
+            
+            if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
+                if let Ok(_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
+                    let display_name = get_translated_book_name(&book_name);
+                    let chapter_display = format!("{} {}", display_name, chapter_num);
+                    add_recent_chapter(book_name, chapter_num, chapter_display, pathname);
+                }
+            }
+        }
     });
 
     view! {
