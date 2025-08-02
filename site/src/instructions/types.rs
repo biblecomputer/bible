@@ -7,8 +7,10 @@ pub enum Instruction {
     PreviousChapter,
     NextBook,
     PreviousBook,
-    NextInList,
-    PreviousInList,
+    NextReference,
+    PreviousReference,
+    NextPaletteResult,
+    PreviousPaletteResult,
 
     // Chapter/Verse jumping
     BeginningOfChapter,

@@ -137,8 +137,10 @@ impl KeyboardMappings {
             "ToggleSidebar" => Some(Instruction::ToggleSidebar),
             "ToggleCrossReferences" => Some(Instruction::ToggleCrossReferences),
             "OpenCommandPalette" => Some(Instruction::OpenCommandPalette),
-            "NextReference" => Some(Instruction::NextInList),
-            "PreviousReference" => Some(Instruction::PreviousInList),
+            "NextReference" => Some(Instruction::NextReference),
+            "PreviousReference" => Some(Instruction::PreviousReference),
+            "NextPaletteResult" => Some(Instruction::NextPaletteResult),
+            "PreviousPaletteResult" => Some(Instruction::PreviousPaletteResult),
             _ => None,
         }
     }
