@@ -252,6 +252,7 @@ pub fn CrossReferencesSidebar(
     chapter: u32,
     verse: u32,
     set_sidebar_open: WriteSignal<bool>,
+    palette_open: ReadSignal<bool>,
 ) -> impl IntoView {
     // Reference selection state for keyboard navigation with debouncing
     let (selected_reference_index, set_selected_reference_index) = signal(0usize);
@@ -346,6 +347,11 @@ pub fn CrossReferencesSidebar(
     
     // Keyboard navigation for references - with comprehensive safety checks and debouncing
     let handle_keydown = move |e: KeyboardEvent| {
+        // Don't handle navigation when command palette is open (let palette handle it)
+        if palette_open.get() {
+            return;
+        }
+        
         // Only handle specific Ctrl combinations to avoid conflicts with vim navigation
         if !e.ctrl_key() {
             return; // Let vim navigation handle non-Ctrl keys
