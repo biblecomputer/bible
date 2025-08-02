@@ -130,7 +130,7 @@ impl KeyboardMapper {
             
             // Command palette (Cmd/Ctrl+K)
             ("k", false, true, false, false) | ("k", false, false, true, false) => {
-                Some(Instruction::OpenCommandPalette)
+                Some(Instruction::ToggleBiblePallate)
             }
             
             _ => None,

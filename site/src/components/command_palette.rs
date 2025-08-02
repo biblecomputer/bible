@@ -200,8 +200,8 @@ fn get_all_instructions() -> Vec<SearchResult> {
             shortcut: "r, Ctrl+Shift+R".to_string(),
         },
         SearchResult::Instruction {
-            name: "Open Command Palette".to_string(),
-            description: "Open this command palette".to_string(),
+            name: "Toggle Command Palette".to_string(),
+            description: "Toggle this command palette".to_string(),
             shortcut: "Ctrl+O, Alt+O".to_string(),
         },
         SearchResult::Instruction {
@@ -223,6 +223,11 @@ fn get_all_instructions() -> Vec<SearchResult> {
             name: "Previous Palette Result".to_string(),
             description: "Navigate to previous search result".to_string(),
             shortcut: "Ctrl+K, ↑".to_string(),
+        },
+        SearchResult::Instruction {
+            name: "Open GitHub Repository".to_string(),
+            description: "Open the project repository on GitHub".to_string(),
+            shortcut: "g".to_string(),
         },
     ]
 }
@@ -288,11 +293,12 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
         "Copy Verse with Reference" => Some(Instruction::CopyVerseWithReference),
         "Toggle Sidebar" => Some(Instruction::ToggleSidebar),
         "Toggle Cross References" => Some(Instruction::ToggleCrossReferences),
-        "Open Command Palette" => Some(Instruction::OpenCommandPalette),
+        "Toggle Command Palette" => Some(Instruction::ToggleBiblePallate),
         "Next Reference" => Some(Instruction::NextReference),
         "Previous Reference" => Some(Instruction::PreviousReference),
         "Next Palette Result" => Some(Instruction::NextPaletteResult),
         "Previous Palette Result" => Some(Instruction::PreviousPaletteResult),
+        "Open GitHub Repository" => Some(Instruction::OpenGithubRepository),
         _ => None,
     }
 }
