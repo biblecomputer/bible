@@ -4,7 +4,7 @@ use crate::views::HomeTranslationPicker;
 use crate::api::init_bible;
 use crate::core::{get_bible, Chapter, parse_verse_ranges_from_url};
 use crate::utils::is_mobile_screen;
-use crate::storage::{get_sidebar_open, save_sidebar_open};
+use crate::storage::{get_sidebar_open, save_sidebar_open, get_references_sidebar_open, save_references_sidebar_open};
 use crate::storage::translations::get_current_translation;
 use crate::translation_map::translation::Translation;
 use crate::core::types::Language;
@@ -138,8 +138,8 @@ fn BibleWithSidebar() -> impl IntoView {
     let (is_palette_open, set_is_palette_open) = signal(false);
     // Left sidebar (books/chapters) visibility state - initialize from localStorage
     let (is_left_sidebar_open, set_is_left_sidebar_open) = signal(get_sidebar_open());
-    // Right sidebar (cross-references) visibility state
-    let (is_right_sidebar_open, set_is_right_sidebar_open) = signal(false);
+    // Right sidebar (cross-references) visibility state - load from storage
+    let (is_right_sidebar_open, set_is_right_sidebar_open) = signal(get_references_sidebar_open());
     let location = use_location();
     
     // Detect if we have cross-references data to show
@@ -237,10 +237,14 @@ fn BibleWithSidebar() -> impl IntoView {
                                 )
                                 on:click=move |_| {
                                     if cross_references_data.get().is_some() {
-                                        set_is_right_sidebar_open.update(|open| *open = !*open);
+                                        set_is_right_sidebar_open.update(|open| {
+                                            *open = !*open;
+                                            save_references_sidebar_open(*open);
+                                        });
                                     } else {
                                         // Show sidebar with helpful message
                                         set_is_right_sidebar_open.set(true);
+                                        save_references_sidebar_open(true);
                                     }
                                 }
                                 aria-label=move || {
@@ -383,7 +387,10 @@ fn BibleWithSidebar() -> impl IntoView {
                                             </p>
                                             <button 
                                                 class="mt-4 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-                                                on:click=move |_| set_is_right_sidebar_open.set(false)
+                                                on:click=move |_| {
+                                                    set_is_right_sidebar_open.set(false);
+                                                    save_references_sidebar_open(false);
+                                                }
                                             >
                                                 Close
                                             </button>
@@ -405,6 +412,7 @@ fn BibleWithSidebar() -> impl IntoView {
                             class="fixed inset-0 bg-black bg-opacity-50 z-35"
                             on:click=move |_| {
                                 set_is_right_sidebar_open.set(false);
+                                save_references_sidebar_open(false);
                             }
                         />
                     </Show>
@@ -515,7 +523,10 @@ fn KeyboardNavigationHandler(
                 }
                 Instruction::ToggleCrossReferences => {
                     e.prevent_default();
-                    set_right_sidebar_open.update(|open| *open = !*open);
+                    set_right_sidebar_open.update(|open| {
+                        *open = !*open;
+                        save_references_sidebar_open(*open);
+                    });
                     return;
                 }
                 Instruction::NextReference | Instruction::PreviousReference => {
