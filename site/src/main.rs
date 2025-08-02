@@ -141,8 +141,8 @@ fn BibleWithSidebar() -> impl IntoView {
     // Command palette state
     let (is_palette_open, set_is_palette_open) = signal(false);
     // Command palette navigation signals
-    let next_in_list = RwSignal::new(false);
-    let previous_in_list = RwSignal::new(false);
+    let next_palette_result = RwSignal::new(false);
+    let previous_palette_result = RwSignal::new(false);
     // Left sidebar (books/chapters) visibility state - initialize from localStorage
     let (is_left_sidebar_open, set_is_left_sidebar_open) = signal(get_sidebar_open());
     // Right sidebar (cross-references) visibility state - load from storage
@@ -187,15 +187,15 @@ fn BibleWithSidebar() -> impl IntoView {
             set_left_sidebar_open=set_is_left_sidebar_open
             _right_sidebar_open=is_right_sidebar_open
             set_right_sidebar_open=set_is_right_sidebar_open
-            next_in_list=next_in_list
-            previous_in_list=previous_in_list
+            next_palette_result=next_palette_result
+            previous_palette_result=previous_palette_result
         />
         <SidebarAutoHide set_sidebar_open=set_is_left_sidebar_open />
         <CommandPalette 
             is_open=is_palette_open 
             set_is_open=set_is_palette_open 
-            next_in_list=next_in_list
-            previous_in_list=previous_in_list
+            next_palette_result=next_palette_result
+            previous_palette_result=previous_palette_result
         />
         <nav class="bg-white border-b border-gray-200 px-4 py-2">
             <div class="flex items-center justify-between">
@@ -467,8 +467,8 @@ fn KeyboardNavigationHandler(
     set_left_sidebar_open: WriteSignal<bool>,
     _right_sidebar_open: ReadSignal<bool>,
     set_right_sidebar_open: WriteSignal<bool>,
-    next_in_list: RwSignal<bool>,
-    previous_in_list: RwSignal<bool>,
+    next_palette_result: RwSignal<bool>,
+    previous_palette_result: RwSignal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -513,11 +513,11 @@ fn KeyboardNavigationHandler(
         let mut mapper = vim_mapper.get();
         let instruction_result = mapper.map_to_instruction(&e);
         
-        // Allow NextInList and PreviousInList to work when palette is open
+        // Allow palette-specific instructions to work when palette is open
         if palette_open.get() {
             if let Some((ref instruction, _)) = instruction_result {
                 match instruction {
-                    Instruction::NextInList | Instruction::PreviousInList => {
+                    Instruction::NextPaletteResult | Instruction::PreviousPaletteResult => {
                         // Let these instructions through to be processed below
                     }
                     _ => {
@@ -567,22 +567,30 @@ fn KeyboardNavigationHandler(
                     });
                     return;
                 }
-                Instruction::NextInList => {
+                Instruction::NextReference => {
                     e.prevent_default();
-                    if palette_open.get() {
-                        // Command palette is open, trigger navigation in palette
-                        next_in_list.set(true);
-                    }
-                    // If cross-references panel is open, it will handle these via keyboard events
+                    // Cross-references will handle this via keyboard events
                     return;
                 }
-                Instruction::PreviousInList => {
+                Instruction::PreviousReference => {
+                    e.prevent_default();
+                    // Cross-references will handle this via keyboard events
+                    return;
+                }
+                Instruction::NextPaletteResult => {
                     e.prevent_default();
                     if palette_open.get() {
                         // Command palette is open, trigger navigation in palette
-                        previous_in_list.set(true);
+                        next_palette_result.set(true);
                     }
-                    // If cross-references panel is open, it will handle these via keyboard events
+                    return;
+                }
+                Instruction::PreviousPaletteResult => {
+                    e.prevent_default();
+                    if palette_open.get() {
+                        // Command palette is open, trigger navigation in palette
+                        previous_palette_result.set(true);
+                    }
                     return;
                 }
                 Instruction::SwitchToPreviousChapter => {

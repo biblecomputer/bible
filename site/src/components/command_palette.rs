@@ -153,8 +153,8 @@ fn get_current_chapter(location_pathname: &str) -> Option<Chapter> {
 pub fn CommandPalette(
     is_open: ReadSignal<bool>,
     set_is_open: WriteSignal<bool>,
-    next_in_list: RwSignal<bool>,
-    previous_in_list: RwSignal<bool>,
+    next_palette_result: RwSignal<bool>,
+    previous_palette_result: RwSignal<bool>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -311,10 +311,10 @@ pub fn CommandPalette(
             .collect::<Vec<SearchResult>>()
     });
 
-    // Handle NextInList navigation signal
+    // Handle NextPaletteResult navigation signal
     Effect::new(move |_| {
-        if next_in_list.get() {
-            next_in_list.set(false); // Reset signal
+        if next_palette_result.get() {
+            next_palette_result.set(false); // Reset signal
             let results = filtered_results.get();
             if !results.is_empty() {
                 let current = selected_index.get();
@@ -328,10 +328,10 @@ pub fn CommandPalette(
         }
     });
 
-    // Handle PreviousInList navigation signal
+    // Handle PreviousPaletteResult navigation signal
     Effect::new(move |_| {
-        if previous_in_list.get() {
-            previous_in_list.set(false); // Reset signal
+        if previous_palette_result.get() {
+            previous_palette_result.set(false); // Reset signal
             let results = filtered_results.get();
             if !results.is_empty() {
                 let current = selected_index.get();

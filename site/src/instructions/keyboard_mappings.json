@@ -29,6 +29,9 @@
     "<M-o>": "OpenCommandPalette",
     
     "<C-j>": "NextReference",
-    "<C-k>": "PreviousReference"
+    "<C-k>": "PreviousReference",
+    
+    "<M-j>": "NextPaletteResult",
+    "<M-k>": "PreviousPaletteResult"
   }
 }
