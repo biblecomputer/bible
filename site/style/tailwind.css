@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Optimized verse classes for better browser performance */
+@layer components {
+  .verse-number-default {
+    @apply text-sm text-black font-medium mr-1 select-none align-super;
+  }
+  
+  .verse-number-highlighted {
+    @apply text-sm text-blue-600 font-bold font-medium mr-1 select-none align-super;
+  }
+  
+  .verse-text-default {
+    /* Base verse text styling */
+  }
+  
+  .verse-text-highlighted {
+    @apply font-bold text-black bg-yellow-100 px-1 rounded;
+  }
+  
+  /* Performance optimizations for chapter rendering */
+  .verses {
+    contain: layout style; /* CSS containment for better browser performance */
+    will-change: auto; /* Reset will-change if set elsewhere */
+  }
+  
+  .verse-text, .verse-number {
+    contain: layout; /* Prevent layout recalculation cascading */
+  }
+}

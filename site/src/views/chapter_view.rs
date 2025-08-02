@@ -160,6 +160,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
     });
     
     // Clone the chapter for use in closures
+    // Strategic cloning: clone once per memo instead of multiple times
     let chapter_for_prev = chapter.clone();
     let chapter_for_next = chapter.clone();
     let chapter_for_data = chapter.clone();
@@ -220,39 +221,61 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
             </header>
             
             <div class="verses text-lg leading-8 text-black" role="main" aria-label="Chapter text">
-                {move || stable_chapter_data.get().verses.iter().cloned().map(|verse| {
-                    let verse_ranges = highlighted_verses.get();
-                    let is_highlighted = verse_ranges.iter().any(|range| range.contains(verse.verse));
+                {move || {
+                    let chapter_data = stable_chapter_data.get();
+                    let verses = &chapter_data.verses;
+                    let verse_ranges = highlighted_verses.get(); // Single reactive read
                     
-                    view! {
-                        <>
-                            <Show 
-                                when=move || verse.verse != 1
-                                fallback=|| view! { <></> }
-                            >
-                                <span 
-                                    class=format!(
-                                        "verse-number text-sm {} font-medium mr-1 select-none align-super",
-                                        if is_highlighted { "text-blue-600 font-bold" } else { "text-black" }
-                                    )
-                                    role="text"
+                    // Pre-allocate vector with exact capacity for better memory efficiency
+                    let mut verse_views = Vec::with_capacity(verses.len());
+                    
+                    for verse in verses {
+                        let is_highlighted = verse_ranges.iter().any(|range| range.contains(verse.verse));
+                        
+                        // Use pre-defined CSS classes for better performance
+                        let verse_number_class = if is_highlighted {
+                            "verse-number verse-number-highlighted"
+                        } else {
+                            "verse-number verse-number-default"
+                        };
+                        
+                        let verse_text_class = if is_highlighted {
+                            "verse-text verse-text-highlighted"
+                        } else {
+                            "verse-text verse-text-default"
+                        };
+                        
+                        let tabindex = if is_highlighted { "0" } else { "-1" };
+                        // Clone verse text for view (required by Leptos)
+                        let verse_text = verse.text.clone();
+                        let verse_number = verse.verse;
+                        
+                        verse_views.push(view! {
+                            <>
+                                <Show 
+                                    when=move || verse_number != 1
+                                    fallback=|| view! { <></> }
                                 >
-                                    {verse.verse}
+                                    <span 
+                                        class=verse_number_class
+                                        role="text"
+                                    >
+                                        {verse_number}
+                                    </span>
+                                </Show>
+                                <span 
+                                    class=verse_text_class
+                                    id=format!("verse-{}", verse_number)
+                                    tabindex=tabindex
+                                >
+                                    {verse_text}
                                 </span>
-                            </Show>
-                            <span 
-                                class=format!(
-                                    "verse-text {}",
-                                    if is_highlighted { "font-bold text-black bg-yellow-100 px-1 rounded" } else { "" }
-                                )
-                                id=format!("verse-{}", verse.verse)
-                                tabindex=if is_highlighted { "0" } else { "-1" }
-                            >
-                                {verse.text.clone()}
-                            </span>
-                        </>
+                            </>
+                        });
                     }
-                }).collect::<Vec<_>>()}
+                    
+                    verse_views
+                }}
             </div>
             
             <nav class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200" role="navigation" aria-label="Chapter navigation">

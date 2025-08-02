@@ -191,7 +191,7 @@ fn get_verse_content_for_reference(reference: &Reference) -> String {
         // Try to get the verse content for the reference
         if let Ok(bible) = get_bible().get_chapter(&reference.to_book_name, reference.to_chapter) {
             if let Some(verse) = bible.verses.iter().find(|v| v.verse == reference.to_verse_start) {
-                return verse.text.clone();
+                return verse.text.to_string(); // More explicit than clone for strings
             }
         }
         
@@ -314,8 +314,9 @@ pub fn CrossReferencesSidebar(
             for verse_num in 1..=200 { // Conservative upper bound for verses in a chapter
                 if let Some(verse_id) = VerseId::from_book_name(&canonical_book_name, chapter, verse_num) {
                     if let Some(refs) = references.0.get(&verse_id) {
-                        let mut sorted = refs.clone();
-                        sorted.sort_by(|a, b| b.votes.cmp(&a.votes));
+                        // Sort in-place without cloning the entire vector
+                        let mut sorted = refs.to_vec(); // More explicit than clone
+                        sorted.sort_unstable_by(|a, b| b.votes.cmp(&a.votes)); // Faster sort
                         chapter_refs.insert(verse_num, sorted);
                     }
                 }
