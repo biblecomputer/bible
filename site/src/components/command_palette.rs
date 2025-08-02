@@ -357,42 +357,6 @@ pub fn CommandPalette(
                         set_search_query.set(String::new());
                         set_selected_index.set(0);
                     }
-                    "ArrowDown" => {
-                        e.prevent_default();
-                        let results = filtered_results.get();
-                        if !results.is_empty() {
-                            let current = selected_index.get();
-                            // Always ensure we're within bounds
-                            if current >= results.len() {
-                                set_selected_index.set(0);
-                            } else {
-                                let next = if current + 1 >= results.len() {
-                                    0 // wrap to first
-                                } else {
-                                    current + 1
-                                };
-                                set_selected_index.set(next);
-                            }
-                        }
-                    }
-                    "ArrowUp" => {
-                        e.prevent_default();
-                        let results = filtered_results.get();
-                        if !results.is_empty() {
-                            let current = selected_index.get();
-                            // Always ensure we're within bounds
-                            if current >= results.len() {
-                                set_selected_index.set(results.len() - 1);
-                            } else {
-                                let next = if current == 0 {
-                                    results.len() - 1 // wrap to last
-                                } else {
-                                    current - 1
-                                };
-                                set_selected_index.set(next);
-                            }
-                        }
-                    }
                     "Enter" => {
                         e.prevent_default();
                         let results = filtered_results.get();
@@ -556,7 +520,7 @@ pub fn CommandPalette(
 
                     // Footer with hint
                     <div class="px-4 py-2 border-t border-gray-200 text-xs text-black">
-                        Use up/down arrows to navigate, Enter to select, Esc to close
+                        Use up/down arrows or Ctrl+J/K to navigate, Enter to select, Esc to close
                     </div>
                 </div>
             </div>
