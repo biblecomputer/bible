@@ -27,11 +27,6 @@ pub struct Verse {
     pub text: String,
 }
 
-#[derive(Debug)]
-pub enum ParamParseError {
-    ChapterNotFound,
-    BookNotFound,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BibleTranslation {
@@ -53,135 +48,9 @@ pub enum Language {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct References(pub HashMap<VerseId, Vec<Reference>>);
 
-// Compact cross-references - only stores what's absolutely needed
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompactCrossReferences(pub HashMap<String, Vec<String>>);
 
-// Lazily parsed cross-references for a specific chapter
-#[derive(Debug, Clone)]
-pub struct ChapterCrossReferences {
-    pub verse_refs: HashMap<u32, Vec<CompactReference>>, // verse number -> references
-}
 
-// Ultra-compact reference format
-#[derive(Debug, Clone)]
-pub struct CompactReference {
-    pub book_id: u8,      // 1 byte instead of String
-    pub chapter: u16,     // 2 bytes (enough for any chapter)
-    pub verse: u16,       // 2 bytes (enough for any verse)
-    pub votes: i16,       // 2 bytes (i16 is sufficient for vote counts)
-}
 
-impl CompactReference {
-    pub fn to_reference(&self) -> Reference {
-        Reference {
-            to_book_name: book_id_to_name(self.book_id).to_string(),
-            to_chapter: self.chapter as u32,
-            to_verse_start: self.verse as u32,
-            to_verse_end: None,
-            votes: self.votes as i32,
-        }
-    }
-    
-    pub fn from_raw(raw_ref: &str) -> Option<Self> {
-        let parts: Vec<&str> = raw_ref.trim().split_whitespace().collect();
-        if parts.len() != 2 {
-            return None;
-        }
-        
-        let ref_parts: Vec<&str> = parts[0].split('.').collect();
-        if ref_parts.len() != 3 {
-            return None;
-        }
-        
-        let book_abbrev = ref_parts[0];
-        let chapter: u16 = ref_parts[1].parse().ok()?;
-        let verse: u16 = ref_parts[2].parse().ok()?;
-        let votes: i16 = parts[1].parse().ok()?;
-        
-        let book_id = abbreviation_to_book_id(book_abbrev)?;
-        
-        Some(CompactReference {
-            book_id,
-            chapter,
-            verse,
-            votes,
-        })
-    }
-}
-
-// Convert book abbreviation to single byte ID
-fn abbreviation_to_book_id(abbrev: &str) -> Option<u8> {
-    match abbrev {
-        "Gen" => Some(1),
-        "Exod" => Some(2),
-        "Lev" => Some(3),
-        "Num" => Some(4),
-        "Deut" => Some(5),
-        "Josh" => Some(6),
-        "Judg" => Some(7),
-        "Ruth" => Some(8),
-        "1Sam" => Some(9),
-        "2Sam" => Some(10),
-        "1Kgs" => Some(11),
-        "2Kgs" => Some(12),
-        "1Chr" => Some(13),
-        "2Chr" => Some(14),
-        "Ezra" => Some(15),
-        "Neh" => Some(16),
-        "Esth" => Some(17),
-        "Job" => Some(18),
-        "Ps" => Some(19),
-        "Prov" => Some(20),
-        "Eccl" => Some(21),
-        "Song" => Some(22),
-        "Isa" => Some(23),
-        "Jer" => Some(24),
-        "Lam" => Some(25),
-        "Ezek" => Some(26),
-        "Dan" => Some(27),
-        "Hos" => Some(28),
-        "Joel" => Some(29),
-        "Amos" => Some(30),
-        "Obad" => Some(31),
-        "Jonah" => Some(32),
-        "Mic" => Some(33),
-        "Nah" => Some(34),
-        "Hab" => Some(35),
-        "Zeph" => Some(36),
-        "Hag" => Some(37),
-        "Zech" => Some(38),
-        "Mal" => Some(39),
-        "Matt" => Some(40),
-        "Mark" => Some(41),
-        "Luke" => Some(42),
-        "John" => Some(43),
-        "Acts" => Some(44),
-        "Rom" => Some(45),
-        "1Cor" => Some(46),
-        "2Cor" => Some(47),
-        "Gal" => Some(48),
-        "Eph" => Some(49),
-        "Phil" => Some(50),
-        "Col" => Some(51),
-        "1Thess" => Some(52),
-        "2Thess" => Some(53),
-        "1Tim" => Some(54),
-        "2Tim" => Some(55),
-        "Titus" => Some(56),
-        "Phlm" => Some(57),
-        "Heb" => Some(58),
-        "Jas" => Some(59),
-        "1Pet" => Some(60),
-        "2Pet" => Some(61),
-        "1John" => Some(62),
-        "2John" => Some(63),
-        "3John" => Some(64),
-        "Jude" => Some(65),
-        "Rev" => Some(66),
-        _ => None,
-    }
-}
 
 /// Highly optimized verse identifier using a single u32
 /// Format: book_id (8 bits) | chapter (12 bits) | verse (12 bits)
@@ -201,21 +70,6 @@ impl VerseId {
         Some(Self::new(book_id, chapter, verse))
     }
     
-    pub fn book_id(&self) -> u8 {
-        (self.0 >> 24) as u8
-    }
-    
-    pub fn chapter(&self) -> u32 {
-        (self.0 >> 12) & 0xFFF
-    }
-    
-    pub fn verse(&self) -> u32 {
-        self.0 & 0xFFF
-    }
-    
-    pub fn book_name(&self) -> &'static str {
-        book_id_to_name(self.book_id())
-    }
 }
 
 /// Convert book name to compact ID for faster lookups
@@ -295,82 +149,6 @@ pub fn book_name_to_id(book_name: &str) -> Option<u8> {
     }
 }
 
-/// Convert book ID back to name for display
-pub fn book_id_to_name(book_id: u8) -> &'static str {
-    match book_id {
-        // Old Testament
-        1 => "Genesis",
-        2 => "Exodus",
-        3 => "Leviticus",
-        4 => "Numbers",
-        5 => "Deuteronomy",
-        6 => "Joshua",
-        7 => "Judges",
-        8 => "Ruth",
-        9 => "1 Samuel",
-        10 => "2 Samuel",
-        11 => "1 Kings",
-        12 => "2 Kings",
-        13 => "1 Chronicles",
-        14 => "2 Chronicles",
-        15 => "Ezra",
-        16 => "Nehemiah",
-        17 => "Esther",
-        18 => "Job",
-        19 => "Psalms",
-        20 => "Proverbs",
-        21 => "Ecclesiastes",
-        22 => "Song of Solomon",
-        23 => "Isaiah",
-        24 => "Jeremiah",
-        25 => "Lamentations",
-        26 => "Ezekiel",
-        27 => "Daniel",
-        28 => "Hosea",
-        29 => "Joel",
-        30 => "Amos",
-        31 => "Obadiah",
-        32 => "Jonah",
-        33 => "Micah",
-        34 => "Nahum",
-        35 => "Habakkuk",
-        36 => "Zephaniah",
-        37 => "Haggai",
-        38 => "Zechariah",
-        39 => "Malachi",
-        
-        // New Testament
-        40 => "Matthew",
-        41 => "Mark",
-        42 => "Luke",
-        43 => "John",
-        44 => "Acts",
-        45 => "Romans",
-        46 => "1 Corinthians",
-        47 => "2 Corinthians",
-        48 => "Galatians",
-        49 => "Ephesians",
-        50 => "Philippians",
-        51 => "Colossians",
-        52 => "1 Thessalonians",
-        53 => "2 Thessalonians",
-        54 => "1 Timothy",
-        55 => "2 Timothy",
-        56 => "Titus",
-        57 => "Philemon",
-        58 => "Hebrews",
-        59 => "James",
-        60 => "1 Peter",
-        61 => "2 Peter",
-        62 => "1 John",
-        63 => "2 John",
-        64 => "3 John",
-        65 => "Jude",
-        66 => "Revelation",
-        
-        _ => "Unknown",
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -381,10 +159,8 @@ mod tests {
         // Test Genesis 1:1 (book_id=1, chapter=1, verse=1)
         let verse_id = VerseId::new(1, 1, 1);
         
-        assert_eq!(verse_id.book_id(), 1);
-        assert_eq!(verse_id.chapter(), 1);
-        assert_eq!(verse_id.verse(), 1);
-        assert_eq!(verse_id.book_name(), "Genesis");
+        // Test the packed value is correct
+        assert_eq!(verse_id.0, 0x01001001); // Expected packed value
     }
 
     #[test]
@@ -392,10 +168,8 @@ mod tests {
         // Test creating VerseId from book name
         let verse_id = VerseId::from_book_name("Genesis", 1, 1).unwrap();
         
-        assert_eq!(verse_id.book_id(), 1);
-        assert_eq!(verse_id.chapter(), 1);
-        assert_eq!(verse_id.verse(), 1);
-        assert_eq!(verse_id.book_name(), "Genesis");
+        // Test the packed value is correct
+        assert_eq!(verse_id.0, 0x01001001);
     }
 
     #[test]
@@ -403,10 +177,8 @@ mod tests {
         // Test maximum supported values (12 bits = 4095)
         let verse_id = VerseId::new(66, 4095, 4095);
         
-        assert_eq!(verse_id.book_id(), 66);
-        assert_eq!(verse_id.chapter(), 4095);
-        assert_eq!(verse_id.verse(), 4095);
-        assert_eq!(verse_id.book_name(), "Revelation");
+        // Test the packed value
+        assert_eq!(verse_id.0, 0x42FFFFFF); // book_id=66, chapter=4095, verse=4095
     }
 
     #[test]
@@ -417,13 +189,6 @@ mod tests {
         assert_eq!(book_name_to_id("Matthew"), Some(40));
         assert_eq!(book_name_to_id("Revelation"), Some(66));
         assert_eq!(book_name_to_id("Unknown"), None);
-        
-        // Test reverse mapping
-        assert_eq!(book_id_to_name(1), "Genesis");
-        assert_eq!(book_id_to_name(19), "Psalms");
-        assert_eq!(book_id_to_name(40), "Matthew");
-        assert_eq!(book_id_to_name(66), "Revelation");
-        assert_eq!(book_id_to_name(99), "Unknown");
     }
 
     #[test]

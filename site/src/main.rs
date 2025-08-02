@@ -1,16 +1,13 @@
 use crate::api::init_bible;
 use crate::components::{CommandPalette, CrossReferencesSidebar, Sidebar};
-use crate::core::types::Language;
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::instructions::{
     Instruction, InstructionContext, InstructionProcessor, VimKeyboardMapper,
 };
-use crate::storage::translations::get_current_translation;
 use crate::storage::{
     get_references_sidebar_open, get_sidebar_open, save_references_sidebar_open, save_sidebar_open,
     add_recent_chapter,
 };
-use crate::translation_map::translation::Translation;
 use crate::utils::is_mobile_screen;
 use crate::views::ChapterDetail;
 use crate::views::HomeTranslationPicker;
@@ -24,30 +21,7 @@ use leptos_router::NavigateOptions;
 use urlencoding::decode;
 use wasm_bindgen_futures::spawn_local;
 
-// Helper function to convert storage language to translation language
-fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
-    match storage_lang {
-        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
-        crate::storage::translation_storage::Language::English => Language::English,
-    }
-}
 
-// Helper function to get translated book name for current translation
-fn get_translated_book_name(book_name: &str) -> String {
-    if let Some(current_translation) = get_current_translation() {
-        if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(convert_language(first_language));
-
-            // Use the get_book method to get localized book name
-            if let Some(translated_name) = translation.get_book(&book_name.to_lowercase()) {
-                return translated_name.to_string();
-            }
-        }
-    }
-
-    // Return original name if no translation found
-    book_name.to_string()
-}
 
 // Helper function to create instruction context from URL
 fn create_instruction_context(pathname: &str, search: &str) -> Option<InstructionContext> {
@@ -59,7 +33,6 @@ fn create_instruction_context(pathname: &str, search: &str) -> Option<Instructio
                 return Some(InstructionContext::new(
                     current_chapter,
                     search.to_string(),
-                    pathname.to_string(),
                 ));
             }
         }
@@ -204,8 +177,7 @@ fn BibleWithSidebar() -> impl IntoView {
             
             if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
                 if let Ok(_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
-                    let display_name = get_translated_book_name(&book_name);
-                    let chapter_display = format!("{} {}", display_name, chapter_num);
+                    let chapter_display = format!("{} {}", book_name, chapter_num);
                     add_recent_chapter(book_name, chapter_num, chapter_display, pathname);
                 }
             }

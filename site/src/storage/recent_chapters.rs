@@ -55,10 +55,3 @@ pub fn add_recent_chapter(book_name: String, chapter: u32, display_name: String,
     }
 }
 
-pub fn clear_recent_chapters() {
-    if let Some(window) = web_sys::window() {
-        if let Ok(Some(storage)) = window.local_storage() {
-            let _ = storage.remove_item(RECENT_CHAPTERS_KEY);
-        }
-    }
-}
