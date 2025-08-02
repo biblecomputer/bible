@@ -31,7 +31,7 @@
     "<C-j>": "NextReference",
     "<C-k>": "PreviousReference",
     
-    "<M-j>": "NextPaletteResult",
-    "<M-k>": "PreviousPaletteResult"
+    "<C-j>": "NextPaletteResult",
+    "<C-k>": "PreviousPaletteResult"
   }
 }

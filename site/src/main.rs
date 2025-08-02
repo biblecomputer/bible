@@ -370,6 +370,7 @@ fn BibleWithSidebar() -> impl IntoView {
                                         chapter=chapter
                                         verse=verse
                                         set_sidebar_open=set_is_right_sidebar_open
+                                        palette_open=is_palette_open
                                     />
                                 }.into_any()
                             } else {
@@ -513,12 +514,17 @@ fn KeyboardNavigationHandler(
         let mut mapper = vim_mapper.get();
         let instruction_result = mapper.map_to_instruction(&e);
         
-        // Allow palette-specific instructions to work when palette is open
+        // Handle palette navigation priority when palette is open
         if palette_open.get() {
             if let Some((ref instruction, _)) = instruction_result {
                 match instruction {
                     Instruction::NextPaletteResult | Instruction::PreviousPaletteResult => {
-                        // Let these instructions through to be processed below
+                        // Let palette navigation instructions through to be processed below
+                    }
+                    Instruction::NextReference | Instruction::PreviousReference => {
+                        // Block reference navigation when palette is open
+                        e.prevent_default();
+                        return;
                     }
                     _ => {
                         // Skip all other keyboard processing when palette is open
@@ -570,11 +576,13 @@ fn KeyboardNavigationHandler(
                 Instruction::NextReference => {
                     e.prevent_default();
                     // Cross-references will handle this via keyboard events
+                    // This should only be reached when palette is NOT open
                     return;
                 }
                 Instruction::PreviousReference => {
                     e.prevent_default();
                     // Cross-references will handle this via keyboard events
+                    // This should only be reached when palette is NOT open
                     return;
                 }
                 Instruction::NextPaletteResult => {
