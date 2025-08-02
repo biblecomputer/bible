@@ -4,10 +4,12 @@ use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
 use crate::instructions::types::Instruction;
 use crate::instructions::processor::{InstructionContext, InstructionProcessor};
+use crate::instructions::vim_keys::KeyboardMappings;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_navigate, use_location};
 use leptos_router::NavigateOptions;
 use leptos::web_sys::KeyboardEvent;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SearchResult {
@@ -132,109 +134,98 @@ fn convert_language(storage_lang: &crate::storage::translation_storage::Language
     }
 }
 
+// Convert vim key notation to user-friendly display
+fn vim_key_to_display(vim_key: &str) -> String {
+    match vim_key {
+        "<Down>" => "↓".to_string(),
+        "<Up>" => "↑".to_string(),
+        "<Left>" => "←".to_string(),
+        "<Right>" => "→".to_string(),
+        "<S-H>" => "Shift+H".to_string(),
+        "<S-L>" => "Shift+L".to_string(),
+        "<S-G>" => "Shift+G".to_string(),
+        "<S-C>" => "Shift+C".to_string(),
+        "<C-o>" => "Ctrl+O".to_string(),
+        "<M-o>" => "Alt+O".to_string(),
+        "<C-S-R>" => "Ctrl+Shift+R".to_string(),
+        "<C-j>" => "Ctrl+J".to_string(),
+        "<C-k>" => "Ctrl+K".to_string(),
+        "<gt>" => "> (shift+.)".to_string(),
+        "gg" => "gg".to_string(),
+        key => key.to_string(),
+    }
+}
+
+// Convert instruction enum name to user-friendly display name and description
+fn instruction_to_display(instruction_name: &str) -> (String, String) {
+    match instruction_name {
+        "NextVerse" => ("Next Verse".to_string(), "Navigate to the next verse".to_string()),
+        "PreviousVerse" => ("Previous Verse".to_string(), "Navigate to the previous verse".to_string()),
+        "NextChapter" => ("Next Chapter".to_string(), "Navigate to the next chapter".to_string()),
+        "PreviousChapter" => ("Previous Chapter".to_string(), "Navigate to the previous chapter".to_string()),
+        "NextBook" => ("Next Book".to_string(), "Navigate to the next book".to_string()),
+        "PreviousBook" => ("Previous Book".to_string(), "Navigate to the previous book".to_string()),
+        "BeginningOfChapter" => ("Beginning of Chapter".to_string(), "Go to the first verse of the chapter".to_string()),
+        "EndOfChapter" => ("End of Chapter".to_string(), "Go to the last verse of the chapter".to_string()),
+        "SwitchToPreviousChapter" => ("Switch to Previous Chapter".to_string(), "Go back to the previously viewed chapter".to_string()),
+        "CopyRawVerse" => ("Copy Raw Verse".to_string(), "Copy the verse text to clipboard".to_string()),
+        "CopyVerseWithReference" => ("Copy Verse with Reference".to_string(), "Copy verse with reference to clipboard".to_string()),
+        "ToggleSidebar" => ("Toggle Sidebar".to_string(), "Show/hide the books sidebar".to_string()),
+        "ToggleCrossReferences" => ("Toggle Cross References".to_string(), "Show/hide cross-references panel".to_string()),
+        "ToggleBiblePallate" => ("Toggle Command Palette".to_string(), "Toggle this command palette".to_string()),
+        "ToggleCommandPallate" => ("Open Command Palette".to_string(), "Open command palette with shortcuts".to_string()),
+        "NextReference" => ("Next Reference".to_string(), "Navigate to next cross-reference".to_string()),
+        "PreviousReference" => ("Previous Reference".to_string(), "Navigate to previous cross-reference".to_string()),
+        "NextPaletteResult" => ("Next Palette Result".to_string(), "Navigate to next search result".to_string()),
+        "PreviousPaletteResult" => ("Previous Palette Result".to_string(), "Navigate to previous search result".to_string()),
+        "OpenGithubRepository" => ("Open GitHub Repository".to_string(), "Open the project repository on GitHub".to_string()),
+        _ => (instruction_name.to_string(), format!("Execute {}", instruction_name)),
+    }
+}
+
 fn get_all_instructions() -> Vec<SearchResult> {
-    vec![
-        SearchResult::Instruction {
-            name: "Next Verse".to_string(),
-            description: "Navigate to the next verse".to_string(),
-            shortcut: "j, ↓".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Previous Verse".to_string(),
-            description: "Navigate to the previous verse".to_string(),
-            shortcut: "k, ↑".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Next Chapter".to_string(),
-            description: "Navigate to the next chapter".to_string(),
-            shortcut: "l, →".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Previous Chapter".to_string(),
-            description: "Navigate to the previous chapter".to_string(),
-            shortcut: "h, ←".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Next Book".to_string(),
-            description: "Navigate to the next book".to_string(),
-            shortcut: "Shift+L".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Previous Book".to_string(),
-            description: "Navigate to the previous book".to_string(),
-            shortcut: "Shift+H".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Beginning of Chapter".to_string(),
-            description: "Go to the first verse of the chapter".to_string(),
-            shortcut: "gg".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "End of Chapter".to_string(),
-            description: "Go to the last verse of the chapter".to_string(),
-            shortcut: "Shift+G".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Switch to Previous Chapter".to_string(),
-            description: "Go back to the previously viewed chapter".to_string(),
-            shortcut: "s".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Copy Raw Verse".to_string(),
-            description: "Copy the verse text to clipboard".to_string(),
-            shortcut: "c".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Copy Verse with Reference".to_string(),
-            description: "Copy verse with reference to clipboard".to_string(),
-            shortcut: "Shift+C".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Toggle Sidebar".to_string(),
-            description: "Show/hide the books sidebar".to_string(),
-            shortcut: "b".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Toggle Cross References".to_string(),
-            description: "Show/hide cross-references panel".to_string(),
-            shortcut: "r, Ctrl+Shift+R".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Toggle Command Palette".to_string(),
-            description: "Toggle this command palette".to_string(),
-            shortcut: "Ctrl+O, Alt+O".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Open Command Palette".to_string(),
-            description: "Open command palette with shortcuts".to_string(),
-            shortcut: "> (shift+.)".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Next Reference".to_string(),
-            description: "Navigate to next cross-reference".to_string(),
-            shortcut: "Ctrl+J".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Previous Reference".to_string(),
-            description: "Navigate to previous cross-reference".to_string(),
-            shortcut: "Ctrl+K".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Next Palette Result".to_string(),
-            description: "Navigate to next search result".to_string(),
-            shortcut: "Ctrl+J, ↓".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Previous Palette Result".to_string(),
-            description: "Navigate to previous search result".to_string(),
-            shortcut: "Ctrl+K, ↑".to_string(),
-        },
-        SearchResult::Instruction {
-            name: "Open GitHub Repository".to_string(),
-            description: "Open the project repository on GitHub".to_string(),
-            shortcut: "g".to_string(),
-        },
-    ]
+    let mappings = KeyboardMappings::load();
+    let mut instruction_shortcuts: HashMap<String, Vec<String>> = HashMap::new();
+    
+    // Group all shortcuts by instruction
+    for (vim_key, instruction_name) in &mappings.mappings {
+        let display_key = vim_key_to_display(vim_key);
+        instruction_shortcuts
+            .entry(instruction_name.clone())
+            .or_insert_with(Vec::new)
+            .push(display_key);
+    }
+    
+    // Add any instructions that might not have shortcuts yet (for future extensibility)
+    let all_possible_instructions = [
+        "NextVerse", "PreviousVerse", "NextChapter", "PreviousChapter",
+        "NextBook", "PreviousBook", "BeginningOfChapter", "EndOfChapter",
+        "SwitchToPreviousChapter", "CopyRawVerse", "CopyVerseWithReference",
+        "ToggleSidebar", "ToggleCrossReferences", "ToggleBiblePallate", "ToggleCommandPallate",
+        "NextReference", "PreviousReference", "NextPaletteResult", "PreviousPaletteResult",
+        "OpenGithubRepository"
+    ];
+    
+    for instruction in &all_possible_instructions {
+        if !instruction_shortcuts.contains_key(*instruction) {
+            instruction_shortcuts.insert(instruction.to_string(), vec!["No shortcut".to_string()]);
+        }
+    }
+    
+    // Create SearchResult for each unique instruction
+    instruction_shortcuts
+        .into_iter()
+        .map(|(instruction_name, shortcuts)| {
+            let (display_name, description) = instruction_to_display(&instruction_name);
+            let shortcut_text = shortcuts.join(", ");
+            
+            SearchResult::Instruction {
+                name: display_name,
+                description,
+                shortcut: shortcut_text,
+            }
+        })
+        .collect()
 }
 
 fn get_translated_chapter_name(chapter_name: &str) -> String {
