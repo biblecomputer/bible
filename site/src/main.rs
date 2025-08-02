@@ -138,7 +138,7 @@ fn BibleApp() -> impl IntoView {
 
 #[component]
 fn BibleWithSidebar() -> impl IntoView {
-    // Command palette state
+    // Command palette state - ensure it starts closed
     let (is_palette_open, set_is_palette_open) = signal(false);
     // Command palette navigation signals
     let next_palette_result = RwSignal::new(false);
