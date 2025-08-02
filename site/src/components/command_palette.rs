@@ -351,6 +351,26 @@ pub fn CommandPalette(
         }
     });
 
+    // Helper to check if we're showing global search results
+    let is_global_search = Memo::new(move |_| {
+        let query = search_query.get();
+        if query.is_empty() || query.starts_with(':') || query.starts_with('>') || query.len() < 3 {
+            return false;
+        }
+        
+        // Check if there would be any chapter results
+        let bible = get_bible();
+        for book in &bible.books {
+            for chapter in book.chapters.iter().take(5) { // Quick check of first few chapters
+                let original_name = chapter.name.to_lowercase();
+                if fuzzy_score(&original_name, &query.to_lowercase()) > 0 {
+                    return false; // Found chapter results, not global search
+                }
+            }
+        }
+        true // No chapter results found, showing global search
+    });
+
     // Create a memo for filtered search results (chapters, verses, and instructions)
     let filtered_results = Memo::new(move |_| {
         let query = search_query.get();
@@ -558,6 +578,50 @@ pub fn CommandPalette(
             
         results.extend(chapter_results);
 
+        // If no results and query is at least 3 characters, do global Bible search
+        if results.is_empty() && query.len() >= 3 && !query.starts_with(':') && !query.starts_with('>') {
+            let mut verse_matches: Vec<(SearchResult, usize)> = Vec::new();
+            let mut search_count = 0;
+            
+            'global_search: for book in &get_bible().books {
+                for chapter in &book.chapters {
+                    for verse in &chapter.verses {
+                        // Early exit if we have enough results
+                        if search_count >= 50 {
+                            break 'global_search;
+                        }
+                        
+                        let verse_text_lower = verse.text.to_lowercase();
+                        if verse_text_lower.contains(&query) {
+                            // Score based on how early the match appears in the verse
+                            let match_position = verse_text_lower.find(&query).unwrap_or(verse.text.len());
+                            let score = if verse_text_lower.starts_with(&query) {
+                                1000 // Starts with query
+                            } else if match_position < 10 {
+                                800 // Match near beginning
+                            } else if match_position < 30 {
+                                600 // Match in first part
+                            } else {
+                                400 // Match later in verse
+                            };
+                            
+                            verse_matches.push((
+                                SearchResult::Verse {
+                                    chapter: chapter.clone(),
+                                    verse_number: verse.verse,
+                                    verse_text: verse.text.clone(),
+                                },
+                                score
+                            ));
+                            search_count += 1;
+                        }
+                    }
+                }
+            }
+            
+            results.extend(verse_matches);
+        }
+
         // Sort by score (higher is better)
         results.sort_by(|a, b| b.1.cmp(&a.1));
         
@@ -707,7 +771,7 @@ pub fn CommandPalette(
                         <input
                             node_ref=input_ref
                             type="text"
-                            placeholder="Search chapters or verses... (e.g., 'Genesis 1', 'gen 1:', 'john 3:16', '>' for shortcuts)"
+                            placeholder="Search chapters, verses, or text... (e.g., 'Genesis 1', 'john 3:16', 'love', '>' for shortcuts)"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             prop:value=search_query
                             on:input=move |e| set_search_query.set(event_target_value(&e))
@@ -733,6 +797,18 @@ pub fn CommandPalette(
                                 when=move || !search_query.get().is_empty() || !filtered_results.get().is_empty()
                                 fallback=|| view! { <div class="px-4 py-2 text-black">"Start typing to search chapters or verses..."</div> }
                             >
+                                // Global search indicator
+                                <Show when=move || is_global_search.get()>
+                                    <div class="px-4 py-2 bg-blue-50 border-b border-blue-200">
+                                        <div class="flex items-center text-xs text-blue-700">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            "Bible text search results"
+                                        </div>
+                                    </div>
+                                </Show>
+                                
                                 <div 
                                     id="palette-results-listbox"
                                     class="max-h-64 overflow-y-auto"
