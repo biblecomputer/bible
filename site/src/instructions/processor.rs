@@ -101,6 +101,7 @@ where
             Instruction::GoToVerse(verse_num) => self.handle_go_to_verse(context, verse_num),
             Instruction::CopyRawVerse => self.handle_copy_raw_verse(context),
             Instruction::CopyVerseWithReference => self.handle_copy_verse_with_reference(context),
+            Instruction::OpenGithubRepository => self.handle_open_github_repository(),
             _ => {
                 // Other instructions need to be handled by the UI components
                 // Return false to indicate this processor didn't handle it
@@ -475,5 +476,14 @@ where
         
         (self.navigate)(&current_chapter.to_path(), NavigateOptions { scroll: false, ..Default::default() });
         true
+    }
+    
+    fn handle_open_github_repository(&self) -> bool {
+        if let Some(window) = leptos::web_sys::window() {
+            let _ = window.location().set_href("https://github.com/sempruijs/bible");
+            true
+        } else {
+            false
+        }
     }
 }

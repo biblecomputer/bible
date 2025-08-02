@@ -569,7 +569,7 @@ fn KeyboardNavigationHandler(
                 Instruction::OpenGithubRepository => {
                     e.prevent_default();
                     if let Some(window) = leptos::web_sys::window() {
-                        let _ = window.open_with_url_and_target("https://github.com/sempruijs/bible", "_blank");
+                        let _ = window.location().set_href("https://github.com/sempruijs/bible");
                     }
                     return;
                 }
