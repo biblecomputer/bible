@@ -421,6 +421,20 @@ impl Bible {
         // Get the final path
         self.books.get(book_idx)?.chapters.get(chapter_idx).map(|c| c.to_path())
     }
+    
+    /// Get chapter by reference to avoid cloning when possible
+    pub fn get_chapter_ref(&self, book_name: &str, chapter: u32) -> Result<&Chapter, ParamParseError> {
+        let book = self
+            .books
+            .iter()
+            .find(|b| b.name == book_name)
+            .ok_or(ParamParseError::BookNotFound)?;
+
+        book.chapters
+            .iter()
+            .find(|c| c.chapter == chapter)
+            .ok_or(ParamParseError::ChapterNotFound)
+    }
 }
 
 #[cfg(test)]

@@ -100,7 +100,7 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
         if let Some(bible) = bible_signal.get() {
             bible.books
         } else {
-            get_bible().books.clone()
+            get_bible().books.clone() // Keep clone for now, optimize component later
         }
     });
 
@@ -110,7 +110,7 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
             <ul class="space-y-2">
             {move || books.get().iter().map(|b| view! {
                 <BookView
-                    book=b.clone()
+                    book=b.clone() // Required by component signature
                     current_book=current_book
                     selected_book=selected_book
                     set_selected_book=set_selected_book
