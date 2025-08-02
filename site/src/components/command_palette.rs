@@ -2,6 +2,8 @@ use crate::core::{Chapter, get_bible, VerseRange};
 use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
+use crate::instructions::types::Instruction;
+use crate::instructions::processor::{InstructionContext, InstructionProcessor};
 use leptos::prelude::*;
 use leptos_router::hooks::{use_navigate, use_location};
 use leptos_router::NavigateOptions;
@@ -254,6 +256,47 @@ fn get_current_chapter(location_pathname: &str) -> Option<Chapter> {
     None
 }
 
+fn create_instruction_context(pathname: &str, search: &str) -> Option<InstructionContext> {
+    let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
+    if path_parts.len() == 2 {
+        let book_name = path_parts[0].replace('_', " ");
+        if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
+            if let Ok(current_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
+                return Some(InstructionContext::new(
+                    current_chapter,
+                    search.to_string(),
+                    pathname.to_string(),
+                ));
+            }
+        }
+    }
+    None
+}
+
+fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
+    match name {
+        "Next Verse" => Some(Instruction::NextVerse),
+        "Previous Verse" => Some(Instruction::PreviousVerse),
+        "Next Chapter" => Some(Instruction::NextChapter),
+        "Previous Chapter" => Some(Instruction::PreviousChapter),
+        "Next Book" => Some(Instruction::NextBook),
+        "Previous Book" => Some(Instruction::PreviousBook),
+        "Beginning of Chapter" => Some(Instruction::BeginningOfChapter),
+        "End of Chapter" => Some(Instruction::EndOfChapter),
+        "Switch to Previous Chapter" => Some(Instruction::SwitchToPreviousChapter),
+        "Copy Raw Verse" => Some(Instruction::CopyRawVerse),
+        "Copy Verse with Reference" => Some(Instruction::CopyVerseWithReference),
+        "Toggle Sidebar" => Some(Instruction::ToggleSidebar),
+        "Toggle Cross References" => Some(Instruction::ToggleCrossReferences),
+        "Open Command Palette" => Some(Instruction::OpenCommandPalette),
+        "Next Reference" => Some(Instruction::NextReference),
+        "Previous Reference" => Some(Instruction::PreviousReference),
+        "Next Palette Result" => Some(Instruction::NextPaletteResult),
+        "Previous Palette Result" => Some(Instruction::PreviousPaletteResult),
+        _ => None,
+    }
+}
+
 #[component]
 pub fn CommandPalette(
     is_open: ReadSignal<bool>,
@@ -267,9 +310,25 @@ pub fn CommandPalette(
     let (selected_index, set_selected_index) = signal(0usize);
     let (navigate_to, set_navigate_to) = signal::<Option<String>>(None);
     let (is_mounted, set_is_mounted) = signal(false);
+    let (execute_instruction, set_execute_instruction) = signal::<Option<Instruction>>(None);
     
     // Create a node ref for the input element
     let input_ref = NodeRef::<leptos::html::Input>::new();
+    
+    // Create instruction processor
+    let processor = InstructionProcessor::new(navigate.clone());
+
+    // Handle instruction execution
+    Effect::new(move |_| {
+        if let Some(instruction) = execute_instruction.get() {
+            let pathname = location.pathname.get();
+            let search = location.search.get();
+            if let Some(context) = create_instruction_context(&pathname, &search) {
+                processor.process(instruction, &context);
+            }
+            set_execute_instruction.set(None); // Reset
+        }
+    });
 
     // Create a memo for filtered search results (chapters, verses, and instructions)
     let filtered_results = Memo::new(move |_| {
@@ -505,10 +564,25 @@ pub fn CommandPalette(
                             let current = selected_index.get();
                             let valid_index = if current >= results.len() { 0 } else { current };
                             if let Some((result, _)) = results.get(valid_index) {
-                                set_navigate_to.set(Some(result.to_path()));
-                                set_is_open.set(false);
-                                set_search_query.set(String::new());
-                                set_selected_index.set(0);
+                                match result {
+                                    SearchResult::Instruction { name, .. } => {
+                                        // Execute the instruction
+                                        if let Some(instruction) = instruction_name_to_instruction(name) {
+                                            set_execute_instruction.set(Some(instruction));
+                                        }
+                                        // Close the palette
+                                        set_is_open.set(false);
+                                        set_search_query.set(String::new());
+                                        set_selected_index.set(0);
+                                    }
+                                    _ => {
+                                        // For chapters and verses, navigate
+                                        set_navigate_to.set(Some(result.to_path()));
+                                        set_is_open.set(false);
+                                        set_search_query.set(String::new());
+                                        set_selected_index.set(0);
+                                    }
+                                }
                             }
                         }
                     }
@@ -649,8 +723,12 @@ pub fn CommandPalette(
                                                         let result_clone = result.clone();
                                                         move |_| {
                                                             match &result_clone {
-                                                                SearchResult::Instruction { .. } => {
-                                                                    // Instructions just close the palette
+                                                                SearchResult::Instruction { name, .. } => {
+                                                                    // Execute the instruction
+                                                                    if let Some(instruction) = instruction_name_to_instruction(name) {
+                                                                        set_execute_instruction.set(Some(instruction));
+                                                                    }
+                                                                    // Close the palette
                                                                     set_is_open.set(false);
                                                                     set_search_query.set(String::new());
                                                                     set_selected_index.set(0);
