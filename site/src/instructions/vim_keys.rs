@@ -27,12 +27,16 @@ impl VimKey {
 
             if parts.len() == 1 {
                 // Simple special keys like <Up>, <Down>, <Left>, <Right>
-                key = match parts[0] {
-                    "Up" => "ArrowUp".to_string(),
-                    "Down" => "ArrowDown".to_string(),
-                    "Left" => "ArrowLeft".to_string(),
-                    "Right" => "ArrowRight".to_string(),
-                    other => other.to_string(),
+                match parts[0] {
+                    "Up" => key = "ArrowUp".to_string(),
+                    "Down" => key = "ArrowDown".to_string(),
+                    "Left" => key = "ArrowLeft".to_string(),
+                    "Right" => key = "ArrowRight".to_string(),
+                    "gt" => {
+                        key = ">".to_string();
+                        shift = true; // ">" requires shift
+                    },
+                    other => key = other.to_string(),
                 };
             } else if parts.len() == 2 {
                 // Modified keys like <C-k>, <S-G>
@@ -136,7 +140,8 @@ impl KeyboardMappings {
             "CopyVerseWithReference" => Some(Instruction::CopyVerseWithReference),
             "ToggleSidebar" => Some(Instruction::ToggleSidebar),
             "ToggleCrossReferences" => Some(Instruction::ToggleCrossReferences),
-            "OpenCommandPalette" => Some(Instruction::ToggleBiblePallate),
+            "ToggleBiblePallate" => Some(Instruction::ToggleBiblePallate),
+            "ToggleCommandPallate" => Some(Instruction::ToggleCommandPallate),
             "NextReference" => Some(Instruction::NextReference),
             "PreviousReference" => Some(Instruction::PreviousReference),
             "NextPaletteResult" => Some(Instruction::NextPaletteResult),
