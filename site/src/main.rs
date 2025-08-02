@@ -191,9 +191,9 @@ fn BibleWithSidebar() -> impl IntoView {
             previous_palette_result=previous_palette_result
         />
         <SidebarAutoHide set_sidebar_open=set_is_left_sidebar_open />
-        <CommandPalette 
-            is_open=is_palette_open 
-            set_is_open=set_is_palette_open 
+        <CommandPalette
+            is_open=is_palette_open
+            set_is_open=set_is_palette_open
             next_palette_result=next_palette_result
             previous_palette_result=previous_palette_result
         />
@@ -513,13 +513,16 @@ fn KeyboardNavigationHandler(
         // Get instruction from vim-style keyboard mapper first
         let mut mapper = vim_mapper.get();
         let instruction_result = mapper.map_to_instruction(&e);
-        
+
         // Handle palette navigation priority when palette is open
         if palette_open.get() {
             if let Some((ref instruction, _)) = instruction_result {
                 match instruction {
                     Instruction::NextPaletteResult | Instruction::PreviousPaletteResult => {
                         // Let palette navigation instructions through to be processed below
+                    }
+                    Instruction::ToggleBiblePallate => {
+                        // Let palette toggle instruction through to be processed below
                     }
                     Instruction::NextReference | Instruction::PreviousReference => {
                         // Block reference navigation when palette is open
@@ -552,13 +555,21 @@ fn KeyboardNavigationHandler(
         if let Some((instruction, multiplier)) = instruction_result {
             // Handle UI-specific instructions that need direct component access
             match instruction {
-                Instruction::OpenCommandPalette => {
+                Instruction::ToggleBiblePallate => {
                     e.prevent_default();
-                    set_palette_open.set(true);
+                    let is_currently_open = palette_open.get();
+                    set_palette_open.set(!is_currently_open);
                     // Close sidebar on mobile when command palette opens
-                    if is_mobile_screen() {
+                    if !is_currently_open && is_mobile_screen() {
                         set_left_sidebar_open.set(false);
                         save_sidebar_open(false);
+                    }
+                    return;
+                }
+                Instruction::OpenGithubRepository => {
+                    e.prevent_default();
+                    if let Some(window) = leptos::web_sys::window() {
+                        let _ = window.open_with_url_and_target("https://github.com/sempruijs/bible", "_blank");
                     }
                     return;
                 }

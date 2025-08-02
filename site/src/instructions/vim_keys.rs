@@ -136,7 +136,7 @@ impl KeyboardMappings {
             "CopyVerseWithReference" => Some(Instruction::CopyVerseWithReference),
             "ToggleSidebar" => Some(Instruction::ToggleSidebar),
             "ToggleCrossReferences" => Some(Instruction::ToggleCrossReferences),
-            "OpenCommandPalette" => Some(Instruction::OpenCommandPalette),
+            "OpenCommandPalette" => Some(Instruction::ToggleBiblePallate),
             "NextReference" => Some(Instruction::NextReference),
             "PreviousReference" => Some(Instruction::PreviousReference),
             "NextPaletteResult" => Some(Instruction::NextPaletteResult),
