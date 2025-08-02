@@ -161,6 +161,7 @@ pub fn CommandPalette(
     let (search_query, set_search_query) = signal(String::new());
     let (selected_index, set_selected_index) = signal(0usize);
     let (navigate_to, set_navigate_to) = signal::<Option<String>>(None);
+    let (is_mounted, set_is_mounted) = signal(false);
     
     // Create a node ref for the input element
     let input_ref = NodeRef::<leptos::html::Input>::new();
@@ -324,6 +325,9 @@ pub fn CommandPalette(
                     current + 1
                 };
                 set_selected_index.set(next);
+                
+                // Keep focus on input field for continued typing
+                // VoiceOver will use aria-activedescendant to announce the selected result
             }
         }
     });
@@ -341,6 +345,9 @@ pub fn CommandPalette(
                     current - 1
                 };
                 set_selected_index.set(next);
+                
+                // Keep focus on input field for continued typing
+                // VoiceOver will use aria-activedescendant to announce the selected result
             }
         }
     });
@@ -401,8 +408,9 @@ pub fn CommandPalette(
         }
     });
 
-    // Focus input when palette opens
+    // Set mounted state and focus input when palette opens
     Effect::new(move |_| {
+        set_is_mounted.set(true);
         if is_open.get() {
             if let Some(input) = input_ref.get() {
                 let _ = input.focus();
@@ -411,8 +419,9 @@ pub fn CommandPalette(
     });
 
 
+
     view! {
-        <Show when=move || is_open.get() fallback=|| ()>
+        <Show when=move || is_mounted.get() && is_open.get() fallback=|| ()>
             // Backdrop
             <div 
                 class="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-start justify-center pt-20"
@@ -432,6 +441,18 @@ pub fn CommandPalette(
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             prop:value=search_query
                             on:input=move |e| set_search_query.set(event_target_value(&e))
+                            role="combobox"
+                            aria-expanded="true"
+                            aria-autocomplete="list"
+                            aria-controls="palette-results-listbox"
+                            aria-activedescendant=move || {
+                                let results = filtered_results.get();
+                                if !results.is_empty() {
+                                    format!("palette-result-{}", selected_index.get())
+                                } else {
+                                    String::new()
+                                }
+                            }
                         />
                     </div>
 
@@ -442,7 +463,12 @@ pub fn CommandPalette(
                                 when=move || !search_query.get().is_empty()
                                 fallback=|| view! { <div class="px-4 py-2 text-black">"Start typing to search chapters or verses..."</div> }
                             >
-                                <div class="max-h-64 overflow-y-auto">
+                                <div 
+                                    id="palette-results-listbox"
+                                    class="max-h-64 overflow-y-auto"
+                                    role="listbox"
+                                    aria-label="Search results"
+                                >
                                     {move || {
                                         let results = filtered_results.get();
                                         let current_selected = selected_index.get();
@@ -459,10 +485,27 @@ pub fn CommandPalette(
                                             
                                             view! {
                                                 <div 
+                                                    id=format!("palette-result-{}", index)
                                                     class=if is_selected { 
                                                         "px-4 py-3 bg-blue-500 text-white cursor-pointer flex items-center border-b border-blue-400" 
                                                     } else { 
                                                         "px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center border-b border-gray-100" 
+                                                    }
+                                                    role="option"
+                                                    aria-selected=if is_selected { "true" } else { "false" }
+                                                    aria-label={
+                                                        match &result {
+                                                            SearchResult::Verse { verse_text, .. } => {
+                                                                format!("{}, verse text: {}", display_name, 
+                                                                    if verse_text.len() > 100 { 
+                                                                        format!("{}...", &verse_text[..100]) 
+                                                                    } else { 
+                                                                        verse_text.clone() 
+                                                                    }
+                                                                )
+                                                            }
+                                                            SearchResult::Chapter(_) => display_name.clone()
+                                                        }
                                                     }
                                                     on:click={
                                                         let path = result_path.clone();
