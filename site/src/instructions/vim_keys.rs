@@ -77,7 +77,13 @@ impl VimKey {
             }
         } else {
             // Regular keys or multi-character sequences like "gg"
-            key = vim_key.to_string();
+            if vim_key == "?" {
+                // Special case for question mark - it's typed with Shift+/ but treated as a single character
+                key = "?".to_string();
+                shift = true; // Question mark requires shift
+            } else {
+                key = vim_key.to_string();
+            }
         }
 
         Some(VimKey {
