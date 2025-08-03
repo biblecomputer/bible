@@ -125,24 +125,27 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                             let verse_id = format!("verse-{}", first_range.start);
                             
                             if let Some(verse_element) = document.get_element_by_id(&verse_id) {
+                                // First scroll the element into view
+                                verse_element.scroll_into_view();
+                                
+                                // Then try to focus and adjust position
                                 if let Ok(html_element) = verse_element.dyn_into::<web_sys::HtmlElement>() {
                                     let _ = html_element.focus();
                                     
-                                    // Calculate position to center the verse with vim-like buffer
+                                    // Try to adjust position to vim-like scrolloff (1/3 from top)
                                     if let Some(window) = web_sys::window() {
                                         if let Ok(window_height) = window.inner_height() {
                                             if let Some(window_height) = window_height.as_f64() {
-                                                let element_top = html_element.offset_top() as f64;
-                                                let element_height = html_element.offset_height() as f64;
-                                                // Position verse at 1/3 from top (vim-like scrolloff behavior)
-                                                let scroll_y = element_top - (window_height / 3.0) + (element_height / 2.0);
-                                                
-                                                window.scroll_to_with_x_and_y(0.0, scroll_y);
-                                                break; // Success, exit retry loop
+                                                // Get current scroll position and adjust
+                                                let current_scroll = window.scroll_y().unwrap_or(0.0);
+                                                // Move the element down by 1/3 of screen height to achieve vim scrolloff
+                                                let adjusted_scroll = current_scroll - (window_height / 3.0);
+                                                window.scroll_to_with_x_and_y(0.0, adjusted_scroll);
                                             }
                                         }
                                     }
                                 }
+                                break; // Success, exit retry loop
                             }
                         } else {
                             // No verses selected, focus the chapter heading for accessibility
