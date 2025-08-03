@@ -517,7 +517,42 @@ fn KeyboardNavigationHandler(
 
     // Set up keyboard event handler
     let handle_keydown = move |e: KeyboardEvent| {
-        // Get instruction from vim-style keyboard mapper first
+        // Check if user is typing in an input field BEFORE processing vim mapper
+        let is_typing_in_input = if let Some(window) = leptos::web_sys::window() {
+            if let Some(document) = window.document() {
+                if let Some(active_element) = document.active_element() {
+                    // Check if the active element is an input, textarea, or has contenteditable
+                    let tag_name = active_element.tag_name().to_lowercase();
+                    tag_name == "input" 
+                        || tag_name == "textarea"
+                        || active_element.get_attribute("contenteditable").is_some()
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        // If user is typing in input and palette is open, only intercept specific control keys
+        if palette_open.get() && is_typing_in_input {
+            // Only process Ctrl+J, Ctrl+K, Ctrl+O, Escape, Enter for palette navigation
+            let key = e.key();
+            let is_control_sequence = e.ctrl_key() && (key == "j" || key == "k" || key == "o")
+                || key == "Escape" 
+                || key == "Enter"
+                || key == "ArrowUp" 
+                || key == "ArrowDown";
+                
+            if !is_control_sequence {
+                // Let normal typing behavior work
+                return;
+            }
+        }
+
+        // Get instruction from vim-style keyboard mapper
         let mut mapper = vim_mapper.get();
         let instruction_result = mapper.map_to_instruction(&e);
 
