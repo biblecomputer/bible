@@ -31,4 +31,6 @@ pub enum Instruction {
     ToggleCommandPallate,
 
     OpenGithubRepository,
+
+    RandomVerse,
 }

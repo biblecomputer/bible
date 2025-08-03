@@ -195,6 +195,7 @@ fn instruction_to_display(instruction_name: &str) -> (String, String) {
         "NextPaletteResult" => ("Next Palette Result".to_string(), "Navigate to next search result".to_string()),
         "PreviousPaletteResult" => ("Previous Palette Result".to_string(), "Navigate to previous search result".to_string()),
         "OpenGithubRepository" => ("Open GitHub Repository".to_string(), "Open the project repository on GitHub".to_string()),
+        "RandomVerse" => ("Random Verse".to_string(), "Navigate to a random verse in the Bible".to_string()),
         _ => (instruction_name.to_string(), format!("Execute {}", instruction_name)),
     }
 }
@@ -219,7 +220,7 @@ fn get_all_instructions() -> Vec<SearchResult> {
         "SwitchToPreviousChapter", "CopyRawVerse", "CopyVerseWithReference",
         "ToggleSidebar", "ToggleCrossReferences", "ToggleBiblePallate", "ToggleCommandPallate",
         "NextReference", "PreviousReference", "NextPaletteResult", "PreviousPaletteResult",
-        "OpenGithubRepository"
+        "OpenGithubRepository", "RandomVerse"
     ];
     
     for instruction in &all_possible_instructions {
@@ -311,6 +312,7 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
         "Next Palette Result" => Some(Instruction::NextPaletteResult),
         "Previous Palette Result" => Some(Instruction::PreviousPaletteResult),
         "Open GitHub Repository" => Some(Instruction::OpenGithubRepository),
+        "Random Verse" => Some(Instruction::RandomVerse),
         _ => None,
     }
 }

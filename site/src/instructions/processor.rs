@@ -5,6 +5,10 @@ use crate::translation_map::translation::Translation;
 use crate::core::types::Language;
 use leptos_router::NavigateOptions;
 use wasm_bindgen_futures::{spawn_local, JsFuture};
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+// Global counter for pseudo-random verse selection
+static RANDOM_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
 pub struct InstructionContext {
     pub current_chapter: Chapter,
@@ -100,6 +104,7 @@ where
             Instruction::CopyRawVerse => self.handle_copy_raw_verse(context),
             Instruction::CopyVerseWithReference => self.handle_copy_verse_with_reference(context),
             Instruction::OpenGithubRepository => self.handle_open_github_repository(),
+            Instruction::RandomVerse => self.handle_random_verse(),
             _ => {
                 // Other instructions need to be handled by the UI components
                 // Return false to indicate this processor didn't handle it
@@ -408,6 +413,49 @@ where
     fn handle_open_github_repository(&self) -> bool {
         if let Some(window) = leptos::web_sys::window() {
             let _ = window.location().set_href("https://github.com/sempruijs/bible");
+            true
+        } else {
+            false
+        }
+    }
+    
+    fn handle_random_verse(&self) -> bool {
+        let bible = get_bible();
+        
+        // Calculate total number of verses in the entire Bible
+        let mut total_verses = 0;
+        let mut verse_locations = Vec::new();
+        
+        for book in &bible.books {
+            for chapter in &book.chapters {
+                for verse in &chapter.verses {
+                    verse_locations.push((chapter.clone(), verse.verse));
+                    total_verses += 1;
+                }
+            }
+        }
+        
+        if total_verses == 0 {
+            return false; // No verses found
+        }
+        
+        // Get the current counter value and increment it for next time
+        let counter = RANDOM_COUNTER.fetch_add(1, Ordering::Relaxed);
+        
+        // Use a simple linear congruential generator with the counter as seed
+        let mut rng_state = counter.wrapping_mul(1103515245).wrapping_add(12345);
+        rng_state = rng_state.wrapping_mul(1664525).wrapping_add(1013904223);
+        
+        let random_index = rng_state % total_verses;
+        
+        // Ensure the index is within bounds
+        let safe_index = random_index.min(total_verses - 1);
+        
+        if let Some((chapter, verse_num)) = verse_locations.get(safe_index) {
+            let verse_range = VerseRange { start: *verse_num, end: *verse_num };
+            let verse_ranges: &[VerseRange] = &[verse_range];
+            let new_path = chapter.to_path_with_verses(verse_ranges);
+            (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
             true
         } else {
             false
