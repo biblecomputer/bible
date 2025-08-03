@@ -17,6 +17,7 @@
     "<S-G>": "EndOfChapter",
     
     "s": "SwitchToPreviousChapter",
+    "<S-R>": "RandomVerse",
     
     "c": "CopyRawVerse",
     "<S-C>": "CopyVerseWithReference",
