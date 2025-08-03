@@ -692,7 +692,8 @@ pub fn CommandPalette(
                 if let Some(window) = leptos::web_sys::window() {
                     if let Some(document) = window.document() {
                         if let Some(element) = document.get_element_by_id(&format!("palette-result-{}", current_index)) {
-                            element.scroll_into_view();
+                            // Use scrollIntoView with 'nearest' block behavior to avoid aggressive scrolling
+                            element.scroll_into_view_with_bool(false); // false = use 'nearest' instead of 'start'
                         }
                     }
                 }
