@@ -156,6 +156,7 @@ impl KeyboardMappings {
             "NextPaletteResult" => Some(Instruction::NextPaletteResult),
             "PreviousPaletteResult" => Some(Instruction::PreviousPaletteResult),
             "RandomVerse" => Some(Instruction::RandomVerse),
+            "RandomChapter" => Some(Instruction::RandomChapter),
             "OpenAboutPage" => Some(Instruction::OpenAboutPage),
             _ => None,
         }
