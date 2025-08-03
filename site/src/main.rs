@@ -9,8 +9,7 @@ use crate::storage::{
     add_recent_chapter,
 };
 use crate::utils::is_mobile_screen;
-use crate::views::ChapterDetail;
-use crate::views::HomeTranslationPicker;
+use crate::views::{About, ChapterDetail, HomeTranslationPicker};
 use leptos::ev;
 use leptos::prelude::*;
 use leptos::web_sys::KeyboardEvent;
@@ -351,6 +350,7 @@ fn BibleWithSidebar() -> impl IntoView {
                 // Main content area
                 <main class="flex-1 p-4 md:p-6 overflow-y-auto">
                     <Routes fallback=|| "Not found.">
+                        <Route path=path!("/about") view=About />
                         <Route
                             path=path!("/:book/:chapter")
                             view=move || {

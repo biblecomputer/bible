@@ -105,6 +105,7 @@ where
             Instruction::CopyVerseWithReference => self.handle_copy_verse_with_reference(context),
             Instruction::OpenGithubRepository => self.handle_open_github_repository(),
             Instruction::RandomVerse => self.handle_random_verse(),
+            Instruction::OpenAboutPage => self.handle_open_about_page(),
             _ => {
                 // Other instructions need to be handled by the UI components
                 // Return false to indicate this processor didn't handle it
@@ -460,5 +461,10 @@ where
         } else {
             false
         }
+    }
+    
+    fn handle_open_about_page(&self) -> bool {
+        (self.navigate)("/about", NavigateOptions { scroll: false, ..Default::default() });
+        true
     }
 }

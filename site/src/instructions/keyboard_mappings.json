@@ -18,6 +18,7 @@
     
     "s": "SwitchToPreviousChapter",
     "<S-R>": "RandomVerse",
+    "<S-/>": "OpenAboutPage",
     
     "c": "CopyRawVerse",
     "<S-C>": "CopyVerseWithReference",
