@@ -678,6 +678,28 @@ pub fn CommandPalette(
         }
     });
 
+    // Scroll selected item into view when selection changes
+    Effect::new(move |_| {
+        let current_index = selected_index.get();
+        let results = filtered_results.get();
+        
+        // Only scroll if we have results and palette is open
+        if !results.is_empty() && is_open.get() {
+            // Use a timeout to ensure the DOM has been updated
+            spawn_local(async move {
+                gloo_timers::future::TimeoutFuture::new(10).await;
+                
+                if let Some(window) = leptos::web_sys::window() {
+                    if let Some(document) = window.document() {
+                        if let Some(element) = document.get_element_by_id(&format!("palette-result-{}", current_index)) {
+                            element.scroll_into_view();
+                        }
+                    }
+                }
+            });
+        }
+    });
+
     // Set up global keyboard handling when palette is open
     let nav = navigate.clone();
     Effect::new(move |_| {
