@@ -1,4 +1,4 @@
-use crate::core::{Chapter, get_bible, init_bible_signal};
+use crate::core::{get_bible, init_bible_signal, Chapter, VerseRange};
 use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
@@ -77,7 +77,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
         {
             verses_param
                 .split(',')
-                .filter_map(|range_str| crate::core::VerseRange::from_string(range_str))
+                .filter_map(|range_str| VerseRange::from_string(range_str))
                 .collect()
         } else {
             Vec::new()
