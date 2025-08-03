@@ -10,6 +10,40 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 // Global counter for pseudo-random verse selection
 static RANDOM_COUNTER: AtomicUsize = AtomicUsize::new(1);
 
+// Helper function to get a random chapter path (can be used from anywhere)
+pub fn get_random_chapter_path() -> Option<String> {
+    let bible = get_bible();
+    
+    // Calculate total number of chapters
+    let mut total_chapters = 0;
+    let mut chapter_locations = Vec::new();
+    
+    for book in &bible.books {
+        for chapter in &book.chapters {
+            chapter_locations.push(chapter.clone());
+            total_chapters += 1;
+        }
+    }
+    
+    if total_chapters == 0 {
+        return None; // No chapters found
+    }
+    
+    // Get the current counter value and increment it for next time
+    let counter = RANDOM_COUNTER.fetch_add(1, Ordering::Relaxed);
+    
+    // Use a simple linear congruential generator with the counter as seed
+    let mut rng_state = counter.wrapping_mul(1103515245).wrapping_add(12345);
+    rng_state = rng_state.wrapping_mul(1664525).wrapping_add(1013904223);
+    
+    let random_index = rng_state % total_chapters;
+    
+    // Ensure the index is within bounds
+    let safe_index = random_index.min(total_chapters - 1);
+    
+    chapter_locations.get(safe_index).map(|chapter| chapter.to_path())
+}
+
 pub struct InstructionContext {
     pub current_chapter: Chapter,
     pub search_params: String,
@@ -105,6 +139,7 @@ where
             Instruction::CopyVerseWithReference => self.handle_copy_verse_with_reference(context),
             Instruction::OpenGithubRepository => self.handle_open_github_repository(),
             Instruction::RandomVerse => self.handle_random_verse(),
+            Instruction::RandomChapter => self.handle_random_chapter(),
             Instruction::OpenAboutPage => self.handle_open_about_page(),
             _ => {
                 // Other instructions need to be handled by the UI components
@@ -457,6 +492,15 @@ where
             let verse_ranges: &[VerseRange] = &[verse_range];
             let new_path = chapter.to_path_with_verses(verse_ranges);
             (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+            true
+        } else {
+            false
+        }
+    }
+    
+    fn handle_random_chapter(&self) -> bool {
+        if let Some(random_path) = get_random_chapter_path() {
+            (self.navigate)(&random_path, NavigateOptions { scroll: false, ..Default::default() });
             true
         } else {
             false

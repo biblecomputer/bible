@@ -745,25 +745,20 @@ fn Home() -> impl IntoView {
 
         if let Some(selected_translation) = get_selected_translation() {
             if is_translation_downloaded(&selected_translation) {
-                // Get the current Bible to find Genesis 1
-                if let Some(bible) = get_current_bible() {
-                    if let Some(genesis_book) = bible.books.first() {
-                        if let Some(first_chapter) = genesis_book.chapters.first() {
-                            let encoded_book = encode(&genesis_book.name);
-                            let path = format!("/{}/{}", encoded_book, first_chapter.chapter);
-                            navigate(
-                                &path,
-                                NavigateOptions {
-                                    scroll: false,
-                                    ..Default::default()
-                                },
-                            );
-                            return;
-                        }
-                    }
+                // Navigate to a random chapter instead of always Genesis 1
+                use crate::instructions::processor::get_random_chapter_path;
+                if let Some(random_path) = get_random_chapter_path() {
+                    navigate(
+                        &random_path,
+                        NavigateOptions {
+                            scroll: false,
+                            ..Default::default()
+                        },
+                    );
+                    return;
                 }
 
-                // Fallback: try to navigate to a standard Genesis path
+                // Fallback: try to navigate to a standard Genesis path if random fails
                 navigate(
                     "/Genesis/1",
                     NavigateOptions {
