@@ -1,4 +1,4 @@
-use crate::core::{Chapter, get_bible, VerseRange};
+use crate::core::{get_bible, Chapter, VerseRange};
 use crate::storage::translations::get_current_translation;
 use crate::storage::recent_chapters::get_recent_chapters;
 use crate::core::types::Language;
@@ -9,6 +9,7 @@ use crate::instructions::vim_keys::KeyboardMappings;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_navigate, use_location};
 use leptos_router::NavigateOptions;
+use wasm_bindgen_futures::spawn_local;
 use leptos::web_sys::KeyboardEvent;
 use std::collections::HashMap;
 
@@ -50,7 +51,13 @@ impl SearchResult {
             SearchResult::Chapter(chapter) => chapter.to_path(),
             SearchResult::Verse { chapter, verse_number, .. } => {
                 let verse_range = VerseRange { start: *verse_number, end: *verse_number };
-                chapter.to_path_with_verses(&[verse_range])
+                let path = chapter.to_path_with_verses(&[verse_range]);
+                
+                // Debug log for verse navigation
+                #[cfg(target_arch = "wasm32")]
+                web_sys::console::log_1(&format!("Generating verse path: {} (verse {})", path, verse_number).into());
+                
+                path
             }
             SearchResult::Instruction { .. } => {
                 // Instructions don't navigate to a path, they execute actions
@@ -704,9 +711,16 @@ pub fn CommandPalette(
                                     _ => {
                                         // For chapters and verses, navigate
                                         set_navigate_to.set(Some(result.to_path()));
+                                        
+                                        // Close palette immediately
                                         set_is_open.set(false);
-                                        set_search_query.set(String::new());
-                                        set_selected_index.set(0);
+                                        
+                                        // Reset search state after a small delay to avoid race conditions
+                                        spawn_local(async move {
+                                            gloo_timers::future::TimeoutFuture::new(50).await;
+                                            set_search_query.set(String::new());
+                                            set_selected_index.set(0);
+                                        });
                                     }
                                 }
                             }
@@ -737,7 +751,16 @@ pub fn CommandPalette(
     // Handle navigation
     Effect::new(move |_| {
         if let Some(path) = navigate_to.get() {
-            navigate(&path, NavigateOptions { scroll: false, ..Default::default() });
+            // Debug log to track navigation
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&format!("Command palette navigating to: {}", path).into());
+            
+            // Force navigation by using replace: false to ensure verse parameters are handled
+            navigate(&path, NavigateOptions { 
+                scroll: false, 
+                replace: false,
+                ..Default::default() 
+            });
             set_navigate_to.set(None);
         }
     });
@@ -877,9 +900,16 @@ pub fn CommandPalette(
                                                                 _ => {
                                                                     // Navigate for chapters and verses
                                                                     set_navigate_to.set(Some(path.clone()));
+                                                                    
+                                                                    // Close palette and reset state immediately  
                                                                     set_is_open.set(false);
-                                                                    set_search_query.set(String::new());
-                                                                    set_selected_index.set(0);
+                                                                    
+                                                                    // Reset search state after a small delay to avoid race conditions
+                                                                    spawn_local(async move {
+                                                                        gloo_timers::future::TimeoutFuture::new(50).await;
+                                                                        set_search_query.set(String::new());
+                                                                        set_selected_index.set(0);
+                                                                    });
                                                                 }
                                                             }
                                                         }
