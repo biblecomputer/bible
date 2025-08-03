@@ -157,18 +157,22 @@ fn vim_key_to_display(vim_key: &str) -> String {
         "<Up>" => "↑".to_string(),
         "<Left>" => "←".to_string(),
         "<Right>" => "→".to_string(),
-        "<S-H>" => "Shift+H".to_string(),
-        "<S-L>" => "Shift+L".to_string(),
-        "<S-G>" => "Shift+G".to_string(),
-        "<S-C>" => "Shift+C".to_string(),
-        "<C-o>" => "Ctrl+O".to_string(),
-        "<M-o>" => "Alt+O".to_string(),
-        "<C-S-R>" => "Ctrl+Shift+R".to_string(),
-        "<C-j>" => "Ctrl+J".to_string(),
-        "<C-k>" => "Ctrl+K".to_string(),
-        "<gt>" => "> (shift+.)".to_string(),
-        "gg" => "gg".to_string(),
-        key => key.to_string(),
+        "<S-H>" => "shift + h".to_string(),
+        "<S-L>" => "shift + l".to_string(),
+        "<S-G>" => "shift + g".to_string(),
+        "<S-C>" => "shift + c".to_string(),
+        "<S-J>" => "shift + j".to_string(),
+        "<S-K>" => "shift + k".to_string(),
+        "<S-R>" => "shift + r".to_string(),
+        "<C-o>" => "ctrl + o".to_string(),
+        "<M-o>" => "alt + o".to_string(),
+        "<C-S-R>" => "ctrl + shift + r".to_string(),
+        "<C-j>" => "ctrl + j".to_string(),
+        "<C-k>" => "ctrl + k".to_string(),
+        "<gt>" => "shift + .".to_string(),
+        "gg" => "g g".to_string(),
+        "?" => "shift + /".to_string(),
+        key => key.to_lowercase(),
     }
 }
 
@@ -965,8 +969,13 @@ pub fn CommandPalette(
                                                             }
                                                             SearchResult::Instruction { description, shortcut, .. } => {
                                                                 view! {
-                                                                    <div class="text-xs opacity-75 mt-1 truncate">
-                                                                        {format!("{} • {}", description, shortcut)}
+                                                                    <div class="flex justify-between items-center mt-1">
+                                                                        <div class="text-xs opacity-75 truncate flex-1 mr-2">
+                                                                            {description.clone()}
+                                                                        </div>
+                                                                        <div class="text-xs opacity-60 font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-600 whitespace-nowrap">
+                                                                            {shortcut.clone()}
+                                                                        </div>
                                                                     </div>
                                                                 }.into_any()
                                                             }
@@ -982,15 +991,6 @@ pub fn CommandPalette(
                                                             }
                                                         }}
                                                     </div>
-                                                    {if is_selected {
-                                                        view! {
-                                                            <div class="text-xs opacity-75">
-                                                                "↵"
-                                                            </div>
-                                                        }.into_any()
-                                                    } else {
-                                                        view! { <div></div> }.into_any()
-                                                    }}
                                                 </div>
                                             }
                                         }).collect_view()
