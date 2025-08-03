@@ -33,4 +33,5 @@ pub enum Instruction {
     OpenGithubRepository,
 
     RandomVerse,
+    OpenAboutPage,
 }

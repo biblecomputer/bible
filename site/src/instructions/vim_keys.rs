@@ -36,6 +36,9 @@ impl VimKey {
                         key = ">".to_string();
                         shift = true; // ">" requires shift
                     },
+                    "/" => {
+                        key = "/".to_string();
+                    },
                     other => key = other.to_string(),
                 };
             } else if parts.len() == 2 {
@@ -147,6 +150,7 @@ impl KeyboardMappings {
             "NextPaletteResult" => Some(Instruction::NextPaletteResult),
             "PreviousPaletteResult" => Some(Instruction::PreviousPaletteResult),
             "RandomVerse" => Some(Instruction::RandomVerse),
+            "OpenAboutPage" => Some(Instruction::OpenAboutPage),
             _ => None,
         }
     }
