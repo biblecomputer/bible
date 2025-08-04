@@ -141,6 +141,7 @@ where
             Instruction::RandomVerse => self.handle_random_verse(),
             Instruction::RandomChapter => self.handle_random_chapter(),
             Instruction::OpenAboutPage => self.handle_open_about_page(),
+            Instruction::ShowTranslations => self.handle_show_translations(),
             _ => {
                 // Other instructions need to be handled by the UI components
                 // Return false to indicate this processor didn't handle it
@@ -509,6 +510,11 @@ where
     
     fn handle_open_about_page(&self) -> bool {
         (self.navigate)("/about", NavigateOptions { scroll: false, ..Default::default() });
+        true
+    }
+    
+    fn handle_show_translations(&self) -> bool {
+        (self.navigate)("/?choose=true", NavigateOptions { scroll: false, ..Default::default() });
         true
     }
 }

@@ -158,6 +158,7 @@ impl KeyboardMappings {
             "RandomVerse" => Some(Instruction::RandomVerse),
             "RandomChapter" => Some(Instruction::RandomChapter),
             "OpenAboutPage" => Some(Instruction::OpenAboutPage),
+            "ShowTranslations" => Some(Instruction::ShowTranslations),
             _ => None,
         }
     }
