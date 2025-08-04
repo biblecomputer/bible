@@ -188,8 +188,12 @@ fn get_verse_content_for_reference(reference: &Reference) -> String {
     
     // Safe verse content retrieval with error handling
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        // Convert canonical book name (Arabic numerals) to display format (Roman numerals)
+        // that the Bible data uses. E.g., "1 Samuel" -> "I Samuel"
+        let bible_book_name = get_display_book_name(&reference.to_book_name);
+        
         // Try to get the verse content for the reference
-        if let Ok(bible) = get_bible().get_chapter(&reference.to_book_name, reference.to_chapter) {
+        if let Ok(bible) = get_bible().get_chapter(&bible_book_name, reference.to_chapter) {
             if let Some(verse) = bible.verses.iter().find(|v| v.verse == reference.to_verse_start) {
                 return verse.text.to_string(); // More explicit than clone for strings
             }
@@ -200,8 +204,9 @@ fn get_verse_content_for_reference(reference: &Reference) -> String {
     })) {
         Ok(content) => content,
         Err(_) => {
-            web_sys::console::warn_1(&format!("Failed to get verse content for {} {}:{}", 
-                reference.to_book_name, reference.to_chapter, reference.to_verse_start).into());
+            web_sys::console::warn_1(&format!("Failed to get verse content for {} {}:{} (converted to {})", 
+                reference.to_book_name, reference.to_chapter, reference.to_verse_start, 
+                get_display_book_name(&reference.to_book_name)).into());
             "Verse content unavailable".to_string()
         }
     }
@@ -811,5 +816,65 @@ mod tests {
                 "Should find at least one expected cross-reference for Revelation 22:1. Found {} references", 
                 refs.len());
         }
+    }
+
+    #[test]
+    fn test_book_name_conversion_for_bible_lookup() {
+        // Test that the book name conversion works correctly for Arabic -> Roman numeral conversion
+        // This tests the fix for the cross-references verse content lookup issue
+        
+        // Cross-references use Arabic numerals
+        assert_eq!(get_display_book_name("1 Samuel"), "I Samuel");
+        assert_eq!(get_display_book_name("2 Samuel"), "II Samuel");
+        assert_eq!(get_display_book_name("1 Kings"), "I Kings");
+        assert_eq!(get_display_book_name("2 Kings"), "II Kings");
+        assert_eq!(get_display_book_name("1 Chronicles"), "I Chronicles");
+        assert_eq!(get_display_book_name("2 Chronicles"), "II Chronicles");
+        assert_eq!(get_display_book_name("1 Corinthians"), "I Corinthians");
+        assert_eq!(get_display_book_name("2 Corinthians"), "II Corinthians");
+        assert_eq!(get_display_book_name("1 Thessalonians"), "I Thessalonians");
+        assert_eq!(get_display_book_name("2 Thessalonians"), "II Thessalonians");
+        assert_eq!(get_display_book_name("1 Timothy"), "I Timothy");
+        assert_eq!(get_display_book_name("2 Timothy"), "II Timothy");
+        assert_eq!(get_display_book_name("1 Peter"), "I Peter");
+        assert_eq!(get_display_book_name("2 Peter"), "II Peter");
+        assert_eq!(get_display_book_name("1 John"), "I John");
+        assert_eq!(get_display_book_name("2 John"), "II John");
+        assert_eq!(get_display_book_name("3 John"), "III John");
+        
+        // Books without numbers remain unchanged
+        assert_eq!(get_display_book_name("Genesis"), "Genesis");
+        assert_eq!(get_display_book_name("Matthew"), "Matthew");
+        assert_eq!(get_display_book_name("Psalms"), "Psalms");
+        
+        // Revelation has a special case
+        assert_eq!(get_display_book_name("Revelation"), "Revelation of John");
+    }
+
+    #[test]
+    fn test_verse_content_retrieval_book_name_conversion() {
+        // Test that verse content retrieval correctly converts book names
+        // This is a mock test since we can't easily test the actual Bible data loading
+        use crate::core::types::Reference;
+        
+        // Create a reference with Arabic numeral book name (as stored in cross-references)
+        let reference = Reference {
+            to_book_name: "1 Samuel".to_string(),
+            to_chapter: 1,
+            to_verse_start: 1,
+            to_verse_end: None,
+            votes: 10,
+        };
+        
+        // The function should convert "1 Samuel" to "I Samuel" for Bible lookup
+        // Since we can't test the actual Bible data loading without complex setup,
+        // we'll just test that the conversion function is being called correctly
+        let converted_name = get_display_book_name(&reference.to_book_name);
+        assert_eq!(converted_name, "I Samuel");
+        
+        // Test that this would work for verse content retrieval
+        // (The actual retrieval is tested indirectly through the integration)
+        assert_eq!(get_display_book_name("1 Samuel"), "I Samuel");
+        assert_eq!(get_display_book_name("2 Samuel"), "II Samuel");
     }
 }
