@@ -69,22 +69,16 @@ fn TranslationItem(
                         
                         if is_downloading {
                             view! {
-                                <div class="w-64">
-                                    <div class="flex items-center">
-                                        <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="m12 2a10 10 0 0 1 10 10h-2a8 8 0 0 0-8-8v-2z"></path>
-                                        </svg>
-                                        <span class="text-sm font-medium text-gray-700">"Downloading..."</span>
-                                    </div>
-                                    <div class="mt-2">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <span class="text-xs text-gray-600">{download_status.get()}</span>
-                                            <span class="text-xs text-gray-600">{format!("{}%", (download_progress.get() * 100.0) as u32)}</span>
-                                        </div>
-                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="flex items-center">
+                                    <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="m12 2a10 10 0 0 1 10 10h-2a8 8 0 0 0-8-8v-2z"></path>
+                                    </svg>
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-700">"Downloading..."</div>
+                                        <div class="w-24 bg-gray-200 rounded-full h-1 mt-1">
                                             <div 
-                                                class="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                                                class="bg-blue-600 h-1 rounded-full transition-all duration-300 ease-out"
                                                 style:width={format!("{}%", download_progress.get() * 100.0)}
                                             ></div>
                                         </div>
@@ -242,22 +236,6 @@ fn TranslationItem(
                             }.into_any()
                         }
                     }}
-                </div>
-                
-                // Test button to verify event handling works
-                <div class="mt-2">
-                    <button 
-                        class="px-2 py-1 bg-yellow-500 text-black text-xs rounded"
-                        on:click={
-                            let translation_short_name_test = translation_short_name.clone();
-                            move |_| {
-                                #[cfg(target_arch = "wasm32")]
-                                web_sys::console::log_1(&format!("TEST BUTTON CLICKED for {}", translation_short_name_test).into());
-                            }
-                        }
-                    >
-                        "TEST"
-                    </button>
                 </div>
             </div>
             
