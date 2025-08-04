@@ -621,6 +621,18 @@ fn KeyboardNavigationHandler(
                     }
                     return;
                 }
+                Instruction::ToggleVersePallate => {
+                    e.prevent_default();
+                    // Open the command palette with ":" pre-filled
+                    set_initial_search_query.set(Some(":".to_string()));
+                    set_palette_open.set(true);
+                    // Close sidebar on mobile when command palette opens
+                    if is_mobile_screen() {
+                        set_left_sidebar_open.set(false);
+                        save_sidebar_open(false);
+                    }
+                    return;
+                }
                 Instruction::OpenGithubRepository => {
                     e.prevent_default();
                     if let Some(window) = leptos::web_sys::window() {

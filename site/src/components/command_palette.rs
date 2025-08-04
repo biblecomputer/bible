@@ -203,6 +203,7 @@ fn instruction_to_display(instruction_name: &str) -> (String, String) {
         "RandomChapter" => ("Random Chapter".to_string(), "Navigate to a random chapter in the Bible".to_string()),
         "OpenAboutPage" => ("About".to_string(), "View information about this Bible website".to_string()),
         "ShowTranslations" => ("Show Translations".to_string(), "Go to the translation selection page".to_string()),
+        "ToggleVersePallate" => ("Open Verse Palette".to_string(), "Open command palette for verse navigation".to_string()),
         _ => (instruction_name.to_string(), format!("Execute {}", instruction_name)),
     }
 }
@@ -227,7 +228,7 @@ fn get_all_instructions() -> Vec<SearchResult> {
         "SwitchToPreviousChapter", "CopyRawVerse", "CopyVerseWithReference",
         "ToggleSidebar", "ToggleCrossReferences", "ToggleBiblePallate", "ToggleCommandPallate",
         "NextReference", "PreviousReference", "NextPaletteResult", "PreviousPaletteResult",
-        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations"
+        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate"
     ];
     
     for instruction in &all_possible_instructions {
@@ -323,6 +324,7 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
         "Random Chapter" => Some(Instruction::RandomChapter),
         "About" => Some(Instruction::OpenAboutPage),
         "Show Translations" => Some(Instruction::ShowTranslations),
+        "Open Verse Palette" => Some(Instruction::ToggleVersePallate),
         _ => None,
     }
 }
