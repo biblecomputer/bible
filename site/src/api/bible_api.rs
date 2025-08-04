@@ -199,3 +199,29 @@ pub async fn try_fetch_bible(url: &str) -> std::result::Result<Bible, Box<dyn st
     let bible: Bible = serde_json::from_str(&json_string)?;
     Ok(bible)
 }
+
+pub async fn try_fetch_bible_with_progress<F>(url: &str, progress_callback: F) -> std::result::Result<Bible, Box<dyn std::error::Error>>
+where
+    F: Fn(f32, String) + Clone + 'static,
+{
+    progress_callback(0.3, "Downloading Bible data...".to_string());
+    
+    let response = Request::get(url).send().await?;
+
+    progress_callback(0.6, "Processing response...".to_string());
+
+    let json_string = if url.contains("allorigins.win") {
+        let wrapped: serde_json::Value = response.json().await?;
+        wrapped["contents"]
+            .as_str()
+            .ok_or("Failed to extract contents from allorigins response")?
+            .to_string()
+    } else {
+        response.text().await?
+    };
+
+    progress_callback(0.7, "Parsing Bible data...".to_string());
+
+    let bible: Bible = serde_json::from_str(&json_string)?;
+    Ok(bible)
+}
