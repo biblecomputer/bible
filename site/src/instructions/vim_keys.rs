@@ -81,6 +81,10 @@ impl VimKey {
                 // Special case for question mark - it's typed with Shift+/ but treated as a single character
                 key = "?".to_string();
                 shift = true; // Question mark requires shift
+            } else if vim_key == ":" {
+                // Special case for colon - it's typed with Shift+; but treated as a single character
+                key = ":".to_string();
+                shift = true; // Colon requires shift
             } else {
                 key = vim_key.to_string();
             }
@@ -159,6 +163,7 @@ impl KeyboardMappings {
             "RandomChapter" => Some(Instruction::RandomChapter),
             "OpenAboutPage" => Some(Instruction::OpenAboutPage),
             "ShowTranslations" => Some(Instruction::ShowTranslations),
+            "ToggleVersePallate" => Some(Instruction::ToggleVersePallate),
             _ => None,
         }
     }

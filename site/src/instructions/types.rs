@@ -36,4 +36,5 @@ pub enum Instruction {
     RandomChapter,
     OpenAboutPage,
     ShowTranslations,
+    ToggleVersePallate,
 }
