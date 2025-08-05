@@ -39,6 +39,15 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyZGI0NzVmZTAwZjg3Y2VkNDQ2:MWRjOGI2N2Y3OGE1MWY5MmU1YmMwYjhiZjY2NjM3ZWRkMjY0OWZiMWY4ZDg3MTZmMmU1ODViOTgwNDM4ZjU3Zg"),
         },
         BibleTranslation {
+            name: String::from("Americain Standard Version"),
+            short_name: String::from("asv"),
+            description: String::from("American Standard Version (ASV) – Published in 1901, the ASV is a highly literal English translation of the Bible, rooted in the tradition of the King James Version but updated to reflect more accurate renderings from the Hebrew and Greek manuscripts. It is known for its formal equivalence (word-for-word translation), the use of “Jehovah” for God’s name, and its influence on later versions such as the NASB. Though somewhat archaic in style today, it remains a respected choice for serious Bible study."),
+            wikipedia: String::from("https://en.wikipedia.org/wiki/American_Standard_Version"),
+            release_year: 1901,
+            languages: vec![Language::English],
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjI0ZmM0NzVmZTAwZjg3Y2YzMTg4:MTEzMjZkOTVlZTFkMWNhOGM0YmFmNDkwOWFkMjdmOTI3NjY5YjQ2NzA3NjViOTJlYTE2MzNmMzFkMzRiY2MwNQ"),
+        },
+        BibleTranslation {
             name: String::from("Green's Modern King James Version"),
             short_name: String::from("mkjv"),
             description: String::from("Green’s Modern King James Version (MKJV) is a conservative update of the King James Bible, produced by Jay P. Green Sr. It retains the traditional style and majesty of the original KJV while updating archaic words and grammar for clarity and readability. First published in the 1960s, the MKJV seeks to preserve the accuracy and literary beauty of the Authorized Version, using the Textus Receptus as its Greek source. It is often appreciated by readers who desire a modernized yet faithful rendering of the Scriptures."),
