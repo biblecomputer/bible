@@ -48,7 +48,11 @@ impl SearchResult {
     
     pub fn to_path(&self) -> String {
         match self {
-            SearchResult::Chapter(chapter) => chapter.to_path(),
+            SearchResult::Chapter(chapter) => {
+                // Always include verse 1 as default to ensure cross-references work
+                let verse_range = VerseRange { start: 1, end: 1 };
+                chapter.to_path_with_verses(&[verse_range])
+            },
             SearchResult::Verse { chapter, verse_number, .. } => {
                 let verse_range = VerseRange { start: *verse_number, end: *verse_number };
                 let path = chapter.to_path_with_verses(&[verse_range]);
