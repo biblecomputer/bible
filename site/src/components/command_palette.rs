@@ -715,7 +715,7 @@ pub fn CommandPalette(
         }
     });
 
-    // Set up global keyboard handling when palette is open
+    // Set up global keyboard handling when palette is open with proper cleanup
     let nav = navigate.clone();
     Effect::new(move |_| {
         if is_open.get() {
@@ -728,6 +728,10 @@ pub fn CommandPalette(
                         set_selected_index.set(0);
                     }
                     "Enter" => {
+                        // Double-check that palette is still open before processing
+                        if !is_open.get() {
+                            return; // Palette closed, don't process Enter
+                        }
                         e.prevent_default();
                         let results = filtered_results.get();
                         if !results.is_empty() {
@@ -767,8 +771,11 @@ pub fn CommandPalette(
                 }
             };
             
-            let _cleanup = window_event_listener(leptos::ev::keydown, handle_keydown);
-            // cleanup will happen when effect re-runs or component unmounts
+            let cleanup = window_event_listener(leptos::ev::keydown, handle_keydown);
+            on_cleanup(move || {
+                // Explicitly clean up when palette closes
+                drop(cleanup);
+            });
         }
     });
 
@@ -785,7 +792,8 @@ pub fn CommandPalette(
         }
     });
 
-    // Handle navigation
+    // Handle navigation - process immediately regardless of palette state
+    // Navigation should happen even after palette closes to complete the user's action
     Effect::new(move |_| {
         if let Some(path) = navigate_to.get() {
             // Debug log to track navigation
@@ -986,7 +994,7 @@ pub fn CommandPalette(
                                                             SearchResult::RecentChapter { .. } => {
                                                                 view! {
                                                                     <div class="text-xs opacity-75 mt-1 flex items-center">
-                                                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                                        <svg class="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                                                                         </svg>
                                                                         "Recent chapter"

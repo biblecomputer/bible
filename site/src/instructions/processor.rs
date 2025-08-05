@@ -245,15 +245,15 @@ where
                 // Add reference and link
                 copy_text.push_str("\n\n");
                 
-                let book_name = context.current_chapter.name
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or("");
-                let translated_book_name = self.get_translated_book_name(book_name);
-                let chapter_num = context.current_chapter.name
-                    .split_whitespace()
-                    .nth(1)
-                    .unwrap_or("1");
+                // Extract book name from chapter name (everything except the last word which is the chapter number)
+                let name_parts: Vec<&str> = context.current_chapter.name.split_whitespace().collect();
+                let book_name = if name_parts.len() > 1 {
+                    name_parts[..name_parts.len() - 1].join(" ")
+                } else {
+                    context.current_chapter.name.clone()
+                };
+                let translated_book_name = self.get_translated_book_name(&book_name);
+                let chapter_num = context.current_chapter.chapter.to_string();
                 
                 // Format reference
                 if verse_ranges.len() == 1 && verse_ranges[0].start == verse_ranges[0].end {
@@ -272,7 +272,7 @@ where
                 
                 // Add link
                 copy_text.push('\n');
-                let book_name_url = book_name.replace(' ', "_").to_lowercase();
+                let book_name_url = urlencoding::encode(&book_name);
                 let verses_param = context.search_params
                     .split("verses=")
                     .nth(1)

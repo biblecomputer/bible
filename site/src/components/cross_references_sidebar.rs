@@ -176,10 +176,16 @@ fn reference_to_url(reference: &Reference) -> String {
     // Convert canonical book name back to display book name used in the Bible
     let display_book_name = get_display_book_name(&reference.to_book_name);
     let encoded_book = encode(&display_book_name);
+    
+    // Ensure chapter and verse are valid positive numbers
+    let chapter = reference.to_chapter.max(1);
+    let verse_start = reference.to_verse_start.max(1);
+    
     if let Some(end_verse) = reference.to_verse_end {
-        format!("/{}/{}?verses={}-{}", encoded_book, reference.to_chapter, reference.to_verse_start, end_verse)
+        let verse_end = end_verse.max(verse_start);
+        format!("/{}/{}?verses={}-{}", encoded_book, chapter, verse_start, verse_end)
     } else {
-        format!("/{}/{}?verses={}", encoded_book, reference.to_chapter, reference.to_verse_start)
+        format!("/{}/{}?verses={}", encoded_book, chapter, verse_start)
     }
 }
 
@@ -264,6 +270,11 @@ pub fn CrossReferencesSidebar(
     let (is_navigating, set_is_navigating) = signal(false);
     let (_sidebar_has_focus, set_sidebar_has_focus) = signal(false);
     let navigate = use_navigate();
+    
+    // Use a simple Arc<AtomicBool> for disposal tracking that doesn't rely on reactive system
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    let is_disposed = Arc::new(AtomicBool::new(false));
     
     // Convert display book name (e.g. "I Samuël") to canonical English name (e.g. "1 Samuel") 
     // for cross-reference lookup
@@ -351,24 +362,32 @@ pub fn CrossReferencesSidebar(
     });
     
     // Keyboard navigation for references - with comprehensive safety checks and debouncing
+    let is_disposed_clone = is_disposed.clone();
+    let _component_book_name = book_name.clone();
+    let _component_chapter = chapter;
+    let _component_verse = verse;
     let handle_keydown = move |e: KeyboardEvent| {
+        // Early exit if component is disposed
+        if is_disposed_clone.load(Ordering::Relaxed) {
+            return;
+        }
+        
+        
         // Don't handle navigation when command palette is open (let palette handle it)
         if palette_open.get() {
             return;
         }
         
-        // Only handle specific Ctrl combinations to avoid conflicts with vim navigation
-        if !e.ctrl_key() {
-            return; // Let vim navigation handle non-Ctrl keys
-        }
+        // Safe access to sorted_references with disposal check
+        let refs = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            sorted_references.get()
+        })) {
+            Ok(Some(refs)) if !refs.is_empty() => refs,
+            _ => return, // Component is disposed or no references available
+        };
         
-        // Only handle navigation when references are available and we're specifically targeting cross-refs
-        if !sorted_references.get().is_some_and(|refs| !refs.is_empty()) {
-            return;
-        }
-        
-        // Only handle Ctrl+J and Ctrl+K specifically for cross-references
-        if !matches!((e.key().as_str(), e.ctrl_key()), ("j", true) | ("k", true)) {
+        // Only handle specific keys: Ctrl+J, Ctrl+K for navigation, or Enter for selection
+        if !matches!((e.key().as_str(), e.ctrl_key()), ("j", true) | ("k", true) | ("Enter", false)) {
             return;
         }
         
@@ -377,11 +396,6 @@ pub fn CrossReferencesSidebar(
             return; // Skip if already processing navigation
         }
         
-        // Get current references safely with additional checks
-        let refs = match sorted_references.get() {
-            Some(refs) if !refs.is_empty() => refs,
-            _ => return, // No references available
-        };
         
         // Bounds check current selection before processing with recovery
         let current = selected_reference_index.get();
@@ -463,8 +477,10 @@ pub fn CrossReferencesSidebar(
             ("Enter", false, false) => {
                 // Enter: Navigate to selected reference with bounds checking
                 e.prevent_default();
+                web_sys::console::log_1(&format!("Enter pressed, current index: {}, refs length: {}", current, refs.len()).into());
                 if let Some(reference) = refs.get(current) {
                     let reference_url = reference_to_url(reference);
+                    web_sys::console::log_1(&format!("Navigating to: {}", reference_url).into());
                     navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
                     // Close sidebar on mobile when reference is selected
                     if is_mobile_screen() {
@@ -472,7 +488,7 @@ pub fn CrossReferencesSidebar(
                         save_references_sidebar_open(false);
                     }
                 } else {
-                    web_sys::console::warn_1(&"Attempted to navigate to reference at invalid index".into());
+                    web_sys::console::warn_1(&format!("Attempted to navigate to reference at invalid index: {} (refs.len: {})", current, refs.len()).into());
                 }
                 set_is_navigating.set(false); // Clear navigation flag
             }
@@ -482,8 +498,14 @@ pub fn CrossReferencesSidebar(
         }
     };
     
-    // Add keyboard event listener - with proper bounds checking to prevent WASM errors
-    window_event_listener(ev::keydown, handle_keydown);
+    // Add keyboard event listener - with proper cleanup to prevent disposed reactive value access
+    let _cleanup = window_event_listener(ev::keydown, handle_keydown);
+    on_cleanup(move || {
+        // Mark component as disposed to prevent reactive value access
+        is_disposed.store(true, Ordering::Relaxed);
+        // Cleanup is handled automatically when _cleanup is dropped
+        drop(_cleanup);
+    });
     
     view! {
         <div 
