@@ -256,30 +256,17 @@ fn BibleWithSidebar() -> impl IntoView {
                                 }
                             )
                             on:click=move |_| {
-                                if cross_references_data.get().is_some() {
-                                    set_is_right_sidebar_open.update(|open| {
-                                        *open = !*open;
-                                        save_references_sidebar_open(*open);
-                                    });
-                                } else {
-                                    // Show sidebar with helpful message
-                                    set_is_right_sidebar_open.set(true);
-                                    save_references_sidebar_open(true);
-                                }
+                                // Always toggle like the "r" key does
+                                set_is_right_sidebar_open.update(|open| {
+                                    *open = !*open;
+                                    save_references_sidebar_open(*open);
+                                });
                             }
                             aria-label=move || {
-                                if cross_references_data.get().is_some() {
-                                    if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
-                                } else {
-                                    "Show references help"
-                                }
+                                if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
                             }
                             title=move || {
-                                if cross_references_data.get().is_some() {
-                                    if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
-                                } else {
-                                    "References (select a verse first)"
-                                }
+                                if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
                             }
                         >
                             <svg
