@@ -37,6 +37,15 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             release_year: 1999,
             languages: vec![Language::English],
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyZGI0NzVmZTAwZjg3Y2VkNDQ2:MWRjOGI2N2Y3OGE1MWY5MmU1YmMwYjhiZjY2NjM3ZWRkMjY0OWZiMWY4ZDg3MTZmMmU1ODViOTgwNDM4ZjU3Zg"),
+        },
+        BibleTranslation {
+            name: String::from("Green's Modern King James Version"),
+            short_name: String::from("mkjv"),
+            description: String::from("Green’s Modern King James Version (MKJV) is a conservative update of the King James Bible, produced by Jay P. Green Sr. It retains the traditional style and majesty of the original KJV while updating archaic words and grammar for clarity and readability. First published in the 1960s, the MKJV seeks to preserve the accuracy and literary beauty of the Authorized Version, using the Textus Receptus as its Greek source. It is often appreciated by readers who desire a modernized yet faithful rendering of the Scriptures."),
+            wikipedia: String::from("https://www.gotquestions.org/Modern-King-James-Version-MKJV.html"),
+            release_year: 1962,
+            languages: vec![Language::English],
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjIxMTQ0NzVmZTAwZjg3Y2VmOTEw:YzEzMGExYjU0OWI1M2I4ODk4MWJmYjgwNmM3YzE1ODJkZWJmMjhiNmYxOGMzMGY2ZTk0MTFlYjUyN2IzOGRjZQ"),
         }
     ]
 }
