@@ -48,11 +48,7 @@ impl SearchResult {
     
     pub fn to_path(&self) -> String {
         match self {
-            SearchResult::Chapter(chapter) => {
-                // Always include verse 1 as default to ensure cross-references work
-                let verse_range = VerseRange { start: 1, end: 1 };
-                chapter.to_path_with_verses(&[verse_range])
-            },
+            SearchResult::Chapter(chapter) => chapter.to_path(),
             SearchResult::Verse { chapter, verse_number, .. } => {
                 let verse_range = VerseRange { start: *verse_number, end: *verse_number };
                 let path = chapter.to_path_with_verses(&[verse_range]);
@@ -734,10 +730,8 @@ pub fn CommandPalette(
                     "Enter" => {
                         // Double-check that palette is still open before processing
                         if !is_open.get() {
-                            web_sys::console::log_1(&"PALETTE: Enter pressed but palette is closed, ignoring".into());
                             return; // Palette closed, don't process Enter
                         }
-                        web_sys::console::log_1(&"PALETTE: Enter pressed and palette is open, processing".into());
                         e.prevent_default();
                         let results = filtered_results.get();
                         if !results.is_empty() {
