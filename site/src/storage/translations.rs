@@ -9,7 +9,7 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             wikipedia: String::from("https://nl.wikipedia.org/wiki/Statenvertaling"),
             release_year: 1637,
             languages: vec![Language::Dutch],
-            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4NjlmY2VlMTNjNGI2YzhhMmU3MzQx:NWFlN2IwYmIyZDQ0OWI3OTQ1ZmJhYWI4NGFjODJkYjYyMmM1MWJkZmEzYmI1NTA1NzgyZWEwNGQwOGMyMGM3MQ"),
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyOTM0NzVmZTAwZjg3Y2VjN2Iy:MjhiNDNiOTMyNDllYTAwMzRmYWM4ZTdmOTdlZDU3NGExNzQxNjA4MzBiNzU3MThmNjE5ZGEzODZiNjVlOWE2MA"),
         },
         BibleTranslation {
             name: String::from("Petrus Canisiusvertaling"),
@@ -18,7 +18,7 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             wikipedia: String::from("https://nl.wikipedia.org/wiki/Petrus_Canisiusvertaling"),
             release_year: 1939,
             languages: vec![Language::Dutch],
-            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4NjYwZTZlMTNjNGI2YzhhMmU0Zjc0:MGYyYTlkYmRiZDhhNThjYjRmNzk4NzA2ODZkODY0M2NlMzJjZDRkMjM3YWJmNjQ5MWU4NmFkMTRmNDMwZWMzYQ"),
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyOGY0NzVmZTAwZjg3Y2VjN2Iw:N2U3ZTg1MTkxMmFiZGY5NTU0ZjM5MTdhZThkMDIzYWYxZDg4ZDQ1N2EyMDA1NzhiZWRiYmY4NmUzZTA3ZWIyOA"),
         },
         BibleTranslation {
             name: String::from("King james version"),
@@ -27,7 +27,16 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             wikipedia: String::from("https://en.wikipedia.org/wiki/King_James_Version"),
             release_year: 1611,
             languages: vec![Language::English],
-            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg4NjYzMDBlMTNjNGI2YzhhMmU1Yzc2:MzI3ZTY3NjBmMDAwMzBlMDVlZGM3NGQxNjU5MDIxMDdlNTE0MDA2ZWJkNTRkMjAyZGJjZWE1ZTlhMTQzNmYzNg"),
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyZGM0NzVmZTAwZjg3Y2VkNDU0:Yjc0MjAwNzMzN2RmM2UyMGVkZDgzYThiMWRjZWIxMjM0OTUwMjZhNDVhMWFkOGZmMThjOTU4NTUzMmUwY2FhYQ"),
+        },
+        BibleTranslation {
+            name: String::from("American King james version"),
+            short_name: String::from("akjv"),
+            description: String::from("The American King James Version (AKJV) is a modernized update of the original 1769 Oxford edition of the King James Bible. Created by Michael Peter Engelbrite, this version retains the literary beauty and structure of the original KJV while updating some archaic English words and spellings to make the text more accessible to contemporary readers. Importantly, the AKJV makes no changes to the underlying meaning of the scriptures, preserving the integrity and style of the King James tradition. It is in the public domain and widely used by those who appreciate the KJV but prefer a slightly more readable form."),
+            wikipedia: String::from("https://studybible.info/version/AKJV"),
+            release_year: 1999,
+            languages: vec![Language::English],
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyZGI0NzVmZTAwZjg3Y2VkNDQ2:MWRjOGI2N2Y3OGE1MWY5MmU1YmMwYjhiZjY2NjM3ZWRkMjY0OWZiMWY4ZDg3MTZmMmU1ODViOTgwNDM4ZjU3Zg"),
         }
     ]
 }
