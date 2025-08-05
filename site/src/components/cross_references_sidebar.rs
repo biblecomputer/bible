@@ -477,7 +477,7 @@ pub fn CrossReferencesSidebar(
             ("Enter", false, false) => {
                 // Enter: Navigate to selected reference with bounds checking
                 e.prevent_default();
-                web_sys::console::log_1(&format!("Enter pressed, current index: {}, refs length: {}", current, refs.len()).into());
+                web_sys::console::log_1(&format!("CROSS-REFS: Enter pressed, current index: {}, refs length: {}", current, refs.len()).into());
                 if let Some(reference) = refs.get(current) {
                     let reference_url = reference_to_url(reference);
                     web_sys::console::log_1(&format!("Navigating to: {}", reference_url).into());
