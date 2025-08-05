@@ -714,8 +714,7 @@ pub fn CommandPalette(
             });
         }
     });
-
-    // Set up global keyboard handling when palette is open with proper cleanup
+  
     let nav = navigate.clone();
     Effect::new(move |_| {
         if is_open.get() {
