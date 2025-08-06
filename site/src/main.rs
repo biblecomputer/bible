@@ -1,5 +1,5 @@
 use crate::api::init_bible;
-use crate::components::{CommandPalette, CrossReferencesSidebar, Sidebar, ThemeSwitcher};
+use crate::components::{CommandPalette, CrossReferencesSidebar, Sidebar, ThemeSidebar, ThemeSwitcher};
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::instructions::{
     Instruction, InstructionContext, InstructionProcessor, VimKeyboardMapper,
@@ -133,6 +133,8 @@ fn BibleWithSidebar() -> impl IntoView {
     let (is_left_sidebar_open, set_is_left_sidebar_open) = signal(get_sidebar_open());
     // Right sidebar (cross-references) visibility state - load from storage
     let (is_right_sidebar_open, set_is_right_sidebar_open) = signal(get_references_sidebar_open());
+    // Theme sidebar visibility state
+    let (is_theme_sidebar_open, set_is_theme_sidebar_open) = signal(false);
     // Verse visibility state - initialize from localStorage
     let (verse_visibility_enabled, set_verse_visibility_enabled) = signal(get_verse_visibility());
     // Theme state - initialize from localStorage
@@ -212,6 +214,8 @@ fn BibleWithSidebar() -> impl IntoView {
             set_left_sidebar_open=set_is_left_sidebar_open
             _right_sidebar_open=is_right_sidebar_open
             set_right_sidebar_open=set_is_right_sidebar_open
+            _theme_sidebar_open=is_theme_sidebar_open
+            set_theme_sidebar_open=set_is_theme_sidebar_open
             verse_visibility_enabled=verse_visibility_enabled
             set_verse_visibility_enabled=set_verse_visibility_enabled
             next_palette_result=next_palette_result
@@ -307,6 +311,31 @@ fn BibleWithSidebar() -> impl IntoView {
                                 <line x1="16" y1="13" x2="8" y2="13"/>
                                 <line x1="16" y1="17" x2="8" y2="17"/>
                                 <polyline points="10,9 9,9 8,9"/>
+                            </svg>
+                        </button>
+                        <button
+                            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                            style="color: var(--theme-text-secondary)"
+                            on:click=move |_| {
+                                set_is_theme_sidebar_open.update(|open| *open = !*open);
+                            }
+                            aria-label="Theme options"
+                            title="Theme options"
+                        >
+                            <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                aria-hidden="true"
+                            >
+                                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                                <circle cx="6.5" cy="11.5" r=".5"/>
+                                <circle cx="8.5" cy="7.5" r=".5"/>
+                                <circle cx="12.5" cy="13.5" r=".5"/>
+                                <circle cx="13.5" cy="6.5" r=".5"/>
                             </svg>
                         </button>
                         <ThemeSwitcher
@@ -458,6 +487,35 @@ fn BibleWithSidebar() -> impl IntoView {
                         }
                     />
                 </Show>
+
+                // Theme sidebar
+                <Show
+                    when=move || is_theme_sidebar_open.get()
+                    fallback=|| view! { <></> }
+                >
+                    <aside class="w-80 border-r p-4 overflow-y-auto md:relative absolute inset-y-0 right-0 z-45 md:z-auto" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border)">
+                        <ThemeSidebar
+                            current_theme=current_theme
+                            set_current_theme=set_current_theme
+                            set_sidebar_open=set_is_theme_sidebar_open
+                        />
+                    </aside>
+                </Show>
+
+                // Theme sidebar mobile overlay
+                <Show
+                    when=move || {
+                        is_theme_sidebar_open.get() && is_mobile_screen()
+                    }
+                    fallback=|| view! { <></> }
+                >
+                    <div
+                        class="fixed inset-0 bg-black bg-opacity-50 z-44"
+                        on:click=move |_| {
+                            set_is_theme_sidebar_open.set(false);
+                        }
+                    />
+                </Show>
             </div>
     }
 }
@@ -494,6 +552,8 @@ fn KeyboardNavigationHandler(
     set_left_sidebar_open: WriteSignal<bool>,
     _right_sidebar_open: ReadSignal<bool>,
     set_right_sidebar_open: WriteSignal<bool>,
+    _theme_sidebar_open: ReadSignal<bool>,
+    set_theme_sidebar_open: WriteSignal<bool>,
     verse_visibility_enabled: ReadSignal<bool>,
     set_verse_visibility_enabled: WriteSignal<bool>,
     next_palette_result: RwSignal<bool>,
@@ -588,7 +648,7 @@ fn KeyboardNavigationHandler(
                     Instruction::ToggleBiblePallate | Instruction::ToggleCommandPallate => {
                         // Let palette toggle instructions through to be processed below
                     }
-                    Instruction::ToggleSidebar | Instruction::ToggleCrossReferences | Instruction::ToggleVerseVisibility => {
+                    Instruction::ToggleSidebar | Instruction::ToggleCrossReferences | Instruction::ToggleThemeSidebar | Instruction::ToggleVerseVisibility => {
                         // Let UI toggle instructions through to be processed below
                     }
                     Instruction::NextReference | Instruction::PreviousReference => {
@@ -678,6 +738,11 @@ fn KeyboardNavigationHandler(
                         *open = !*open;
                         save_references_sidebar_open(*open);
                     });
+                    return;
+                }
+                Instruction::ToggleThemeSidebar => {
+                    e.prevent_default();
+                    set_theme_sidebar_open.update(|open| *open = !*open);
                     return;
                 }
                 Instruction::ToggleVerseVisibility => {

@@ -153,6 +153,7 @@ impl KeyboardMappings {
             "CopyVerseWithReference" => Some(Instruction::CopyVerseWithReference),
             "ToggleSidebar" => Some(Instruction::ToggleSidebar),
             "ToggleCrossReferences" => Some(Instruction::ToggleCrossReferences),
+            "ToggleThemeSidebar" => Some(Instruction::ToggleThemeSidebar),
             "ToggleBiblePallate" => Some(Instruction::ToggleBiblePallate),
             "ToggleCommandPallate" => Some(Instruction::ToggleCommandPallate),
             "NextReference" => Some(Instruction::NextReference),

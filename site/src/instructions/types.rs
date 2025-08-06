@@ -27,6 +27,7 @@ pub enum Instruction {
     // UI toggles
     ToggleSidebar,
     ToggleCrossReferences,
+    ToggleThemeSidebar,
     ToggleBiblePallate,
     ToggleCommandPallate,
 

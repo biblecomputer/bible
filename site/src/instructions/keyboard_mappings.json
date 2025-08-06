@@ -28,6 +28,7 @@
     "b": "ToggleSidebar",
     "r": "ToggleCrossReferences",
     "<C-S-R>": "ToggleCrossReferences",
+    "<S-T>": "ToggleThemeSidebar",
     
     "v": "ToggleVerseVisibility",
     
