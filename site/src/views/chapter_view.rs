@@ -298,14 +298,11 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
             <nav class="flex justify-between items-center mt-8 pt-6 border-t" style="border-color: var(--theme-sidebar-border)" role="navigation" aria-label="Chapter navigation">
                 {move || if let Some(path) = prev_path.get() {
                     view! {
-                        <div class="flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors group navigation-button" style="color: var(--theme-navigation-text)">
-                            <A href=path>
-                                <svg class="w-4 h-4 mr-2 group-hover:transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                </svg>
-                                {get_navigation_text("previous_chapter")}
-                            </A>
-                        </div>
+                        <A href=path attr:class="p-4 rounded-md transition-colors group navigation-button" attr:style="color: var(--theme-navigation-text); display: flex; align-items: center; justify-content: center;" attr:aria-label={get_navigation_text("previous_chapter")} attr:title={get_navigation_text("previous_chapter")}>
+                            <svg class="w-8 h-8 group-hover:transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true" style="min-width: 32px; min-height: 32px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </A>
                     }.into_any()
                 } else {
                     view! { <div class="invisible"></div> }.into_any()
@@ -313,14 +310,11 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
                 
                 {move || if let Some(path) = next_path.get() {
                     view! {
-                        <div class="flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors group navigation-button" style="color: var(--theme-navigation-text)">
-                            <A href=path>
-                                {get_navigation_text("next_chapter")}
-                                <svg class="w-4 h-4 ml-2 group-hover:transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                </svg>
-                            </A>
-                        </div>
+                        <A href=path attr:class="p-4 rounded-md transition-colors group navigation-button" attr:style="color: var(--theme-navigation-text); display: flex; align-items: center; justify-content: center;" attr:aria-label={get_navigation_text("next_chapter")} attr:title={get_navigation_text("next_chapter")}>
+                            <svg class="w-8 h-8 group-hover:transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24" aria-hidden="true" style="min-width: 32px; min-height: 32px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </A>
                     }.into_any()
                 } else {
                     view! { <div class="invisible"></div> }.into_any()

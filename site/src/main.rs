@@ -221,6 +221,10 @@ fn BibleWithSidebar() -> impl IntoView {
                 background-color: var(--theme-palette-highlight-background) !important;
                 color: var(--theme-palette-highlight) !important;
             }}
+            nav span {{
+                user-select: none;
+                pointer-events: none;
+            }}
             "
         </style>
         <KeyboardNavigationHandler
