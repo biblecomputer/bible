@@ -96,7 +96,7 @@ fn TranslationItem(
                             view! {
                                 <div class="flex gap-2">
                                     <button
-                                        class="px-6 py-2 rounded-md transition-colors font-medium" style="background-color: var(--theme-buttons-primary-background); color: var(--theme-buttons-primary-text)"
+                                        class="px-6 py-2 rounded-md transition-colors font-medium translation-button-primary"
                                         disabled=move || is_switching.get() || is_uninstalling
                                         on:click={
                                             let translation_short_name_clone3 = translation_short_name_ref.clone();
@@ -136,7 +136,7 @@ fn TranslationItem(
                                         if translation_short_name_ref != "sv" {
                                             view! {
                                                 <button
-                                                    class="px-3 py-2 rounded-md transition-colors font-medium text-sm" style="background-color: var(--theme-buttons-danger-background); color: var(--theme-buttons-danger-text)"
+                                                    class="px-3 py-2 rounded-md transition-colors font-medium text-sm translation-button-danger"
                                                     disabled=move || is_switching.get() || is_uninstalling
                                                     on:click={
                                                         let translation_short_name_clone4 = translation_short_name_ref.clone();
@@ -186,7 +186,7 @@ fn TranslationItem(
                             view! {
                                 <div class="flex gap-2">
                                     <button
-                                        class="px-6 py-2 rounded-md transition-colors font-medium" style="background-color: var(--theme-buttons-success-background); color: var(--theme-buttons-success-text)"
+                                        class="px-6 py-2 rounded-md transition-colors font-medium translation-button-success"
                                         on:click={
                                             let translation_clone = translation_clone_for_download.clone();
                                             let translation_short_name_clone = translation_short_name_ref.clone();
@@ -251,8 +251,7 @@ fn TranslationItem(
                     href=translation_wikipedia.clone()
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-sm hover:underline"
-                    style="color: var(--theme-buttons-primary-background)"
+                    class="text-sm hover:underline translation-link"
                 >
                     "Meer informatie →"
                 </a>
@@ -369,8 +368,7 @@ pub fn HomeTranslationPicker(
                         view! {
                             <div class="mb-4">
                                 <button
-                                    class="flex items-center transition-colors"
-                                    style="color: var(--theme-buttons-primary-background)"
+                                    class="flex items-center transition-colors translation-link"
                                     on:click=move |_| {
                                         set_view_state.set(ViewState::LanguageSelection);
                                     }

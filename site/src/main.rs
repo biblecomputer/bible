@@ -152,6 +152,26 @@ fn BibleApp() -> impl IntoView {
             a:hover {{
                 opacity: 0.8;
             }}
+            .translation-button-primary {{
+                background-color: var(--theme-buttons-primary-background) !important;
+                color: var(--theme-buttons-primary-text) !important;
+            }}
+            .translation-button-success {{
+                background-color: var(--theme-buttons-success-background) !important;
+                color: var(--theme-buttons-success-text) !important;
+            }}
+            .translation-button-danger {{
+                background-color: var(--theme-buttons-danger-background) !important;
+                color: var(--theme-buttons-danger-text) !important;
+            }}
+            .translation-link {{
+                color: var(--theme-buttons-primary-background) !important;
+            }}
+            .about-code {{
+                background-color: var(--theme-sidebar-background) !important;
+                color: var(--theme-text-primary) !important;
+                border: 1px solid var(--theme-sidebar-border) !important;
+            }}
             "
         </style>
         <Router>
