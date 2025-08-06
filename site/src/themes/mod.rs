@@ -14,6 +14,8 @@ pub struct ThemeColors {
     pub verses: VerseColors,
     pub sidebar: SidebarColors,
     pub buttons: ButtonColors,
+    pub header: HeaderColors,
+    pub navigation: NavigationColors,
     #[serde(rename = "commandPalette")]
     pub command_palette: CommandPaletteColors,
 }
@@ -43,6 +45,29 @@ pub struct SidebarColors {
     pub text: String,
     #[serde(rename = "textHover")]
     pub text_hover: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HeaderColors {
+    pub background: String,
+    pub border: String,
+    pub button: HeaderButtonColors,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HeaderButtonColors {
+    pub text: String,
+    pub hover: String,
+    #[serde(rename = "hoverBackground")]
+    pub hover_background: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NavigationColors {
+    pub text: String,
+    pub hover: String,
+    #[serde(rename = "hoverBackground")]
+    pub hover_background: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,6 +142,14 @@ pub fn theme_to_css_vars(theme: &Theme) -> String {
         --theme-button-danger-background: {};
         --theme-button-danger-text: {};
         --theme-button-danger-hover: {};
+        --theme-header-background: {};
+        --theme-header-border: {};
+        --theme-header-button-text: {};
+        --theme-header-button-hover: {};
+        --theme-header-button-hover-background: {};
+        --theme-navigation-text: {};
+        --theme-navigation-hover: {};
+        --theme-navigation-hover-background: {};
         --theme-palette-background: {};
         --theme-palette-border: {};
         --theme-palette-text: {};
@@ -148,6 +181,14 @@ pub fn theme_to_css_vars(theme: &Theme) -> String {
         theme.colors.buttons.danger.background,
         theme.colors.buttons.danger.text,
         theme.colors.buttons.danger.hover,
+        theme.colors.header.background,
+        theme.colors.header.border,
+        theme.colors.header.button.text,
+        theme.colors.header.button.hover,
+        theme.colors.header.button.hover_background,
+        theme.colors.navigation.text,
+        theme.colors.navigation.hover,
+        theme.colors.navigation.hover_background,
         theme.colors.command_palette.background,
         theme.colors.command_palette.border,
         theme.colors.command_palette.text,

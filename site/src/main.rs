@@ -207,6 +207,18 @@ fn BibleWithSidebar() -> impl IntoView {
     });
 
     view! {
+        <style>
+            "
+            .header-button:hover {{
+                color: var(--theme-header-button-hover) !important;
+                background-color: var(--theme-header-button-hover-background) !important;
+            }}
+            .navigation-button:hover {{
+                color: var(--theme-navigation-hover) !important;
+                background-color: var(--theme-navigation-hover-background) !important;
+            }}
+            "
+        </style>
         <KeyboardNavigationHandler
             palette_open=is_palette_open
             set_palette_open=set_is_palette_open
@@ -230,12 +242,12 @@ fn BibleWithSidebar() -> impl IntoView {
             previous_palette_result=previous_palette_result
             initial_search_query=initial_search_query
         />
-        <nav class="border-b px-4 py-2" style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)">
+        <nav class="border-b px-4 py-2" style="background-color: var(--theme-header-background); border-color: var(--theme-header-border)">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <button
-                        class="p-2 hover:bg-gray-100 rounded transition-colors"
-                        style="color: var(--theme-text-secondary)"
+                        class="p-2 rounded transition-colors header-button"
+                        style="color: var(--theme-header-button-text)"
                         on:click=move |_| {
                             set_is_left_sidebar_open.update(|open| {
                                 *open = !*open;
@@ -263,7 +275,8 @@ fn BibleWithSidebar() -> impl IntoView {
                         </button>
                         <a
                             href="/?choose=true"
-                            class="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                            class="flex items-center px-3 py-2 text-sm rounded transition-colors header-button"
+                            style="color: var(--theme-header-button-text)"
                             aria-label="Kies vertaling"
                             title="Terug naar vertalingskeuze"
                         >
@@ -275,14 +288,14 @@ fn BibleWithSidebar() -> impl IntoView {
                     </div>
                     <div class="flex items-center space-x-2">
                         <button
-                            class=move || format!(
-                                "p-2 rounded transition-colors {}",
+                            class="p-2 rounded transition-colors header-button"
+                            style=move || {
                                 if cross_references_data.get().is_some() {
-                                    "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                                    "color: var(--theme-header-button-text)"
                                 } else {
-                                    "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                                    "color: var(--theme-text-muted)"
                                 }
-                            )
+                            }
                             on:click=move |_| {
                                 // Always toggle like the "r" key does
                                 set_is_right_sidebar_open.update(|open| {
@@ -318,8 +331,8 @@ fn BibleWithSidebar() -> impl IntoView {
                             </svg>
                         </button>
                         <button
-                            class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                            style="color: var(--theme-text-secondary)"
+                            class="p-2 rounded transition-colors header-button"
+                            style="color: var(--theme-header-button-text)"
                             on:click=move |_| {
                                 set_is_theme_sidebar_open.update(|open| {
                                     *open = !*open;
@@ -351,8 +364,8 @@ fn BibleWithSidebar() -> impl IntoView {
                         </button>
                         <a
                             href="/about"
-                            class="p-2 ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
-                            style="color: var(--theme-text-secondary)"
+                            class="p-2 ml-2 rounded transition-colors header-button"
+                            style="color: var(--theme-header-button-text)"
                             aria-label="About page"
                             title="About this Bible website"
                         >

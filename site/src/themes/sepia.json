@@ -42,6 +42,20 @@
         "hover": "#a0632d"
       }
     },
+    "header": {
+      "background": "#f7f3e9",
+      "border": "#d2b48c",
+      "button": {
+        "text": "#8b7355",
+        "hover": "#5d4e37",
+        "hoverBackground": "#f0ead6"
+      }
+    },
+    "navigation": {
+      "text": "#5d4e37",
+      "hover": "#b8860b",
+      "hoverBackground": "#f5deb3"
+    },
     "commandPalette": {
       "background": "#f0ead6",
       "border": "#d2b48c",
