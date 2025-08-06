@@ -66,3 +66,38 @@ pub fn get_current_translation() -> Option<BibleTranslation> {
         .into_iter()
         .find(|t| t.short_name == selected_short_name)
 }
+
+pub fn get_available_languages() -> Vec<Language> {
+    let mut languages = Vec::new();
+    for translation in get_translations() {
+        for language in translation.languages {
+            if !languages.contains(&language) {
+                languages.push(language);
+            }
+        }
+    }
+    languages.sort_by(|a, b| {
+        match (a, b) {
+            (Language::Dutch, Language::English) => std::cmp::Ordering::Less,
+            (Language::English, Language::Dutch) => std::cmp::Ordering::Greater,
+            _ => std::cmp::Ordering::Equal,
+        }
+    });
+    languages
+}
+
+pub fn get_translations_by_language(language: &Language) -> Vec<BibleTranslation> {
+    get_translations()
+        .into_iter()
+        .filter(|translation| translation.languages.contains(language))
+        .collect()
+}
+
+impl Language {
+    pub fn display_name(&self) -> &str {
+        match self {
+            Language::Dutch => "Nederlands",
+            Language::English => "English",
+        }
+    }
+}

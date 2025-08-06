@@ -6,9 +6,15 @@ use crate::core::get_current_bible;
 use crate::storage::{
     get_selected_translation, set_selected_translation, 
     is_translation_downloaded, download_translation_with_progress, switch_bible_translation, uninstall_translation,
-    get_translations, BibleTranslation
+    get_available_languages, get_translations_by_language, BibleTranslation, Language
 };
 use wasm_bindgen_futures::spawn_local;
+
+#[derive(Clone, PartialEq)]
+enum ViewState {
+    LanguageSelection,
+    TranslationSelection(Language),
+}
 
 #[component]
 fn TranslationItem(
@@ -257,6 +263,7 @@ fn TranslationItem(
 pub fn HomeTranslationPicker() -> impl IntoView {
     let (selected_translation, set_selected_translation_signal) = signal(get_selected_translation().unwrap_or_else(|| "sv".to_string()));
     let (downloading_translation, set_downloading_translation) = signal::<Option<String>>(None);
+    let (view_state, set_view_state) = signal(ViewState::LanguageSelection);
     
     // Debug: Watch downloading translation changes
     Effect::new(move |_| {
@@ -288,7 +295,7 @@ pub fn HomeTranslationPicker() -> impl IntoView {
     });
     
     let navigate = use_navigate();
-    let translations = get_translations();
+    let languages = get_available_languages();
     
     
     let navigate_to_first_chapter = move || {
@@ -306,34 +313,97 @@ pub fn HomeTranslationPicker() -> impl IntoView {
         <div class="max-w-2xl mx-auto">
             <div class="text-center mb-8">
                 <h1 class="text-4xl font-bold text-gray-900 mb-4">"Bijbel"</h1>
-                <p class="text-lg text-gray-600 mb-8">"Kies een vertaling om te beginnen met lezen"</p>
+                <p class="text-lg text-gray-600 mb-8">
+                    {move || match view_state.get() {
+                        ViewState::LanguageSelection => "Kies een taal om te beginnen",
+                        ViewState::TranslationSelection(_) => "Kies een vertaling om te beginnen met lezen",
+                    }}
+                </p>
             </div>
             
             <div class="space-y-4">
-                {translations.into_iter().map(|translation| {
-                    view! {
-                        <TranslationItem
-                            translation=translation
-                            downloading_translation=downloading_translation
-                            set_downloading_translation=set_downloading_translation
-                            download_progress=download_progress
-                            set_download_progress=set_download_progress
-                            download_status=download_status
-                            set_download_status=set_download_status
-                            download_error=download_error
-                            set_download_error=set_download_error
-                            uninstalling_translation=uninstalling_translation
-                            set_uninstalling_translation=set_uninstalling_translation
-                            selected_translation=selected_translation
-                            set_selected_translation_signal=set_selected_translation_signal
-                            is_switching=is_switching
-                            set_is_switching=set_is_switching
-                            ui_refresh_trigger=ui_refresh_trigger
-                            set_ui_refresh_trigger=set_ui_refresh_trigger
-                            navigate_to_first_chapter=navigate_to_first_chapter.clone()
-                        />
+                {move || match view_state.get() {
+                    ViewState::LanguageSelection => {
+                        languages.clone().into_iter().map(|language| {
+                            let language_name = language.display_name().to_string();
+                            let language_clone = language.clone();
+                            view! {
+                                <div class="border rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                    on:click=move |_| {
+                                        set_view_state.set(ViewState::TranslationSelection(language_clone.clone()));
+                                    }
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <h3 class="text-xl font-semibold text-gray-900 mb-1">
+                                                {language_name.clone()}
+                                            </h3>
+                                            <p class="text-sm text-gray-600">
+                                                {match language {
+                                                    Language::Dutch => "Nederlandse vertalingen",
+                                                    Language::English => "English translations",
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div class="ml-6">
+                                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }).collect_view().into_any()
                     }
-                }).collect_view()}
+                    ViewState::TranslationSelection(selected_language) => {
+                        let translations = get_translations_by_language(&selected_language);
+                        let selected_language_name = selected_language.display_name().to_string();
+                        view! {
+                            <div class="mb-4">
+                                <button
+                                    class="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+                                    on:click=move |_| {
+                                        set_view_state.set(ViewState::LanguageSelection);
+                                    }
+                                >
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                    "Terug naar talen"
+                                </button>
+                                <h2 class="text-2xl font-semibold text-gray-900 mt-2">
+                                    {selected_language_name} " vertalingen"
+                                </h2>
+                            </div>
+                            <div class="space-y-4">
+                                {translations.into_iter().map(|translation| {
+                                    view! {
+                                        <TranslationItem
+                                            translation=translation
+                                            downloading_translation=downloading_translation
+                                            set_downloading_translation=set_downloading_translation
+                                            download_progress=download_progress
+                                            set_download_progress=set_download_progress
+                                            download_status=download_status
+                                            set_download_status=set_download_status
+                                            download_error=download_error
+                                            set_download_error=set_download_error
+                                            uninstalling_translation=uninstalling_translation
+                                            set_uninstalling_translation=set_uninstalling_translation
+                                            selected_translation=selected_translation
+                                            set_selected_translation_signal=set_selected_translation_signal
+                                            is_switching=is_switching
+                                            set_is_switching=set_is_switching
+                                            ui_refresh_trigger=ui_refresh_trigger
+                                            set_ui_refresh_trigger=set_ui_refresh_trigger
+                                            navigate_to_first_chapter=navigate_to_first_chapter.clone()
+                                        />
+                                    }
+                                }).collect_view()}
+                            </div>
+                        }.into_any()
+                    }
+                }}
             </div>
             
             <Show
