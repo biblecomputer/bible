@@ -193,17 +193,12 @@ fn BibleWithSidebar() -> impl IntoView {
     // Apply theme CSS variables to document
     Effect::new(move |_| {
         let theme = current_theme.get();
-        #[cfg(target_arch = "wasm32")]
-        web_sys::console::log_1(&format!("Applying theme: {} ({})", theme.name, theme.id).into());
-        
         let css_vars = theme_to_css_vars(&theme);
         
         if let Some(window) = web_sys::window() {
             if let Some(document) = window.document() {
                 if let Some(root) = document.document_element() {
                     let _ = root.set_attribute("style", &css_vars);
-                    #[cfg(target_arch = "wasm32")]
-                    web_sys::console::log_1(&"CSS variables applied to root element".into());
                 }
             }
         }
@@ -348,7 +343,7 @@ fn BibleWithSidebar() -> impl IntoView {
                     when=move || is_left_sidebar_open.get()
                     fallback=|| view! { <></> }
                 >
-                    <aside class="w-64 bg-white border-r border-black p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto">
+                    <aside class="w-64 border-r p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border)">
                         <Sidebar set_sidebar_open=set_is_left_sidebar_open />
                     </aside>
                 </Show>
@@ -393,7 +388,7 @@ fn BibleWithSidebar() -> impl IntoView {
                     when=move || is_right_sidebar_open.get()
                     fallback=|| view! { <></> }
                 >
-                    <aside class="w-64 bg-white border-l border-black p-3 overflow-y-auto md:relative absolute inset-y-0 right-0 z-40 md:z-auto">
+                    <aside class="w-64 border-l p-3 overflow-y-auto md:relative absolute inset-y-0 right-0 z-40 md:z-auto" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border)">
                         {move || {
                             if let Some((book_name, chapter, verse)) = cross_references_data.get() {
                                 view! {
@@ -407,7 +402,7 @@ fn BibleWithSidebar() -> impl IntoView {
                                 }.into_any()
                             } else {
                                 view! {
-                                    <div class="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500">
+                                    <div class="flex flex-col items-center justify-center h-full text-center p-6" style="color: var(--theme-text-muted)">
                                         <svg
                                             width="48"
                                             height="48"

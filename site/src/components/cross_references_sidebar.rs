@@ -296,12 +296,12 @@ pub fn CrossReferencesSidebar(
             return view! {
                 <div class="cross-references-sidebar">
                     <div class="mb-4">
-                        <h2 class="text-lg font-bold text-black mb-2">{get_ui_text("cross_references")}</h2>
-                        <div class="text-sm text-gray-600 mb-4">
+                        <h2 class="text-lg font-bold mb-2" style="color: var(--theme-sidebar-text)">{get_ui_text("cross_references")}</h2>
+                        <div class="text-sm mb-4" style="color: var(--theme-text-secondary)">
                             {get_translated_book_name(&book_name)} " " {chapter} ":" {verse}
                         </div>
                     </div>
-                    <div class="text-sm text-gray-500 italic">
+                    <div class="text-sm italic" style="color: var(--theme-text-muted)">
                         {get_ui_text("no_references")}
                     </div>
                 </div>
@@ -517,8 +517,8 @@ pub fn CrossReferencesSidebar(
             on:mouseleave=move |_| set_sidebar_has_focus.set(false)
         >
             <div class="mb-4">
-                <h2 class="text-lg font-bold text-black mb-2">{get_ui_text("cross_references")}</h2>
-                <div class="text-sm text-gray-600 mb-4">
+                <h2 class="text-lg font-bold mb-2" style="color: var(--theme-sidebar-text)">{get_ui_text("cross_references")}</h2>
+                <div class="text-sm mb-4" style="color: var(--theme-text-secondary)">
                     {get_translated_book_name(&book_name)} " " {chapter} ":" {verse}
                 </div>
             </div>
@@ -526,7 +526,7 @@ pub fn CrossReferencesSidebar(
             <Show
                 when=move || sorted_references.get().is_some()
                 fallback=move || view! {
-                    <div class="text-sm text-gray-500 italic">
+                    <div class="text-sm italic" style="color: var(--theme-text-muted)">
                         {get_ui_text("no_references")}
                     </div>
                 }
@@ -557,10 +557,10 @@ pub fn CrossReferencesSidebar(
                 
                 // Live preview section for selected reference
                 <Show when=move || sorted_references.get().is_some_and(|refs| !refs.is_empty())>
-                    <div class="mt-4 border-t border-gray-200 pt-4">
-                        <h3 class="text-sm font-medium text-gray-700 mb-2">Preview</h3>
-                        <div class="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
-                            <div class="text-xs text-gray-500 mb-1">
+                    <div class="mt-4 border-t pt-4" style="border-color: var(--theme-sidebar-border)">
+                        <h3 class="text-sm font-medium mb-2" style="color: var(--theme-sidebar-text)">Preview</h3>
+                        <div class="rounded-lg p-3 max-h-32 overflow-y-auto" style="background-color: var(--theme-sidebar-background)">
+                            <div class="text-xs mb-1" style="color: var(--theme-text-muted)">
                                 {move || {
                                     if let Some(refs) = sorted_references.get() {
                                         if !refs.is_empty() {
@@ -583,7 +583,7 @@ pub fn CrossReferencesSidebar(
                                     }
                                 }}
                             </div>
-                            <div class="text-sm text-gray-900 leading-relaxed">
+                            <div class="text-sm leading-relaxed" style="color: var(--theme-text-primary)">
                                 {move || {
                                     if let Some(refs) = sorted_references.get() {
                                         if !refs.is_empty() {
@@ -630,14 +630,14 @@ fn ReferenceItem(
         <div class="reference-item">
             <button
                 id=reference_id.clone()
-                class=move || format!(
-                    "w-full text-left p-3 rounded-lg border transition-colors duration-150 group {}",
+                class="w-full text-left p-3 rounded-lg border transition-colors duration-150 group"
+                style=move || {
                     if is_selected.get() {
-                        "border-blue-600 bg-blue-500 text-white shadow-lg"
+                        "border-color: var(--theme-button-primary-background); background-color: var(--theme-button-primary-background); color: var(--theme-button-primary-text); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)"
                     } else {
-                        "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                        "border-color: var(--theme-sidebar-border); background-color: var(--theme-sidebar-background); color: var(--theme-text-primary)"
                     }
-                )
+                }
                 aria-selected=move || is_selected.get().to_string()
                 aria-label=move || {
                     // Safe access to reference data
@@ -662,26 +662,26 @@ fn ReferenceItem(
             >
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
-                        <div class=move || format!(
-                            "text-sm font-medium {}",
-                            if is_selected.get() {
-                                "text-white"
-                            } else {
-                                "text-black group-hover:text-blue-700"
-                            }
-                        )>
+                        <div class="text-sm font-medium"
+                             style=move || {
+                                 if is_selected.get() {
+                                     "color: var(--theme-button-primary-text)"
+                                 } else {
+                                     "color: var(--theme-text-primary)"
+                                 }
+                             }>
                             {reference_text}
                         </div>
                     </div>
                     <div class="ml-2 flex-shrink-0">
-                        <span class=move || format!(
-                            "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {}",
-                            if is_selected.get() {
-                                "bg-blue-400 text-white"
-                            } else {
-                                "bg-gray-100 text-gray-700 group-hover:bg-blue-100 group-hover:text-blue-800"
-                            }
-                        )>
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
+                              style=move || {
+                                  if is_selected.get() {
+                                      "background-color: var(--theme-button-primary-hover); color: var(--theme-button-primary-text)"
+                                  } else {
+                                      "background-color: var(--theme-sidebar-background); color: var(--theme-text-secondary); border: 1px solid var(--theme-sidebar-border)"
+                                  }
+                              }>
                             {votes_text}
                         </span>
                     </div>

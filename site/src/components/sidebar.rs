@@ -106,7 +106,7 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
 
     view! {
         <div class="sidebar">
-            <h2 class="text-lg font-bold mb-4 text-black">{get_ui_text("books")}</h2>
+            <h2 class="text-lg font-bold mb-4" style="color: var(--theme-sidebar-text)">{get_ui_text("books")}</h2>
             <ul class="space-y-2">
             {move || books.get().iter().map(|b| view! {
                 <BookView
@@ -137,7 +137,8 @@ fn BookView(
     view! {
         <li>
             <button 
-                class="w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 transition-colors duration-150 font-medium text-black"
+                class="w-full text-left px-3 py-2 rounded-md transition-colors duration-150 font-medium"
+                style="color: var(--theme-sidebar-text); background-color: var(--theme-sidebar-background)"
                 on:click={
                     let book_name = book.name.clone();
                     move |_| {
@@ -177,6 +178,7 @@ fn BookView(
             {book.chapters.iter().cloned().map(|c| {
                 let chapter_path = c.to_path();
                 let chapter_path_for_class = chapter_path.clone();
+                let chapter_path_for_style = chapter_path.clone();
                 let location = location.clone();
                 
                 view! {
@@ -185,9 +187,19 @@ fn BookView(
                             move || {
                                 let current_path = location.pathname.get();
                                 if current_path == chapter_path_for_class {
-                                    "w-full text-center px-3 py-2 text-xs bg-blue-500 text-white rounded transition-colors duration-150"
+                                    "w-full text-center px-3 py-2 text-xs rounded transition-colors duration-150"
                                 } else {
-                                    "w-full text-center px-3 py-2 text-xs text-black hover:text-blue-600 hover:bg-blue-50 rounded transition-colors duration-150"
+                                    "w-full text-center px-3 py-2 text-xs rounded transition-colors duration-150"
+                                }
+                            }
+                        }
+                        style={
+                            move || {
+                                let current_path = location.pathname.get();
+                                if current_path == chapter_path_for_style {
+                                    "background-color: var(--theme-button-primary-background); color: var(--theme-button-primary-text)"
+                                } else {
+                                    "color: var(--theme-sidebar-text); background-color: var(--theme-sidebar-background)"
                                 }
                             }
                         }
