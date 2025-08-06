@@ -288,6 +288,10 @@ fn BibleWithSidebar() -> impl IntoView {
                                 set_is_right_sidebar_open.update(|open| {
                                     *open = !*open;
                                     save_references_sidebar_open(*open);
+                                    // Close theme sidebar if opening references sidebar
+                                    if *open {
+                                        set_is_theme_sidebar_open.set(false);
+                                    }
                                 });
                             }
                             aria-label=move || {
@@ -317,7 +321,14 @@ fn BibleWithSidebar() -> impl IntoView {
                             class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
                             style="color: var(--theme-text-secondary)"
                             on:click=move |_| {
-                                set_is_theme_sidebar_open.update(|open| *open = !*open);
+                                set_is_theme_sidebar_open.update(|open| {
+                                    *open = !*open;
+                                    // Close references sidebar if opening theme sidebar
+                                    if *open {
+                                        set_is_right_sidebar_open.set(false);
+                                        save_references_sidebar_open(false);
+                                    }
+                                });
                             }
                             aria-label="Theme options"
                             title="Theme options"
@@ -733,12 +744,23 @@ fn KeyboardNavigationHandler(
                     set_right_sidebar_open.update(|open| {
                         *open = !*open;
                         save_references_sidebar_open(*open);
+                        // Close theme sidebar if opening references sidebar
+                        if *open {
+                            set_theme_sidebar_open.set(false);
+                        }
                     });
                     return;
                 }
                 Instruction::ToggleThemeSidebar => {
                     e.prevent_default();
-                    set_theme_sidebar_open.update(|open| *open = !*open);
+                    set_theme_sidebar_open.update(|open| {
+                        *open = !*open;
+                        // Close references sidebar if opening theme sidebar
+                        if *open {
+                            set_right_sidebar_open.set(false);
+                            save_references_sidebar_open(false);
+                        }
+                    });
                     return;
                 }
                 Instruction::ToggleVerseVisibility => {
