@@ -129,6 +129,7 @@
             pkgs.trunk
             pkgs.cargo-leptos
             pkgs.rust-analyzer
+            pkgs.miniserve
           ];
           shellHook = ''
             export CLIENT_DIST=$PWD/client/dist
