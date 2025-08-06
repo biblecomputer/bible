@@ -865,12 +865,12 @@ pub fn CommandPalette(
                         <div class="py-2">
                             <Show
                                 when=move || !search_query.get().is_empty() || !filtered_results.get().is_empty()
-                                fallback=|| view! { <div class="px-4 py-2 text-black">"Start typing to search chapters or verses..."</div> }
+                                fallback=|| view! { <div class="px-4 py-2" style="color: var(--theme-palette-text-muted)">"Start typing to search chapters or verses..."</div> }
                             >
                                 // Global search indicator
                                 <Show when=move || is_global_search.get()>
-                                    <div class="px-4 py-2 bg-blue-50 border-b border-blue-200">
-                                        <div class="flex items-center text-xs text-blue-700">
+                                    <div class="px-4 py-2 border-b" style="background-color: var(--theme-palette-highlight-background); border-color: var(--theme-palette-highlight)">
+                                        <div class="flex items-center text-xs" style="color: var(--theme-palette-highlight)">
                                             <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
                                             </svg>
@@ -903,9 +903,14 @@ pub fn CommandPalette(
                                                 <div 
                                                     id=format!("palette-result-{}", index)
                                                     class=if is_selected { 
-                                                        "px-4 py-3 bg-blue-500 text-white cursor-pointer flex items-center border-b border-blue-400" 
+                                                        "px-4 py-3 cursor-pointer flex items-center border-b palette-result-selected" 
                                                     } else { 
-                                                        "px-4 py-3 hover:bg-gray-100 cursor-pointer flex items-center border-b border-gray-100" 
+                                                        "px-4 py-3 cursor-pointer flex items-center border-b palette-result-item" 
+                                                    }
+                                                    style=if is_selected {
+                                                        "background-color: var(--theme-palette-highlight-background); color: var(--theme-palette-highlight); border-color: var(--theme-palette-highlight)"
+                                                    } else {
+                                                        "color: var(--theme-palette-text); border-color: var(--theme-palette-border)"
                                                     }
                                                     role="option"
                                                     aria-selected=if is_selected { "true" } else { "false" }

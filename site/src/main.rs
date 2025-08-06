@@ -217,6 +217,10 @@ fn BibleWithSidebar() -> impl IntoView {
                 color: var(--theme-navigation-hover) !important;
                 background-color: var(--theme-navigation-hover-background) !important;
             }}
+            .palette-result-item:hover {{
+                background-color: var(--theme-palette-highlight-background) !important;
+                color: var(--theme-palette-highlight) !important;
+            }}
             "
         </style>
         <KeyboardNavigationHandler
