@@ -1,5 +1,5 @@
 use crate::api::init_bible;
-use crate::components::{CommandPalette, CrossReferencesSidebar, Sidebar, ThemeSidebar, ThemeSwitcher};
+use crate::components::{CommandPalette, CrossReferencesSidebar, Sidebar, ThemeSidebar};
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::instructions::{
     Instruction, InstructionContext, InstructionProcessor, VimKeyboardMapper,
@@ -338,10 +338,6 @@ fn BibleWithSidebar() -> impl IntoView {
                                 <circle cx="13.5" cy="6.5" r=".5"/>
                             </svg>
                         </button>
-                        <ThemeSwitcher
-                            current_theme=current_theme
-                            set_current_theme=set_current_theme
-                        />
                         <a
                             href="/about"
                             class="p-2 ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"

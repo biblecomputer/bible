@@ -126,7 +126,7 @@ pub fn ThemeSidebar(
                 <p class="text-xs opacity-75" style="color: var(--theme-text-muted)">
                     "Press " 
                     <kbd class="px-1.5 py-0.5 rounded text-xs font-mono border" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border)">
-                        "Shift+T"
+                        "T"
                     </kbd>
                     " to toggle this panel"
                 </p>
