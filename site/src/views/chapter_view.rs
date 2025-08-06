@@ -220,10 +220,10 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
     view! {
         <article class="chapter-detail max-w-2xl mx-auto px-4 pb-32">
             <header class="mb-8">
-                <h1 id="chapter-heading" class="text-3xl font-bold text-black" tabindex="-1">{move || get_translated_chapter_name(&stable_chapter_data.get().name)}</h1>
+                <h1 id="chapter-heading" class="text-3xl font-bold" style="color: var(--theme-text-primary)" tabindex="-1">{move || get_translated_chapter_name(&stable_chapter_data.get().name)}</h1>
             </header>
             
-            <div class="verses text-lg leading-8 text-black" role="main" aria-label="Chapter text">
+            <div class="verses text-lg leading-8" style="color: var(--theme-text-primary)" role="main" aria-label="Chapter text">
                 {move || {
                     let chapter_data = stable_chapter_data.get();
                     let verses = &chapter_data.verses;
@@ -235,17 +235,29 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
                     for verse in verses {
                         let is_highlighted = verse_ranges.iter().any(|range| range.contains(verse.verse));
                         
-                        // Use inline Tailwind classes
+                        // Use theme colors via CSS custom properties
                         let verse_number_class = if is_highlighted {
-                            "text-xs text-blue-600 font-semibold mr-1 align-sub"
+                            "text-xs font-semibold mr-1 align-sub"
                         } else {
-                            "text-xs text-gray-500 mr-1 align-sub"
+                            "text-xs mr-1 align-sub"
+                        };
+                        
+                        let verse_number_style = if is_highlighted {
+                            "color: var(--theme-verse-number-highlighted)"
+                        } else {
+                            "color: var(--theme-verse-number)"
                         };
                         
                         let verse_text_class = if is_highlighted {
-                            "font-bold text-black bg-yellow-100 px-1 rounded"
+                            "font-bold px-1 rounded"
                         } else {
                             ""
+                        };
+                        
+                        let verse_text_style = if is_highlighted {
+                            "color: var(--theme-verse-text-highlighted); background-color: var(--theme-verse-background-highlighted)"
+                        } else {
+                            "color: var(--theme-text-primary)"
                         };
                         
                         let tabindex = if is_highlighted { "0" } else { "-1" };
@@ -261,6 +273,7 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
                                 >
                                     <span 
                                         class=verse_number_class
+                                        style=verse_number_style
                                         role="text"
                                     >
                                         {verse_number}
@@ -268,6 +281,7 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
                                 </Show>
                                 <span 
                                     class=verse_text_class
+                                    style=verse_text_style
                                     id=format!("verse-{}", verse_number)
                                     tabindex=tabindex
                                 >

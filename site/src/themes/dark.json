@@ -1,0 +1,54 @@
+{
+  "name": "Dark",
+  "id": "dark",
+  "colors": {
+    "background": "#111827",
+    "text": {
+      "primary": "#f9fafb",
+      "secondary": "#d1d5db",
+      "muted": "#9ca3af"
+    },
+    "verses": {
+      "number": "#9ca3af",
+      "numberHighlighted": "#60a5fa",
+      "textHighlighted": "#f9fafb",
+      "backgroundHighlighted": "#1f2937"
+    },
+    "sidebar": {
+      "background": "#1f2937",
+      "border": "#374151",
+      "text": "#d1d5db",
+      "textHover": "#f9fafb"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#3b82f6",
+        "text": "#ffffff",
+        "hover": "#2563eb"
+      },
+      "secondary": {
+        "background": "#4b5563",
+        "text": "#f9fafb",
+        "hover": "#374151"
+      },
+      "success": {
+        "background": "#10b981",
+        "text": "#ffffff",
+        "hover": "#059669"
+      },
+      "danger": {
+        "background": "#ef4444",
+        "text": "#ffffff",
+        "hover": "#dc2626"
+      }
+    },
+    "commandPalette": {
+      "background": "#1f2937",
+      "border": "#4b5563",
+      "text": "#f9fafb",
+      "textMuted": "#9ca3af",
+      "highlight": "#60a5fa",
+      "highlightBackground": "#1f2937"
+    }
+  }
+}

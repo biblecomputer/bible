@@ -1,0 +1,54 @@
+{
+  "name": "Sepia",
+  "id": "sepia",
+  "colors": {
+    "background": "#f7f3e9",
+    "text": {
+      "primary": "#5d4e37",
+      "secondary": "#8b7355",
+      "muted": "#a0916c"
+    },
+    "verses": {
+      "number": "#8b7355",
+      "numberHighlighted": "#b8860b",
+      "textHighlighted": "#5d4e37",
+      "backgroundHighlighted": "#f0e68c"
+    },
+    "sidebar": {
+      "background": "#f0ead6",
+      "border": "#d2b48c",
+      "text": "#5d4e37",
+      "textHover": "#8b4513"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#b8860b",
+        "text": "#ffffff",
+        "hover": "#9a7209"
+      },
+      "secondary": {
+        "background": "#8b7355",
+        "text": "#ffffff",
+        "hover": "#6b5635"
+      },
+      "success": {
+        "background": "#9acd32",
+        "text": "#5d4e37",
+        "hover": "#7ba428"
+      },
+      "danger": {
+        "background": "#cd853f",
+        "text": "#ffffff",
+        "hover": "#a0632d"
+      }
+    },
+    "commandPalette": {
+      "background": "#f0ead6",
+      "border": "#d2b48c",
+      "text": "#5d4e37",
+      "textMuted": "#8b7355",
+      "highlight": "#b8860b",
+      "highlightBackground": "#f5deb3"
+    }
+  }
+}

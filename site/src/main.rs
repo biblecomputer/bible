@@ -1,14 +1,15 @@
 use crate::api::init_bible;
-use crate::components::{CommandPalette, CrossReferencesSidebar, Sidebar};
+use crate::components::{CommandPalette, CrossReferencesSidebar, Sidebar, ThemeSwitcher};
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::instructions::{
     Instruction, InstructionContext, InstructionProcessor, VimKeyboardMapper,
 };
 use crate::storage::{
     get_references_sidebar_open, get_sidebar_open, save_references_sidebar_open, save_sidebar_open,
-    get_verse_visibility, save_verse_visibility,
+    get_verse_visibility, save_verse_visibility, get_selected_theme,
     add_recent_chapter,
 };
+use crate::themes::{get_theme_by_id, get_default_theme, theme_to_css_vars, Theme};
 use crate::utils::is_mobile_screen;
 use crate::views::{About, ChapterDetail, HomeTranslationPicker};
 use leptos::ev;
@@ -45,6 +46,7 @@ mod components;
 mod core;
 mod instructions;
 mod storage;
+mod themes;
 mod translation_map;
 mod utils;
 mod views;
@@ -133,6 +135,8 @@ fn BibleWithSidebar() -> impl IntoView {
     let (is_right_sidebar_open, set_is_right_sidebar_open) = signal(get_references_sidebar_open());
     // Verse visibility state - initialize from localStorage
     let (verse_visibility_enabled, set_verse_visibility_enabled) = signal(get_verse_visibility());
+    // Theme state - initialize from localStorage
+    let (current_theme, set_current_theme) = signal(get_theme_by_id(&get_selected_theme()).unwrap_or_else(get_default_theme));
     let location = use_location();
 
     // Detect if we have cross-references data to show
@@ -186,6 +190,25 @@ fn BibleWithSidebar() -> impl IntoView {
         }
     });
 
+    // Apply theme CSS variables to document
+    Effect::new(move |_| {
+        let theme = current_theme.get();
+        #[cfg(target_arch = "wasm32")]
+        web_sys::console::log_1(&format!("Applying theme: {} ({})", theme.name, theme.id).into());
+        
+        let css_vars = theme_to_css_vars(&theme);
+        
+        if let Some(window) = web_sys::window() {
+            if let Some(document) = window.document() {
+                if let Some(root) = document.document_element() {
+                    let _ = root.set_attribute("style", &css_vars);
+                    #[cfg(target_arch = "wasm32")]
+                    web_sys::console::log_1(&"CSS variables applied to root element".into());
+                }
+            }
+        }
+    });
+
     view! {
         <KeyboardNavigationHandler
             palette_open=is_palette_open
@@ -208,11 +231,12 @@ fn BibleWithSidebar() -> impl IntoView {
             previous_palette_result=previous_palette_result
             initial_search_query=initial_search_query
         />
-        <nav class="bg-white border-b border-gray-200 px-4 py-2">
+        <nav class="border-b px-4 py-2" style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <button
-                        class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                        class="p-2 hover:bg-gray-100 rounded transition-colors"
+                        style="color: var(--theme-text-secondary)"
                         on:click=move |_| {
                             set_is_left_sidebar_open.update(|open| {
                                 *open = !*open;
@@ -290,9 +314,14 @@ fn BibleWithSidebar() -> impl IntoView {
                                 <polyline points="10,9 9,9 8,9"/>
                             </svg>
                         </button>
+                        <ThemeSwitcher
+                            current_theme=current_theme
+                            set_current_theme=set_current_theme
+                        />
                         <a
                             href="/about"
                             class="p-2 ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                            style="color: var(--theme-text-secondary)"
                             aria-label="About page"
                             title="About this Bible website"
                         >
@@ -313,7 +342,7 @@ fn BibleWithSidebar() -> impl IntoView {
                 </div>
             </div>
         </nav>
-        <div class="flex h-screen relative">
+        <div class="flex h-screen relative" style="background-color: var(--theme-background)">
             // Left sidebar (books/chapters)
             <Show
                     when=move || is_left_sidebar_open.get()
