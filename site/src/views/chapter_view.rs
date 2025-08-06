@@ -295,10 +295,10 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
                 }}
             </div>
             
-            <nav class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200" role="navigation" aria-label="Chapter navigation">
+            <nav class="flex justify-between items-center mt-8 pt-6 border-t" style="border-color: var(--theme-sidebar-border)" role="navigation" aria-label="Chapter navigation">
                 {move || if let Some(path) = prev_path.get() {
                     view! {
-                        <div class="flex items-center px-4 py-2 text-sm font-medium text-black hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors group">
+                        <div class="flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors group navigation-button" style="color: var(--theme-navigation-text)">
                             <A href=path>
                                 <svg class="w-4 h-4 mr-2 group-hover:transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -313,7 +313,7 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
                 
                 {move || if let Some(path) = next_path.get() {
                     view! {
-                        <div class="flex items-center px-4 py-2 text-sm font-medium text-black hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors group">
+                        <div class="flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors group navigation-button" style="color: var(--theme-navigation-text)">
                             <A href=path>
                                 {get_navigation_text("next_chapter")}
                                 <svg class="w-4 h-4 ml-2 group-hover:transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

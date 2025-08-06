@@ -831,16 +831,18 @@ pub fn CommandPalette(
             >
                 // Command Palette Modal
                 <div 
-                    class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-96 flex flex-col"
+                    class="rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-96 flex flex-col"
+                    style="background-color: var(--theme-palette-background); border: 1px solid var(--theme-palette-border)"
                     on:click=move |e| e.stop_propagation()
                 >
                     // Search Input
-                    <div class="p-4 border-b border-gray-200">
+                    <div class="p-4 border-b" style="border-color: var(--theme-palette-border)">
                         <input
                             node_ref=input_ref
                             type="text"
                             placeholder="Search chapters, verses, or text... (e.g., 'Genesis 1', 'john 3:16', 'love', '>' for shortcuts)"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+                            style="background-color: var(--theme-palette-background); color: var(--theme-palette-text); border-color: var(--theme-palette-border); --tw-ring-color: var(--theme-palette-highlight)"
                             prop:value=search_query
                             on:input=move |e| set_search_query.set(event_target_value(&e))
                             role="combobox"
