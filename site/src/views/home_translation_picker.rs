@@ -8,6 +8,7 @@ use crate::storage::{
     is_translation_downloaded, download_translation_with_progress, switch_bible_translation, uninstall_translation,
     get_available_languages, get_translations_by_language, BibleTranslation, Language
 };
+use crate::components::theme_switcher::ThemeSwitcher;
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone, PartialEq)]
@@ -47,13 +48,13 @@ fn TranslationItem(
     web_sys::console::log_1(&format!("TranslationItem rendered for: {}", translation_short_name).into());
     
     view! {
-        <div class="border rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+        <div class="border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow" style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)">
             <div class="flex items-center justify-between">
                 <div class="flex-1">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-1">
+                    <h3 class="text-xl font-semibold mb-1" style="color: var(--theme-text-primary)">
                         {translation_name.clone()}
                     </h3>
-                    <p class="text-sm text-gray-600">
+                    <p class="text-sm" style="color: var(--theme-text-secondary)">
                         "Uitgegeven in " {translation_release_year.to_string()}
                     </p>
                 </div>
@@ -81,10 +82,10 @@ fn TranslationItem(
                                         <path class="opacity-75" fill="currentColor" d="m12 2a10 10 0 0 1 10 10h-2a8 8 0 0 0-8-8v-2z"></path>
                                     </svg>
                                     <div>
-                                        <div class="text-sm font-medium text-gray-700">"Downloading..."</div>
-                                        <div class="w-24 bg-gray-200 rounded-full h-1 mt-1">
+                                        <div class="text-sm font-medium" style="color: var(--theme-text-primary)">"Downloading..."</div>
+                                        <div class="w-24 rounded-full h-1 mt-1" style="background-color: var(--theme-sidebar-border)">
                                             <div 
-                                                class="bg-blue-600 h-1 rounded-full transition-all duration-300 ease-out"
+                                                class="h-1 rounded-full transition-all duration-300 ease-out" style="background-color: var(--theme-buttons-primary-background)"
                                                 style:width={format!("{}%", download_progress.get() * 100.0)}
                                             ></div>
                                         </div>
@@ -95,7 +96,7 @@ fn TranslationItem(
                             view! {
                                 <div class="flex gap-2">
                                     <button
-                                        class="px-6 py-2 bg-blue-600 text-black rounded-md hover:bg-blue-700 transition-colors font-medium"
+                                        class="px-6 py-2 rounded-md transition-colors font-medium" style="background-color: var(--theme-buttons-primary-background); color: var(--theme-buttons-primary-text)"
                                         disabled=move || is_switching.get() || is_uninstalling
                                         on:click={
                                             let translation_short_name_clone3 = translation_short_name_ref.clone();
@@ -135,7 +136,7 @@ fn TranslationItem(
                                         if translation_short_name_ref != "sv" {
                                             view! {
                                                 <button
-                                                    class="px-3 py-2 bg-red-600 text-black  rounded-md hover:bg-red-700 transition-colors font-medium text-sm"
+                                                    class="px-3 py-2 rounded-md transition-colors font-medium text-sm" style="background-color: var(--theme-buttons-danger-background); color: var(--theme-buttons-danger-text)"
                                                     disabled=move || is_switching.get() || is_uninstalling
                                                     on:click={
                                                         let translation_short_name_clone4 = translation_short_name_ref.clone();
@@ -185,7 +186,7 @@ fn TranslationItem(
                             view! {
                                 <div class="flex gap-2">
                                     <button
-                                        class="px-6 py-2 bg-green-600 text-black rounded-md hover:bg-green-700 transition-colors font-medium"
+                                        class="px-6 py-2 rounded-md transition-colors font-medium" style="background-color: var(--theme-buttons-success-background); color: var(--theme-buttons-success-text)"
                                         on:click={
                                             let translation_clone = translation_clone_for_download.clone();
                                             let translation_short_name_clone = translation_short_name_ref.clone();
@@ -250,7 +251,8 @@ fn TranslationItem(
                     href=translation_wikipedia.clone()
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                    class="text-sm hover:underline"
+                    style="color: var(--theme-buttons-primary-background)"
                 >
                     "Meer informatie →"
                 </a>
@@ -260,7 +262,10 @@ fn TranslationItem(
 }
 
 #[component]
-pub fn HomeTranslationPicker() -> impl IntoView {
+pub fn HomeTranslationPicker(
+    current_theme: ReadSignal<crate::themes::Theme>,
+    set_current_theme: WriteSignal<crate::themes::Theme>,
+) -> impl IntoView {
     let (selected_translation, set_selected_translation_signal) = signal(get_selected_translation().unwrap_or_else(|| "sv".to_string()));
     let (downloading_translation, set_downloading_translation) = signal::<Option<String>>(None);
     let (view_state, set_view_state) = signal(ViewState::LanguageSelection);
@@ -310,10 +315,13 @@ pub fn HomeTranslationPicker() -> impl IntoView {
     };
     
     view! {
-        <div class="max-w-2xl mx-auto">
+        <div class="max-w-2xl mx-auto py-8">
+            <div class="flex justify-end mb-4">
+                <ThemeSwitcher current_theme=current_theme set_current_theme=set_current_theme />
+            </div>
             <div class="text-center mb-8">
-                <h1 class="text-4xl font-bold text-gray-900 mb-4">"Bijbel"</h1>
-                <p class="text-lg text-gray-600 mb-8">
+                <h1 class="text-4xl font-bold mb-4" style="color: var(--theme-text-primary)">"Bijbel"</h1>
+                <p class="text-lg mb-8" style="color: var(--theme-text-secondary)">
                     {move || match view_state.get() {
                         ViewState::LanguageSelection => "Kies een taal om te beginnen",
                         ViewState::TranslationSelection(_) => "Kies een vertaling om te beginnen met lezen",
@@ -328,17 +336,17 @@ pub fn HomeTranslationPicker() -> impl IntoView {
                             let language_name = language.display_name().to_string();
                             let language_clone = language.clone();
                             view! {
-                                <div class="border rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                <div class="border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer" style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)"
                                     on:click=move |_| {
                                         set_view_state.set(ViewState::TranslationSelection(language_clone.clone()));
                                     }
                                 >
                                     <div class="flex items-center justify-between">
                                         <div class="flex-1">
-                                            <h3 class="text-xl font-semibold text-gray-900 mb-1">
+                                            <h3 class="text-xl font-semibold mb-1" style="color: var(--theme-text-primary)">
                                                 {language_name.clone()}
                                             </h3>
-                                            <p class="text-sm text-gray-600">
+                                            <p class="text-sm" style="color: var(--theme-text-secondary)">
                                                 {match language {
                                                     Language::Dutch => "Nederlandse vertalingen",
                                                     Language::English => "English translations",
@@ -346,7 +354,7 @@ pub fn HomeTranslationPicker() -> impl IntoView {
                                             </p>
                                         </div>
                                         <div class="ml-6">
-                                            <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--theme-text-muted)">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"></path>
                                             </svg>
                                         </div>
@@ -361,7 +369,8 @@ pub fn HomeTranslationPicker() -> impl IntoView {
                         view! {
                             <div class="mb-4">
                                 <button
-                                    class="flex items-center text-blue-600 hover:text-blue-800 transition-colors"
+                                    class="flex items-center transition-colors"
+                                    style="color: var(--theme-buttons-primary-background)"
                                     on:click=move |_| {
                                         set_view_state.set(ViewState::LanguageSelection);
                                     }
@@ -371,7 +380,7 @@ pub fn HomeTranslationPicker() -> impl IntoView {
                                     </svg>
                                     "Terug naar talen"
                                 </button>
-                                <h2 class="text-2xl font-semibold text-gray-900 mt-2">
+                                <h2 class="text-2xl font-semibold mt-2" style="color: var(--theme-text-primary)">
                                     {selected_language_name} " vertalingen"
                                 </h2>
                             </div>
@@ -410,7 +419,7 @@ pub fn HomeTranslationPicker() -> impl IntoView {
                 when=move || download_error.get().is_some()
                 fallback=|| view! { <></> }
             >
-                <div class="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <div class="mt-6 p-4 border rounded-lg" style="background-color: var(--theme-buttons-danger-background); border-color: var(--theme-buttons-danger-background); color: var(--theme-buttons-danger-text)">
                     <div class="flex">
                         <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
@@ -427,7 +436,7 @@ pub fn HomeTranslationPicker() -> impl IntoView {
                 when=move || uninstall_error.get().is_some()
                 fallback=|| view! { <></> }
             >
-                <div class="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <div class="mt-6 p-4 border rounded-lg" style="background-color: var(--theme-buttons-danger-background); border-color: var(--theme-buttons-danger-background); color: var(--theme-buttons-danger-text)">
                     <div class="flex">
                         <svg class="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
