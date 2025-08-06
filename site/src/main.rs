@@ -102,18 +102,72 @@ fn App() -> impl IntoView {
 
 #[component]
 fn BibleApp() -> impl IntoView {
+    // Theme state - initialize from localStorage at app level
+    let (current_theme, set_current_theme) = signal(get_theme_by_id(&get_selected_theme()).unwrap_or_else(get_default_theme));
+
+    // Apply theme CSS variables to document at app level
+    Effect::new(move |_| {
+        let theme = current_theme.get();
+        let css_vars = theme_to_css_vars(&theme);
+        
+        if let Some(window) = web_sys::window() {
+            if let Some(document) = window.document() {
+                // Apply to root element
+                if let Some(root) = document.document_element() {
+                    let _ = root.set_attribute("style", &css_vars);
+                }
+                
+                // Also apply background to body element
+                if let Some(body) = document.body() {
+                    let _ = body.style().set_property("background-color", &format!("var(--theme-background)"));
+                    let _ = body.style().set_property("margin", "0");
+                    let _ = body.style().set_property("padding", "0");
+                }
+            }
+        }
+    });
+
     view! {
+        <style>
+            "
+            .header-button:hover {{
+                color: var(--theme-header-button-hover) !important;
+                background-color: var(--theme-header-button-hover-background) !important;
+            }}
+            .navigation-button:hover {{
+                color: var(--theme-navigation-hover) !important;
+                background-color: var(--theme-navigation-hover-background) !important;
+            }}
+            .palette-result-item:hover {{
+                background-color: var(--theme-palette-highlight-background) !important;
+                color: var(--theme-palette-highlight) !important;
+            }}
+            nav span {{
+                user-select: none;
+                pointer-events: none;
+            }}
+            button:hover {{
+                opacity: 0.9;
+            }}
+            a:hover {{
+                opacity: 0.8;
+            }}
+            "
+        </style>
         <Router>
             <Routes fallback=|| "Not found.">
-                <Route path=path!("/") view=Home />
-                <Route path=path!("/*any") view=BibleWithSidebar />
+                <Route path=path!("/") view=move || view! { <Home current_theme=current_theme set_current_theme=set_current_theme /> } />
+                <Route path=path!("/*any") view=move || view! { <BibleWithSidebar current_theme=current_theme set_current_theme=set_current_theme /> } />
             </Routes>
         </Router>
     }
 }
 
 #[component]
-fn BibleWithSidebar() -> impl IntoView {
+fn BibleWithSidebar(
+    current_theme: ReadSignal<Theme>,
+    set_current_theme: WriteSignal<Theme>,
+) -> impl IntoView {
     // Command palette state - ensure it starts closed
     let (is_palette_open, set_is_palette_open) = signal(false);
     // Command palette navigation signals
@@ -137,8 +191,6 @@ fn BibleWithSidebar() -> impl IntoView {
     let (is_theme_sidebar_open, set_is_theme_sidebar_open) = signal(false);
     // Verse visibility state - initialize from localStorage
     let (verse_visibility_enabled, set_verse_visibility_enabled) = signal(get_verse_visibility());
-    // Theme state - initialize from localStorage
-    let (current_theme, set_current_theme) = signal(get_theme_by_id(&get_selected_theme()).unwrap_or_else(get_default_theme));
     let location = use_location();
 
     // Detect if we have cross-references data to show
@@ -192,41 +244,7 @@ fn BibleWithSidebar() -> impl IntoView {
         }
     });
 
-    // Apply theme CSS variables to document
-    Effect::new(move |_| {
-        let theme = current_theme.get();
-        let css_vars = theme_to_css_vars(&theme);
-        
-        if let Some(window) = web_sys::window() {
-            if let Some(document) = window.document() {
-                if let Some(root) = document.document_element() {
-                    let _ = root.set_attribute("style", &css_vars);
-                }
-            }
-        }
-    });
-
     view! {
-        <style>
-            "
-            .header-button:hover {{
-                color: var(--theme-header-button-hover) !important;
-                background-color: var(--theme-header-button-hover-background) !important;
-            }}
-            .navigation-button:hover {{
-                color: var(--theme-navigation-hover) !important;
-                background-color: var(--theme-navigation-hover-background) !important;
-            }}
-            .palette-result-item:hover {{
-                background-color: var(--theme-palette-highlight-background) !important;
-                color: var(--theme-palette-highlight) !important;
-            }}
-            nav span {{
-                user-select: none;
-                pointer-events: none;
-            }}
-            "
-        </style>
         <KeyboardNavigationHandler
             palette_open=is_palette_open
             set_palette_open=set_is_palette_open
@@ -875,7 +893,10 @@ fn KeyboardNavigationHandler(
 }
 
 #[component]
-fn Home() -> impl IntoView {
+fn Home(
+    current_theme: ReadSignal<Theme>,
+    set_current_theme: WriteSignal<Theme>,
+) -> impl IntoView {
     use crate::core::get_current_bible;
     use crate::storage::{get_selected_translation, is_translation_downloaded};
     use leptos_router::hooks::{use_location, use_navigate};
@@ -920,8 +941,8 @@ fn Home() -> impl IntoView {
     });
 
     view! {
-        <div class="min-h-screen bg-gray-50">
-            <HomeTranslationPicker />
+        <div class="min-h-screen" style="background-color: var(--theme-background)">
+            <HomeTranslationPicker current_theme=current_theme set_current_theme=set_current_theme />
         </div>
     }
 }
