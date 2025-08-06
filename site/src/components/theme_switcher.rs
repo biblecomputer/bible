@@ -68,15 +68,9 @@ pub fn ThemeSwitcher(
                                     class="w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
                                     style="color: var(--theme-text-primary)"
                                     on:click=move |_| {
-                                        #[cfg(target_arch = "wasm32")]
-                                        web_sys::console::log_1(&format!("Switching to theme: {}", theme_id_for_click).into());
-                                        
                                         set_current_theme.set(theme_clone.clone());
                                         save_selected_theme(&theme_id_for_click);
                                         set_is_open.set(false);
-                                        
-                                        #[cfg(target_arch = "wasm32")]
-                                        web_sys::console::log_1(&"Theme switch complete".into());
                                     }
                                 >
                                     <span>{theme_name.clone()}</span>
