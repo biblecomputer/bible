@@ -164,6 +164,7 @@ impl KeyboardMappings {
             "OpenAboutPage" => Some(Instruction::OpenAboutPage),
             "ShowTranslations" => Some(Instruction::ShowTranslations),
             "ToggleVersePallate" => Some(Instruction::ToggleVersePallate),
+            "ToggleVerseVisibility" => Some(Instruction::ToggleVerseVisibility),
             _ => None,
         }
     }

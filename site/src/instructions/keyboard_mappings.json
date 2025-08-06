@@ -29,6 +29,8 @@
     "r": "ToggleCrossReferences",
     "<C-S-R>": "ToggleCrossReferences",
     
+    "v": "ToggleVerseVisibility",
+    
     "<C-o>": "ToggleBiblePallate",
     "<M-o>": "ToggleBiblePallate",
     
