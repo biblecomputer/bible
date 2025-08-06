@@ -19,7 +19,8 @@
     "s": "SwitchToPreviousChapter",
     "<S-R>": "RandomVerse",
     "?": "OpenAboutPage",
-    "t": "ShowTranslations",
+    "t": "ToggleThemeSidebar",
+    "<S-T>": "ShowTranslations",
     ":": "ToggleVersePallate",
     
     "c": "CopyRawVerse",
@@ -28,7 +29,6 @@
     "b": "ToggleSidebar",
     "r": "ToggleCrossReferences",
     "<C-S-R>": "ToggleCrossReferences",
-    "<S-T>": "ToggleThemeSidebar",
     
     "v": "ToggleVerseVisibility",
     
