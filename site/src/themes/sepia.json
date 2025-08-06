@@ -61,8 +61,8 @@
       "border": "#d2b48c",
       "text": "#5d4e37",
       "textMuted": "#8b7355",
-      "highlight": "#b8860b",
-      "highlightBackground": "#f5deb3"
+      "highlight": "#ffffff",
+      "highlightBackground": "#b8860b"
     }
   }
 }
