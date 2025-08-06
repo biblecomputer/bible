@@ -235,17 +235,17 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
                     for verse in verses {
                         let is_highlighted = verse_ranges.iter().any(|range| range.contains(verse.verse));
                         
-                        // Use pre-defined CSS classes for better performance
+                        // Use inline Tailwind classes
                         let verse_number_class = if is_highlighted {
-                            "verse-number verse-number-highlighted"
+                            "text-xs text-blue-600 font-semibold mr-1 align-sub"
                         } else {
-                            "verse-number verse-number-default"
+                            "text-xs text-gray-500 mr-1 align-sub"
                         };
                         
                         let verse_text_class = if is_highlighted {
-                            "verse-text verse-text-highlighted"
+                            "font-bold text-black bg-yellow-100 px-1 rounded"
                         } else {
-                            "verse-text verse-text-default"
+                            ""
                         };
                         
                         let tabindex = if is_highlighted { "0" } else { "-1" };
