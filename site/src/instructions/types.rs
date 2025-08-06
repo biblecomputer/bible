@@ -37,4 +37,5 @@ pub enum Instruction {
     OpenAboutPage,
     ShowTranslations,
     ToggleVersePallate,
+    ToggleVerseVisibility,
 }

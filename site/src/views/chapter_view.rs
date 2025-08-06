@@ -56,7 +56,7 @@ fn get_navigation_text(key: &str) -> String {
 }
 
 #[component]
-pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
+pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool>) -> impl IntoView {
     let bible_signal = init_bible_signal();
     
     // Parse verse ranges from URL - track location explicitly for reactivity
@@ -256,7 +256,7 @@ pub fn ChapterDetail(chapter: Chapter) -> impl IntoView {
                         verse_views.push(view! {
                             <>
                                 <Show 
-                                    when=move || verse_number != 1
+                                    when=move || verse_visibility_enabled.get() && verse_number != 1
                                     fallback=|| view! { <></> }
                                 >
                                     <span 

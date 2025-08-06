@@ -6,6 +6,7 @@ use crate::instructions::{
 };
 use crate::storage::{
     get_references_sidebar_open, get_sidebar_open, save_references_sidebar_open, save_sidebar_open,
+    get_verse_visibility, save_verse_visibility,
     add_recent_chapter,
 };
 use crate::utils::is_mobile_screen;
@@ -130,6 +131,8 @@ fn BibleWithSidebar() -> impl IntoView {
     let (is_left_sidebar_open, set_is_left_sidebar_open) = signal(get_sidebar_open());
     // Right sidebar (cross-references) visibility state - load from storage
     let (is_right_sidebar_open, set_is_right_sidebar_open) = signal(get_references_sidebar_open());
+    // Verse visibility state - initialize from localStorage
+    let (verse_visibility_enabled, set_verse_visibility_enabled) = signal(get_verse_visibility());
     let location = use_location();
 
     // Detect if we have cross-references data to show
@@ -191,6 +194,8 @@ fn BibleWithSidebar() -> impl IntoView {
             set_left_sidebar_open=set_is_left_sidebar_open
             _right_sidebar_open=is_right_sidebar_open
             set_right_sidebar_open=set_is_right_sidebar_open
+            verse_visibility_enabled=verse_visibility_enabled
+            set_verse_visibility_enabled=set_verse_visibility_enabled
             next_palette_result=next_palette_result
             previous_palette_result=previous_palette_result
             set_initial_search_query=set_initial_search_query
@@ -344,7 +349,10 @@ fn BibleWithSidebar() -> impl IntoView {
                             view=move || {
                                 let chapter = Chapter::from_url().unwrap();
                                 view! {
-                                    <ChapterDetail chapter=chapter />
+                                    <ChapterDetail 
+                                        chapter=chapter 
+                                        verse_visibility_enabled=verse_visibility_enabled
+                                    />
                                 }
                             }
                         />
@@ -462,6 +470,8 @@ fn KeyboardNavigationHandler(
     set_left_sidebar_open: WriteSignal<bool>,
     _right_sidebar_open: ReadSignal<bool>,
     set_right_sidebar_open: WriteSignal<bool>,
+    verse_visibility_enabled: ReadSignal<bool>,
+    set_verse_visibility_enabled: WriteSignal<bool>,
     next_palette_result: RwSignal<bool>,
     previous_palette_result: RwSignal<bool>,
     set_initial_search_query: WriteSignal<Option<String>>,
@@ -554,6 +564,9 @@ fn KeyboardNavigationHandler(
                     Instruction::ToggleBiblePallate | Instruction::ToggleCommandPallate => {
                         // Let palette toggle instructions through to be processed below
                     }
+                    Instruction::ToggleSidebar | Instruction::ToggleCrossReferences | Instruction::ToggleVerseVisibility => {
+                        // Let UI toggle instructions through to be processed below
+                    }
                     Instruction::NextReference | Instruction::PreviousReference => {
                         // Block reference navigation when palette is open
                         e.prevent_default();
@@ -640,6 +653,14 @@ fn KeyboardNavigationHandler(
                     set_right_sidebar_open.update(|open| {
                         *open = !*open;
                         save_references_sidebar_open(*open);
+                    });
+                    return;
+                }
+                Instruction::ToggleVerseVisibility => {
+                    e.prevent_default();
+                    set_verse_visibility_enabled.update(|visible| {
+                        *visible = !*visible;
+                        save_verse_visibility(*visible);
                     });
                     return;
                 }
