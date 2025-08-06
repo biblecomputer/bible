@@ -1,0 +1,54 @@
+{
+  "name": "Light",
+  "id": "light",
+  "colors": {
+    "background": "#ffffff",
+    "text": {
+      "primary": "#1f2937",
+      "secondary": "#6b7280",
+      "muted": "#9ca3af"
+    },
+    "verses": {
+      "number": "#6b7280",
+      "numberHighlighted": "#2563eb",
+      "textHighlighted": "#1f2937",
+      "backgroundHighlighted": "#fef3c7"
+    },
+    "sidebar": {
+      "background": "#f9fafb",
+      "border": "#e5e7eb",
+      "text": "#374151",
+      "textHover": "#1f2937"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#3b82f6",
+        "text": "#ffffff",
+        "hover": "#2563eb"
+      },
+      "secondary": {
+        "background": "#6b7280",
+        "text": "#ffffff",
+        "hover": "#4b5563"
+      },
+      "success": {
+        "background": "#10b981",
+        "text": "#ffffff",
+        "hover": "#059669"
+      },
+      "danger": {
+        "background": "#ef4444",
+        "text": "#ffffff",
+        "hover": "#dc2626"
+      }
+    },
+    "commandPalette": {
+      "background": "#ffffff",
+      "border": "#d1d5db",
+      "text": "#1f2937",
+      "textMuted": "#6b7280",
+      "highlight": "#3b82f6",
+      "highlightBackground": "#dbeafe"
+    }
+  }
+}
