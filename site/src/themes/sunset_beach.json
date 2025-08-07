@@ -1,0 +1,70 @@
+{
+  "name": "Sunset Beach",
+  "id": "sunset_beach",
+  "colors": {
+    "background": "#fed7aa",
+    "text": {
+      "primary": "#431407",
+      "secondary": "#7c2d12",
+      "muted": "#9a3412"
+    },
+    "verses": {
+      "number": "#9a3412",
+      "numberHighlighted": "#c2410c",
+      "textHighlighted": "#431407",
+      "backgroundHighlighted": "#fff7ed",
+      "selected": "#ffffff",
+      "selectedBackground": "#c2410c"
+    },
+    "sidebar": {
+      "background": "#fff7ed",
+      "border": "#fed7aa",
+      "text": "#431407",
+      "textHover": "#7c2d12"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#c2410c",
+        "text": "#ffffff",
+        "hover": "#9a3412"
+      },
+      "secondary": {
+        "background": "#ea580c",
+        "text": "#ffffff",
+        "hover": "#c2410c"
+      },
+      "success": {
+        "background": "#059669",
+        "text": "#ffffff",
+        "hover": "#047857"
+      },
+      "danger": {
+        "background": "#dc2626",
+        "text": "#ffffff",
+        "hover": "#b91c1c"
+      }
+    },
+    "header": {
+      "background": "#fed7aa",
+      "border": "#fdba74",
+      "button": {
+        "text": "#9a3412",
+        "hover": "#431407",
+        "hoverBackground": "#fff7ed"
+      }
+    },
+    "navigation": {
+      "text": "#431407",
+      "hover": "#c2410c",
+      "hoverBackground": "#fff7ed"
+    },
+    "commandPalette": {
+      "background": "#fff7ed",
+      "border": "#fed7aa",
+      "text": "#431407",
+      "textMuted": "#7c2d12",
+      "highlight": "#ffffff",
+      "highlightBackground": "#c2410c"
+    }
+  }
+}

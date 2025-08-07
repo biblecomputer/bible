@@ -1,0 +1,70 @@
+{
+  "name": "Forest Night",
+  "id": "forest_night",
+  "colors": {
+    "background": "#0d1b0d",
+    "text": {
+      "primary": "#90ee90",
+      "secondary": "#7bcf7b",
+      "muted": "#66b366"
+    },
+    "verses": {
+      "number": "#66b366",
+      "numberHighlighted": "#90ee90",
+      "textHighlighted": "#90ee90",
+      "backgroundHighlighted": "#1a331a",
+      "selected": "#0d1b0d",
+      "selectedBackground": "#7bcf7b"
+    },
+    "sidebar": {
+      "background": "#1a331a",
+      "border": "#264d26",
+      "text": "#90ee90",
+      "textHover": "#adffad"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#7bcf7b",
+        "text": "#0d1b0d",
+        "hover": "#66b366"
+      },
+      "secondary": {
+        "background": "#264d26",
+        "text": "#90ee90",
+        "hover": "#1a331a"
+      },
+      "success": {
+        "background": "#4caf50",
+        "text": "#ffffff",
+        "hover": "#388e3c"
+      },
+      "danger": {
+        "background": "#ff5722",
+        "text": "#ffffff",
+        "hover": "#e64a19"
+      }
+    },
+    "header": {
+      "background": "#0d1b0d",
+      "border": "#1a331a",
+      "button": {
+        "text": "#66b366",
+        "hover": "#90ee90",
+        "hoverBackground": "#1a331a"
+      }
+    },
+    "navigation": {
+      "text": "#90ee90",
+      "hover": "#adffad",
+      "hoverBackground": "#1a331a"
+    },
+    "commandPalette": {
+      "background": "#1a331a",
+      "border": "#264d26",
+      "text": "#90ee90",
+      "textMuted": "#7bcf7b",
+      "highlight": "#0d1b0d",
+      "highlightBackground": "#7bcf7b"
+    }
+  }
+}

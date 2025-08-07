@@ -1,0 +1,70 @@
+{
+  "name": "Raspberry Cream",
+  "id": "raspberry_cream",
+  "colors": {
+    "background": "#fce4ec",
+    "text": {
+      "primary": "#880e4f",
+      "secondary": "#ad1457",
+      "muted": "#c2185b"
+    },
+    "verses": {
+      "number": "#c2185b",
+      "numberHighlighted": "#e91e63",
+      "textHighlighted": "#880e4f",
+      "backgroundHighlighted": "#f8bbd9",
+      "selected": "#ffffff",
+      "selectedBackground": "#e91e63"
+    },
+    "sidebar": {
+      "background": "#f8bbd9",
+      "border": "#f48fb1",
+      "text": "#880e4f",
+      "textHover": "#4a0e4e"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#e91e63",
+        "text": "#880e4f",
+        "hover": "#c2185b"
+      },
+      "secondary": {
+        "background": "#f06292",
+        "text": "#880e4f",
+        "hover": "#e91e63"
+      },
+      "success": {
+        "background": "#4caf50",
+        "text": "#ffffff",
+        "hover": "#388e3c"
+      },
+      "danger": {
+        "background": "#f44336",
+        "text": "#ffffff",
+        "hover": "#d32f2f"
+      }
+    },
+    "header": {
+      "background": "#fce4ec",
+      "border": "#f48fb1",
+      "button": {
+        "text": "#c2185b",
+        "hover": "#880e4f",
+        "hoverBackground": "#f8bbd9"
+      }
+    },
+    "navigation": {
+      "text": "#880e4f",
+      "hover": "#e91e63",
+      "hoverBackground": "#f8bbd9"
+    },
+    "commandPalette": {
+      "background": "#f8bbd9",
+      "border": "#f48fb1",
+      "text": "#880e4f",
+      "textMuted": "#ad1457",
+      "highlight": "#ffffff",
+      "highlightBackground": "#e91e63"
+    }
+  }
+}

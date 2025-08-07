@@ -1,0 +1,70 @@
+{
+  "name": "Candy Pink",
+  "id": "candy_pink",
+  "colors": {
+    "background": "#fdf2f8",
+    "text": {
+      "primary": "#be0876",
+      "secondary": "#db2777",
+      "muted": "#ec4899"
+    },
+    "verses": {
+      "number": "#ec4899",
+      "numberHighlighted": "#f0abfc",
+      "textHighlighted": "#be0876",
+      "backgroundHighlighted": "#fce7f3",
+      "selected": "#ffffff",
+      "selectedBackground": "#f0abfc"
+    },
+    "sidebar": {
+      "background": "#fce7f3",
+      "border": "#fbcfe8",
+      "text": "#be0876",
+      "textHover": "#9d174d"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#f0abfc",
+        "text": "#be0876",
+        "hover": "#e879f9"
+      },
+      "secondary": {
+        "background": "#ec4899",
+        "text": "#ffffff",
+        "hover": "#db2777"
+      },
+      "success": {
+        "background": "#10b981",
+        "text": "#ffffff",
+        "hover": "#059669"
+      },
+      "danger": {
+        "background": "#ef4444",
+        "text": "#ffffff",
+        "hover": "#dc2626"
+      }
+    },
+    "header": {
+      "background": "#fdf2f8",
+      "border": "#fbcfe8",
+      "button": {
+        "text": "#ec4899",
+        "hover": "#be0876",
+        "hoverBackground": "#fce7f3"
+      }
+    },
+    "navigation": {
+      "text": "#be0876",
+      "hover": "#f0abfc",
+      "hoverBackground": "#fce7f3"
+    },
+    "commandPalette": {
+      "background": "#fce7f3",
+      "border": "#fbcfe8",
+      "text": "#be0876",
+      "textMuted": "#db2777",
+      "highlight": "#ffffff",
+      "highlightBackground": "#f0abfc"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "name": "Vintage Paper",
+  "id": "vintage_paper",
+  "colors": {
+    "background": "#f5f5dc",
+    "text": {
+      "primary": "#8b4513",
+      "secondary": "#a0522d",
+      "muted": "#cd853f"
+    },
+    "verses": {
+      "number": "#cd853f",
+      "numberHighlighted": "#daa520",
+      "textHighlighted": "#8b4513",
+      "backgroundHighlighted": "#f0e68c",
+      "selected": "#ffffff",
+      "selectedBackground": "#daa520"
+    },
+    "sidebar": {
+      "background": "#f0e68c",
+      "border": "#daa520",
+      "text": "#8b4513",
+      "textHover": "#654321"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#daa520",
+        "text": "#8b4513",
+        "hover": "#b8860b"
+      },
+      "secondary": {
+        "background": "#cd853f",
+        "text": "#ffffff",
+        "hover": "#a0522d"
+      },
+      "success": {
+        "background": "#228b22",
+        "text": "#ffffff",
+        "hover": "#006400"
+      },
+      "danger": {
+        "background": "#dc143c",
+        "text": "#ffffff",
+        "hover": "#b22222"
+      }
+    },
+    "header": {
+      "background": "#f5f5dc",
+      "border": "#daa520",
+      "button": {
+        "text": "#cd853f",
+        "hover": "#8b4513",
+        "hoverBackground": "#f0e68c"
+      }
+    },
+    "navigation": {
+      "text": "#8b4513",
+      "hover": "#daa520",
+      "hoverBackground": "#f0e68c"
+    },
+    "commandPalette": {
+      "background": "#f0e68c",
+      "border": "#daa520",
+      "text": "#8b4513",
+      "textMuted": "#a0522d",
+      "highlight": "#ffffff",
+      "highlightBackground": "#daa520"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "name": "Coffee Shop",
+  "id": "coffee_shop",
+  "colors": {
+    "background": "#3e2723",
+    "text": {
+      "primary": "#d7ccc8",
+      "secondary": "#a1887f",
+      "muted": "#8d6e63"
+    },
+    "verses": {
+      "number": "#8d6e63",
+      "numberHighlighted": "#a1887f",
+      "textHighlighted": "#d7ccc8",
+      "backgroundHighlighted": "#5d4037",
+      "selected": "#3e2723",
+      "selectedBackground": "#a1887f"
+    },
+    "sidebar": {
+      "background": "#5d4037",
+      "border": "#6d4c41",
+      "text": "#d7ccc8",
+      "textHover": "#efebe9"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#a1887f",
+        "text": "#3e2723",
+        "hover": "#8d6e63"
+      },
+      "secondary": {
+        "background": "#6d4c41",
+        "text": "#d7ccc8",
+        "hover": "#5d4037"
+      },
+      "success": {
+        "background": "#388e3c",
+        "text": "#ffffff",
+        "hover": "#2e7d32"
+      },
+      "danger": {
+        "background": "#d32f2f",
+        "text": "#ffffff",
+        "hover": "#c62828"
+      }
+    },
+    "header": {
+      "background": "#3e2723",
+      "border": "#5d4037",
+      "button": {
+        "text": "#8d6e63",
+        "hover": "#d7ccc8",
+        "hoverBackground": "#5d4037"
+      }
+    },
+    "navigation": {
+      "text": "#d7ccc8",
+      "hover": "#a1887f",
+      "hoverBackground": "#5d4037"
+    },
+    "commandPalette": {
+      "background": "#5d4037",
+      "border": "#6d4c41",
+      "text": "#d7ccc8",
+      "textMuted": "#8d6e63",
+      "highlight": "#3e2723",
+      "highlightBackground": "#a1887f"
+    }
+  }
+}

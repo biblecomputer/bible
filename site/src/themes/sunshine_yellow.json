@@ -1,0 +1,70 @@
+{
+  "name": "Sunshine Yellow",
+  "id": "sunshine_yellow",
+  "colors": {
+    "background": "#fffde7",
+    "text": {
+      "primary": "#f57f17",
+      "secondary": "#ff8f00",
+      "muted": "#ffa000"
+    },
+    "verses": {
+      "number": "#ffa000",
+      "numberHighlighted": "#ffb300",
+      "textHighlighted": "#f57f17",
+      "backgroundHighlighted": "#fff9c4",
+      "selected": "#ffffff",
+      "selectedBackground": "#ffb300"
+    },
+    "sidebar": {
+      "background": "#fff9c4",
+      "border": "#fff176",
+      "text": "#f57f17",
+      "textHover": "#e65100"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#ffb300",
+        "text": "#f57f17",
+        "hover": "#ff8f00"
+      },
+      "secondary": {
+        "background": "#ffca28",
+        "text": "#f57f17",
+        "hover": "#ffb300"
+      },
+      "success": {
+        "background": "#4caf50",
+        "text": "#ffffff",
+        "hover": "#388e3c"
+      },
+      "danger": {
+        "background": "#f44336",
+        "text": "#ffffff",
+        "hover": "#d32f2f"
+      }
+    },
+    "header": {
+      "background": "#fffde7",
+      "border": "#fff176",
+      "button": {
+        "text": "#ffa000",
+        "hover": "#f57f17",
+        "hoverBackground": "#fff9c4"
+      }
+    },
+    "navigation": {
+      "text": "#f57f17",
+      "hover": "#ffb300",
+      "hoverBackground": "#fff9c4"
+    },
+    "commandPalette": {
+      "background": "#fff9c4",
+      "border": "#fff176",
+      "text": "#f57f17",
+      "textMuted": "#ff8f00",
+      "highlight": "#ffffff",
+      "highlightBackground": "#ffb300"
+    }
+  }
+}

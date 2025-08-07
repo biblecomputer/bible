@@ -1,0 +1,70 @@
+{
+  "name": "Cherry Blossom",
+  "id": "cherry_blossom",
+  "colors": {
+    "background": "#fdf2f8",
+    "text": {
+      "primary": "#be185d",
+      "secondary": "#db2777",
+      "muted": "#ec4899"
+    },
+    "verses": {
+      "number": "#ec4899",
+      "numberHighlighted": "#be185d",
+      "textHighlighted": "#831843",
+      "backgroundHighlighted": "#fce7f3",
+      "selected": "#ffffff",
+      "selectedBackground": "#db2777"
+    },
+    "sidebar": {
+      "background": "#fce7f3",
+      "border": "#fbcfe8",
+      "text": "#be185d",
+      "textHover": "#831843"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#db2777",
+        "text": "#ffffff",
+        "hover": "#be185d"
+      },
+      "secondary": {
+        "background": "#ec4899",
+        "text": "#ffffff",
+        "hover": "#db2777"
+      },
+      "success": {
+        "background": "#059669",
+        "text": "#ffffff",
+        "hover": "#047857"
+      },
+      "danger": {
+        "background": "#dc2626",
+        "text": "#ffffff",
+        "hover": "#b91c1c"
+      }
+    },
+    "header": {
+      "background": "#fdf2f8",
+      "border": "#fbcfe8",
+      "button": {
+        "text": "#ec4899",
+        "hover": "#be185d",
+        "hoverBackground": "#fce7f3"
+      }
+    },
+    "navigation": {
+      "text": "#be185d",
+      "hover": "#db2777",
+      "hoverBackground": "#fce7f3"
+    },
+    "commandPalette": {
+      "background": "#fce7f3",
+      "border": "#fbcfe8",
+      "text": "#be185d",
+      "textMuted": "#ec4899",
+      "highlight": "#ffffff",
+      "highlightBackground": "#db2777"
+    }
+  }
+}

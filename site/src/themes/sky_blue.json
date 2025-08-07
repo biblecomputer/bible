@@ -1,0 +1,70 @@
+{
+  "name": "Sky Blue",
+  "id": "sky_blue",
+  "colors": {
+    "background": "#f0f9ff",
+    "text": {
+      "primary": "#0c4a6e",
+      "secondary": "#0369a1",
+      "muted": "#0284c7"
+    },
+    "verses": {
+      "number": "#0284c7",
+      "numberHighlighted": "#38bdf8",
+      "textHighlighted": "#0c4a6e",
+      "backgroundHighlighted": "#e0f2fe",
+      "selected": "#ffffff",
+      "selectedBackground": "#38bdf8"
+    },
+    "sidebar": {
+      "background": "#e0f2fe",
+      "border": "#bae6fd",
+      "text": "#0c4a6e",
+      "textHover": "#075985"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#38bdf8",
+        "text": "#0c4a6e",
+        "hover": "#0ea5e9"
+      },
+      "secondary": {
+        "background": "#7dd3fc",
+        "text": "#0c4a6e",
+        "hover": "#38bdf8"
+      },
+      "success": {
+        "background": "#86efac",
+        "text": "#14532d",
+        "hover": "#6ee7b7"
+      },
+      "danger": {
+        "background": "#fca5a5",
+        "text": "#7f1d1d",
+        "hover": "#f87171"
+      }
+    },
+    "header": {
+      "background": "#f0f9ff",
+      "border": "#bae6fd",
+      "button": {
+        "text": "#0284c7",
+        "hover": "#0c4a6e",
+        "hoverBackground": "#e0f2fe"
+      }
+    },
+    "navigation": {
+      "text": "#0c4a6e",
+      "hover": "#38bdf8",
+      "hoverBackground": "#e0f2fe"
+    },
+    "commandPalette": {
+      "background": "#e0f2fe",
+      "border": "#bae6fd",
+      "text": "#0c4a6e",
+      "textMuted": "#0369a1",
+      "highlight": "#ffffff",
+      "highlightBackground": "#38bdf8"
+    }
+  }
+}

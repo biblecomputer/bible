@@ -1,0 +1,70 @@
+{
+  "name": "Midnight Blue",
+  "id": "midnight_blue",
+  "colors": {
+    "background": "#0c1445",
+    "text": {
+      "primary": "#dbeafe",
+      "secondary": "#bfdbfe",
+      "muted": "#93c5fd"
+    },
+    "verses": {
+      "number": "#93c5fd",
+      "numberHighlighted": "#60a5fa",
+      "textHighlighted": "#dbeafe",
+      "backgroundHighlighted": "#1e3a8a",
+      "selected": "#0c1445",
+      "selectedBackground": "#3b82f6"
+    },
+    "sidebar": {
+      "background": "#1e3a8a",
+      "border": "#1d4ed8",
+      "text": "#dbeafe",
+      "textHover": "#f0f9ff"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#3b82f6",
+        "text": "#0c1445",
+        "hover": "#2563eb"
+      },
+      "secondary": {
+        "background": "#1d4ed8",
+        "text": "#dbeafe",
+        "hover": "#1e40af"
+      },
+      "success": {
+        "background": "#10b981",
+        "text": "#ffffff",
+        "hover": "#059669"
+      },
+      "danger": {
+        "background": "#ef4444",
+        "text": "#ffffff",
+        "hover": "#dc2626"
+      }
+    },
+    "header": {
+      "background": "#0c1445",
+      "border": "#1e3a8a",
+      "button": {
+        "text": "#93c5fd",
+        "hover": "#dbeafe",
+        "hoverBackground": "#1e3a8a"
+      }
+    },
+    "navigation": {
+      "text": "#dbeafe",
+      "hover": "#60a5fa",
+      "hoverBackground": "#1e3a8a"
+    },
+    "commandPalette": {
+      "background": "#1e3a8a",
+      "border": "#1d4ed8",
+      "text": "#dbeafe",
+      "textMuted": "#bfdbfe",
+      "highlight": "#0c1445",
+      "highlightBackground": "#3b82f6"
+    }
+  }
+}

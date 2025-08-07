@@ -1,0 +1,70 @@
+{
+  "name": "Desert Sand",
+  "id": "desert_sand",
+  "colors": {
+    "background": "#fdf6e3",
+    "text": {
+      "primary": "#8b4513",
+      "secondary": "#d2691e",
+      "muted": "#daa520"
+    },
+    "verses": {
+      "number": "#daa520",
+      "numberHighlighted": "#ff8c00",
+      "textHighlighted": "#8b4513",
+      "backgroundHighlighted": "#faebd7",
+      "selected": "#ffffff",
+      "selectedBackground": "#ff8c00"
+    },
+    "sidebar": {
+      "background": "#faebd7",
+      "border": "#f5deb3",
+      "text": "#8b4513",
+      "textHover": "#654321"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#ff8c00",
+        "text": "#8b4513",
+        "hover": "#ff7f00"
+      },
+      "secondary": {
+        "background": "#daa520",
+        "text": "#8b4513",
+        "hover": "#b8860b"
+      },
+      "success": {
+        "background": "#32cd32",
+        "text": "#ffffff",
+        "hover": "#228b22"
+      },
+      "danger": {
+        "background": "#dc143c",
+        "text": "#ffffff",
+        "hover": "#b22222"
+      }
+    },
+    "header": {
+      "background": "#fdf6e3",
+      "border": "#f5deb3",
+      "button": {
+        "text": "#daa520",
+        "hover": "#8b4513",
+        "hoverBackground": "#faebd7"
+      }
+    },
+    "navigation": {
+      "text": "#8b4513",
+      "hover": "#ff8c00",
+      "hoverBackground": "#faebd7"
+    },
+    "commandPalette": {
+      "background": "#faebd7",
+      "border": "#f5deb3",
+      "text": "#8b4513",
+      "textMuted": "#d2691e",
+      "highlight": "#ffffff",
+      "highlightBackground": "#ff8c00"
+    }
+  }
+}

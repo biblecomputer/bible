@@ -1,0 +1,70 @@
+{
+  "name": "Cotton Candy",
+  "id": "cotton_candy",
+  "colors": {
+    "background": "#fefcff",
+    "text": {
+      "primary": "#7c3aed",
+      "secondary": "#a855f7",
+      "muted": "#c084fc"
+    },
+    "verses": {
+      "number": "#c084fc",
+      "numberHighlighted": "#f0abfc",
+      "textHighlighted": "#7c3aed",
+      "backgroundHighlighted": "#f5f3ff",
+      "selected": "#ffffff",
+      "selectedBackground": "#f0abfc"
+    },
+    "sidebar": {
+      "background": "#faf5ff",
+      "border": "#f3e8ff",
+      "text": "#7c3aed",
+      "textHover": "#6d28d9"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#f0abfc",
+        "text": "#581c87",
+        "hover": "#e879f9"
+      },
+      "secondary": {
+        "background": "#c084fc",
+        "text": "#ffffff",
+        "hover": "#a855f7"
+      },
+      "success": {
+        "background": "#86efac",
+        "text": "#14532d",
+        "hover": "#6ee7b7"
+      },
+      "danger": {
+        "background": "#fca5a5",
+        "text": "#7f1d1d",
+        "hover": "#f87171"
+      }
+    },
+    "header": {
+      "background": "#fefcff",
+      "border": "#f3e8ff",
+      "button": {
+        "text": "#c084fc",
+        "hover": "#7c3aed",
+        "hoverBackground": "#faf5ff"
+      }
+    },
+    "navigation": {
+      "text": "#7c3aed",
+      "hover": "#f0abfc",
+      "hoverBackground": "#faf5ff"
+    },
+    "commandPalette": {
+      "background": "#faf5ff",
+      "border": "#f3e8ff",
+      "text": "#7c3aed",
+      "textMuted": "#a855f7",
+      "highlight": "#ffffff",
+      "highlightBackground": "#f0abfc"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "name": "Volcano Fire",
+  "id": "volcano_fire",
+  "colors": {
+    "background": "#7f1d1d",
+    "text": {
+      "primary": "#fecaca",
+      "secondary": "#f87171",
+      "muted": "#ef4444"
+    },
+    "verses": {
+      "number": "#ef4444",
+      "numberHighlighted": "#f97316",
+      "textHighlighted": "#fecaca",
+      "backgroundHighlighted": "#991b1b",
+      "selected": "#7f1d1d",
+      "selectedBackground": "#f97316"
+    },
+    "sidebar": {
+      "background": "#991b1b",
+      "border": "#b91c1c",
+      "text": "#fecaca",
+      "textHover": "#fee2e2"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#f97316",
+        "text": "#7f1d1d",
+        "hover": "#ea580c"
+      },
+      "secondary": {
+        "background": "#dc2626",
+        "text": "#fecaca",
+        "hover": "#b91c1c"
+      },
+      "success": {
+        "background": "#16a34a",
+        "text": "#ffffff",
+        "hover": "#15803d"
+      },
+      "danger": {
+        "background": "#ea580c",
+        "text": "#ffffff",
+        "hover": "#c2410c"
+      }
+    },
+    "header": {
+      "background": "#7f1d1d",
+      "border": "#991b1b",
+      "button": {
+        "text": "#ef4444",
+        "hover": "#fecaca",
+        "hoverBackground": "#991b1b"
+      }
+    },
+    "navigation": {
+      "text": "#fecaca",
+      "hover": "#f97316",
+      "hoverBackground": "#991b1b"
+    },
+    "commandPalette": {
+      "background": "#991b1b",
+      "border": "#b91c1c",
+      "text": "#fecaca",
+      "textMuted": "#f87171",
+      "highlight": "#7f1d1d",
+      "highlightBackground": "#f97316"
+    }
+  }
+}
