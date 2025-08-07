@@ -491,12 +491,8 @@ fn BibleWithSidebar(
                         <Route
                             path=path!("/:book/:chapter")
                             view=move || {
-                                let chapter = Chapter::from_url().unwrap();
                                 view! {
-                                    <ChapterDetail 
-                                        chapter=chapter 
-                                        verse_visibility_enabled=verse_visibility_enabled
-                                    />
+                                    <ChapterWrapper verse_visibility_enabled=verse_visibility_enabled />
                                 }
                             }
                         />
@@ -958,22 +954,14 @@ fn Home(
             return; // Don't auto-redirect if user explicitly wants to choose
         }
 
+        // Also don't auto-redirect if there's a return_url (let the translation picker handle it)
+        if search_params.contains("return_url=") {
+            return; 
+        }
+
         if let Some(selected_translation) = get_selected_translation() {
             if is_translation_downloaded(&selected_translation) {
-                // Navigate to a random chapter instead of always Genesis 1
-                use crate::instructions::processor::get_random_chapter_path;
-                if let Some(random_path) = get_random_chapter_path() {
-                    navigate(
-                        &random_path,
-                        NavigateOptions {
-                            scroll: false,
-                            ..Default::default()
-                        },
-                    );
-                    return;
-                }
-
-                // Fallback: try to navigate to a standard Genesis path if random fails
+                // Navigate to Genesis 1 - predictable default chapter
                 navigate(
                     "/Genesis/1",
                     NavigateOptions {
@@ -989,5 +977,90 @@ fn Home(
         <div class="min-h-screen" style="background-color: var(--theme-background)">
             <HomeTranslationPicker current_theme=current_theme set_current_theme=set_current_theme />
         </div>
+    }
+}
+
+#[component]
+fn ChapterWrapper(
+    verse_visibility_enabled: ReadSignal<bool>,
+) -> impl IntoView {
+    use crate::storage::{get_selected_translation, is_translation_downloaded};
+    use leptos_router::hooks::{use_location, use_navigate};
+    use urlencoding::encode;
+
+    let navigate = use_navigate();
+    let location = use_location();
+
+    // Check if user has a downloaded translation
+    let (redirect_triggered, set_redirect_triggered) = signal(false);
+
+    // Create effect to check translation and redirect if needed
+    Effect::new(move |_| {
+        // Prevent multiple redirects
+        if redirect_triggered.get() {
+            return;
+        }
+
+        // Check if user has a selected translation that's downloaded
+        if let Some(selected_translation) = get_selected_translation() {
+            if is_translation_downloaded(&selected_translation) {
+                // Translation found, no redirect needed
+                return;
+            }
+        }
+
+        // No valid translation found - redirect to home with current URL as return path
+        set_redirect_triggered.set(true);
+        let current_path = format!("{}{}", location.pathname.get(), location.search.get());
+        let encoded_return_url = encode(&current_path);
+        let redirect_url = format!("/?choose=true&return_url={}", encoded_return_url);
+        
+        navigate(
+            &redirect_url,
+            NavigateOptions {
+                scroll: false,
+                replace: true, // Use replace to avoid adding to history
+                ..Default::default()
+            },
+        );
+    });
+
+    // Simple check for rendering - if we have a translation, show the chapter
+    let has_translation = move || {
+        if let Some(selected_translation) = get_selected_translation() {
+            is_translation_downloaded(&selected_translation)
+        } else {
+            false
+        }
+    };
+
+    view! {
+        <Show
+            when=move || has_translation()
+            fallback=move || view! {
+                <div class="flex items-center justify-center min-h-[200px]">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p style="color: var(--theme-text-muted)">Redirecting to translation picker...</p>
+                    </div>
+                </div>
+            }
+        >
+            {move || {
+                match Chapter::from_url() {
+                    Ok(chapter) => view! {
+                        <ChapterDetail 
+                            chapter=chapter 
+                            verse_visibility_enabled=verse_visibility_enabled
+                        />
+                    }.into_any(),
+                    Err(_) => view! {
+                        <div class="text-center p-8">
+                            <p style="color: var(--theme-text-primary)">Chapter not found</p>
+                        </div>
+                    }.into_any()
+                }
+            }}
+        </Show>
     }
 }

@@ -302,15 +302,56 @@ pub fn HomeTranslationPicker(
     let languages = get_available_languages();
     
     
-    let navigate_to_first_chapter = move || {
-        if let Some(bible) = get_current_bible() {
-            if let Some(first_book) = bible.books.first() {
-                if let Some(first_chapter) = first_book.chapters.first() {
-                    let encoded_book = encode(&first_book.name);
-                    navigate(&format!("/{}/{}", encoded_book, first_chapter.chapter), NavigateOptions { scroll: false, ..Default::default() });
-                }
+    // Get the current URL parameters once at component initialization
+    let location = leptos_router::hooks::use_location();
+    let search_params = location.search.get();
+    
+    #[cfg(target_arch = "wasm32")]
+    web_sys::console::log_1(&format!("Search params: {}", search_params).into());
+    
+    let return_url = {
+        use urlencoding::decode;
+        // Parse return_url parameter
+        if let Some(return_url_start) = search_params.find("return_url=") {
+            let return_url_start = return_url_start + "return_url=".len();
+            let return_url_end = search_params[return_url_start..]
+                .find('&')
+                .map(|pos| return_url_start + pos)
+                .unwrap_or(search_params.len());
+            
+            let encoded_return_url = &search_params[return_url_start..return_url_end];
+            
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&format!("Encoded return URL: {}", encoded_return_url).into());
+            
+            if let Ok(decoded_url) = decode(encoded_return_url) {
+                let decoded_string = decoded_url.to_string();
+                
+                #[cfg(target_arch = "wasm32")]
+                web_sys::console::log_1(&format!("Decoded return URL: {}", decoded_string).into());
+                
+                Some(decoded_string)
+            } else {
+                #[cfg(target_arch = "wasm32")]
+                web_sys::console::log_1(&"Failed to decode return URL".into());
+                None
             }
+        } else {
+            #[cfg(target_arch = "wasm32")]
+            web_sys::console::log_1(&"No return_url parameter found".into());
+            None
         }
+    };
+
+    let navigate_to_first_chapter = move || {
+        // Use the pre-parsed return URL if available
+        if let Some(ref return_url) = return_url {
+            navigate(return_url, NavigateOptions { scroll: false, ..Default::default() });
+            return;
+        }
+        
+        // Fallback: navigate to Genesis 1 if no return URL
+        navigate("/Genesis/1", NavigateOptions { scroll: false, ..Default::default() });
     };
     
     view! {
