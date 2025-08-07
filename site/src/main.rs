@@ -584,7 +584,7 @@ fn BibleWithSidebar(
                     when=move || is_theme_sidebar_open.get()
                     fallback=|| view! { <></> }
                 >
-                    <aside class="w-80 border-r p-4 overflow-y-auto md:relative absolute inset-y-0 right-0 z-45 md:z-auto" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border)">
+                    <aside class="w-64 border-r p-3 overflow-y-auto md:relative absolute inset-y-0 right-0 z-45 md:z-auto" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border)">
                         <ThemeSidebar
                             current_theme=current_theme
                             set_current_theme=set_current_theme
