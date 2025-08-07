@@ -172,6 +172,25 @@ fn BibleApp() -> impl IntoView {
                 color: var(--theme-text-primary) !important;
                 border: 1px solid var(--theme-sidebar-border) !important;
             }}
+            *::selection {{
+                background-color: var(--theme-verse-selected-background) !important;
+                color: var(--theme-verse-selected) !important;
+            }}
+            *::-moz-selection {{
+                background-color: var(--theme-verse-selected-background) !important;
+                color: var(--theme-verse-selected) !important;
+            }}
+            /* Ensure text selection works on all elements */
+            body::selection, div::selection, p::selection, span::selection, 
+            article::selection, section::selection, h1::selection, h2::selection, h3::selection {{
+                background-color: var(--theme-verse-selected-background) !important;
+                color: var(--theme-verse-selected) !important;
+            }}
+            body::-moz-selection, div::-moz-selection, p::-moz-selection, span::-moz-selection,
+            article::-moz-selection, section::-moz-selection, h1::-moz-selection, h2::-moz-selection, h3::-moz-selection {{
+                background-color: var(--theme-verse-selected-background) !important;
+                color: var(--theme-verse-selected) !important;
+            }}
             "
         </style>
         <Router>
