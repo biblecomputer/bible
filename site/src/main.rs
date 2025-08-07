@@ -123,6 +123,31 @@ fn BibleApp() -> impl IntoView {
                     let _ = body.style().set_property("margin", "0");
                     let _ = body.style().set_property("padding", "0");
                 }
+                
+                // Inject text selection CSS with direct color values
+                let selection_css = format!(
+                    "::selection {{ background-color: {} !important; color: {} !important; }} ::-moz-selection {{ background-color: {} !important; color: {} !important; }}",
+                    theme.colors.verses.selected_background,
+                    theme.colors.verses.selected,
+                    theme.colors.verses.selected_background,
+                    theme.colors.verses.selected
+                );
+                
+                // Remove existing selection style if present
+                if let Ok(Some(existing_style)) = document.query_selector("style[data-selection-theme]") {
+                    if let Some(parent) = existing_style.parent_node() {
+                        let _ = parent.remove_child(&existing_style);
+                    }
+                }
+                
+                // Create and inject new selection style
+                if let Ok(style_element) = document.create_element("style") {
+                    style_element.set_text_content(Some(&selection_css));
+                    let _ = style_element.set_attribute("data-selection-theme", "true");
+                    if let Some(head) = document.head() {
+                        let _ = head.append_child(&style_element);
+                    }
+                }
             }
         }
     });
@@ -171,25 +196,6 @@ fn BibleApp() -> impl IntoView {
                 background-color: var(--theme-sidebar-background) !important;
                 color: var(--theme-text-primary) !important;
                 border: 1px solid var(--theme-sidebar-border) !important;
-            }}
-            *::selection {{
-                background-color: var(--theme-verse-selected-background) !important;
-                color: var(--theme-verse-selected) !important;
-            }}
-            *::-moz-selection {{
-                background-color: var(--theme-verse-selected-background) !important;
-                color: var(--theme-verse-selected) !important;
-            }}
-            /* Ensure text selection works on all elements */
-            body::selection, div::selection, p::selection, span::selection, 
-            article::selection, section::selection, h1::selection, h2::selection, h3::selection {{
-                background-color: var(--theme-verse-selected-background) !important;
-                color: var(--theme-verse-selected) !important;
-            }}
-            body::-moz-selection, div::-moz-selection, p::-moz-selection, span::-moz-selection,
-            article::-moz-selection, section::-moz-selection, h1::-moz-selection, h2::-moz-selection, h3::-moz-selection {{
-                background-color: var(--theme-verse-selected-background) !important;
-                color: var(--theme-verse-selected) !important;
             }}
             "
         </style>
