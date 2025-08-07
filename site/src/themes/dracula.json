@@ -1,0 +1,70 @@
+{
+  "name": "Dracula",
+  "id": "dracula",
+  "colors": {
+    "background": "#282a36",
+    "text": {
+      "primary": "#f8f8f2",
+      "secondary": "#6272a4",
+      "muted": "#44475a"
+    },
+    "verses": {
+      "number": "#6272a4",
+      "numberHighlighted": "#8be9fd",
+      "textHighlighted": "#f8f8f2",
+      "backgroundHighlighted": "#44475a",
+      "selected": "#282a36",
+      "selectedBackground": "#bd93f9"
+    },
+    "sidebar": {
+      "background": "#44475a",
+      "border": "#6272a4",
+      "text": "#f8f8f2",
+      "textHover": "#8be9fd"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#bd93f9",
+        "text": "#282a36",
+        "hover": "#9580ff"
+      },
+      "secondary": {
+        "background": "#6272a4",
+        "text": "#f8f8f2",
+        "hover": "#44475a"
+      },
+      "success": {
+        "background": "#50fa7b",
+        "text": "#282a36",
+        "hover": "#5af78e"
+      },
+      "danger": {
+        "background": "#ff5555",
+        "text": "#f8f8f2",
+        "hover": "#ff6e6e"
+      }
+    },
+    "header": {
+      "background": "#282a36",
+      "border": "#44475a",
+      "button": {
+        "text": "#6272a4",
+        "hover": "#f8f8f2",
+        "hoverBackground": "#44475a"
+      }
+    },
+    "navigation": {
+      "text": "#f8f8f2",
+      "hover": "#bd93f9",
+      "hoverBackground": "#44475a"
+    },
+    "commandPalette": {
+      "background": "#44475a",
+      "border": "#6272a4",
+      "text": "#f8f8f2",
+      "textMuted": "#6272a4",
+      "highlight": "#282a36",
+      "highlightBackground": "#bd93f9"
+    }
+  }
+}

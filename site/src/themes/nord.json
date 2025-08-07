@@ -1,0 +1,70 @@
+{
+  "name": "Nord",
+  "id": "nord",
+  "colors": {
+    "background": "#2e3440",
+    "text": {
+      "primary": "#eceff4",
+      "secondary": "#d8dee9",
+      "muted": "#4c566a"
+    },
+    "verses": {
+      "number": "#4c566a",
+      "numberHighlighted": "#88c0d0",
+      "textHighlighted": "#eceff4",
+      "backgroundHighlighted": "#3b4252",
+      "selected": "#2e3440",
+      "selectedBackground": "#5e81ac"
+    },
+    "sidebar": {
+      "background": "#3b4252",
+      "border": "#434c5e",
+      "text": "#d8dee9",
+      "textHover": "#eceff4"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#5e81ac",
+        "text": "#eceff4",
+        "hover": "#81a1c1"
+      },
+      "secondary": {
+        "background": "#4c566a",
+        "text": "#eceff4",
+        "hover": "#434c5e"
+      },
+      "success": {
+        "background": "#a3be8c",
+        "text": "#2e3440",
+        "hover": "#b8d4a4"
+      },
+      "danger": {
+        "background": "#bf616a",
+        "text": "#eceff4",
+        "hover": "#d08770"
+      }
+    },
+    "header": {
+      "background": "#2e3440",
+      "border": "#3b4252",
+      "button": {
+        "text": "#4c566a",
+        "hover": "#eceff4",
+        "hoverBackground": "#3b4252"
+      }
+    },
+    "navigation": {
+      "text": "#eceff4",
+      "hover": "#88c0d0",
+      "hoverBackground": "#3b4252"
+    },
+    "commandPalette": {
+      "background": "#3b4252",
+      "border": "#434c5e",
+      "text": "#eceff4",
+      "textMuted": "#4c566a",
+      "highlight": "#2e3440",
+      "highlightBackground": "#5e81ac"
+    }
+  }
+}

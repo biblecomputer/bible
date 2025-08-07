@@ -1,0 +1,70 @@
+{
+  "name": "Deep Ocean",
+  "id": "deep_ocean",
+  "colors": {
+    "background": "#001122",
+    "text": {
+      "primary": "#4dd0e1",
+      "secondary": "#26c6da",
+      "muted": "#00acc1"
+    },
+    "verses": {
+      "number": "#00acc1",
+      "numberHighlighted": "#4dd0e1",
+      "textHighlighted": "#4dd0e1",
+      "backgroundHighlighted": "#002244",
+      "selected": "#001122",
+      "selectedBackground": "#26c6da"
+    },
+    "sidebar": {
+      "background": "#002244",
+      "border": "#003366",
+      "text": "#4dd0e1",
+      "textHover": "#80deea"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#26c6da",
+        "text": "#001122",
+        "hover": "#00acc1"
+      },
+      "secondary": {
+        "background": "#003366",
+        "text": "#4dd0e1",
+        "hover": "#004488"
+      },
+      "success": {
+        "background": "#00e676",
+        "text": "#ffffff",
+        "hover": "#00c853"
+      },
+      "danger": {
+        "background": "#ff5252",
+        "text": "#ffffff",
+        "hover": "#f44336"
+      }
+    },
+    "header": {
+      "background": "#001122",
+      "border": "#002244",
+      "button": {
+        "text": "#00acc1",
+        "hover": "#4dd0e1",
+        "hoverBackground": "#002244"
+      }
+    },
+    "navigation": {
+      "text": "#4dd0e1",
+      "hover": "#80deea",
+      "hoverBackground": "#002244"
+    },
+    "commandPalette": {
+      "background": "#002244",
+      "border": "#003366",
+      "text": "#4dd0e1",
+      "textMuted": "#26c6da",
+      "highlight": "#001122",
+      "highlightBackground": "#26c6da"
+    }
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "name": "Glacier Blue",
+  "id": "glacier_blue",
+  "colors": {
+    "background": "#e1f5fe",
+    "text": {
+      "primary": "#01579b",
+      "secondary": "#0277bd",
+      "muted": "#0288d1"
+    },
+    "verses": {
+      "number": "#0288d1",
+      "numberHighlighted": "#039be5",
+      "textHighlighted": "#01579b",
+      "backgroundHighlighted": "#b3e5fc",
+      "selected": "#ffffff",
+      "selectedBackground": "#039be5"
+    },
+    "sidebar": {
+      "background": "#b3e5fc",
+      "border": "#81d4fa",
+      "text": "#01579b",
+      "textHover": "#014f7b"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#039be5",
+        "text": "#01579b",
+        "hover": "#0288d1"
+      },
+      "secondary": {
+        "background": "#29b6f6",
+        "text": "#01579b",
+        "hover": "#039be5"
+      },
+      "success": {
+        "background": "#4caf50",
+        "text": "#ffffff",
+        "hover": "#388e3c"
+      },
+      "danger": {
+        "background": "#f44336",
+        "text": "#ffffff",
+        "hover": "#d32f2f"
+      }
+    },
+    "header": {
+      "background": "#e1f5fe",
+      "border": "#81d4fa",
+      "button": {
+        "text": "#0288d1",
+        "hover": "#01579b",
+        "hoverBackground": "#b3e5fc"
+      }
+    },
+    "navigation": {
+      "text": "#01579b",
+      "hover": "#039be5",
+      "hoverBackground": "#b3e5fc"
+    },
+    "commandPalette": {
+      "background": "#b3e5fc",
+      "border": "#81d4fa",
+      "text": "#01579b",
+      "textMuted": "#0277bd",
+      "highlight": "#ffffff",
+      "highlightBackground": "#039be5"
+    }
+  }
+}

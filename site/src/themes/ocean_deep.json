@@ -1,0 +1,70 @@
+{
+  "name": "Ocean Deep",
+  "id": "ocean_deep",
+  "colors": {
+    "background": "#0f172a",
+    "text": {
+      "primary": "#e2e8f0",
+      "secondary": "#cbd5e1",
+      "muted": "#94a3b8"
+    },
+    "verses": {
+      "number": "#94a3b8",
+      "numberHighlighted": "#38bdf8",
+      "textHighlighted": "#e2e8f0",
+      "backgroundHighlighted": "#1e293b",
+      "selected": "#0f172a",
+      "selectedBackground": "#0ea5e9"
+    },
+    "sidebar": {
+      "background": "#1e293b",
+      "border": "#334155",
+      "text": "#e2e8f0",
+      "textHover": "#f1f5f9"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#0ea5e9",
+        "text": "#0f172a",
+        "hover": "#0284c7"
+      },
+      "secondary": {
+        "background": "#334155",
+        "text": "#e2e8f0",
+        "hover": "#475569"
+      },
+      "success": {
+        "background": "#10b981",
+        "text": "#ffffff",
+        "hover": "#059669"
+      },
+      "danger": {
+        "background": "#ef4444",
+        "text": "#ffffff",
+        "hover": "#dc2626"
+      }
+    },
+    "header": {
+      "background": "#0f172a",
+      "border": "#1e293b",
+      "button": {
+        "text": "#94a3b8",
+        "hover": "#e2e8f0",
+        "hoverBackground": "#1e293b"
+      }
+    },
+    "navigation": {
+      "text": "#e2e8f0",
+      "hover": "#38bdf8",
+      "hoverBackground": "#1e293b"
+    },
+    "commandPalette": {
+      "background": "#1e293b",
+      "border": "#334155",
+      "text": "#e2e8f0",
+      "textMuted": "#cbd5e1",
+      "highlight": "#0f172a",
+      "highlightBackground": "#0ea5e9"
+    }
+  }
+}

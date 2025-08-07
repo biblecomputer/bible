@@ -1,0 +1,70 @@
+{
+  "name": "Teal Wave",
+  "id": "teal_wave",
+  "colors": {
+    "background": "#e0f2f1",
+    "text": {
+      "primary": "#004d40",
+      "secondary": "#00695c",
+      "muted": "#00796b"
+    },
+    "verses": {
+      "number": "#00796b",
+      "numberHighlighted": "#00897b",
+      "textHighlighted": "#004d40",
+      "backgroundHighlighted": "#b2dfdb",
+      "selected": "#ffffff",
+      "selectedBackground": "#00897b"
+    },
+    "sidebar": {
+      "background": "#b2dfdb",
+      "border": "#80cbc4",
+      "text": "#004d40",
+      "textHover": "#00251a"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#00897b",
+        "text": "#004d40",
+        "hover": "#00796b"
+      },
+      "secondary": {
+        "background": "#26a69a",
+        "text": "#004d40",
+        "hover": "#00897b"
+      },
+      "success": {
+        "background": "#4caf50",
+        "text": "#ffffff",
+        "hover": "#388e3c"
+      },
+      "danger": {
+        "background": "#f44336",
+        "text": "#ffffff",
+        "hover": "#d32f2f"
+      }
+    },
+    "header": {
+      "background": "#e0f2f1",
+      "border": "#80cbc4",
+      "button": {
+        "text": "#00796b",
+        "hover": "#004d40",
+        "hoverBackground": "#b2dfdb"
+      }
+    },
+    "navigation": {
+      "text": "#004d40",
+      "hover": "#00897b",
+      "hoverBackground": "#b2dfdb"
+    },
+    "commandPalette": {
+      "background": "#b2dfdb",
+      "border": "#80cbc4",
+      "text": "#004d40",
+      "textMuted": "#00695c",
+      "highlight": "#ffffff",
+      "highlightBackground": "#00897b"
+    }
+  }
+}

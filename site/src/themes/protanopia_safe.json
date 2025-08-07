@@ -1,0 +1,70 @@
+{
+  "name": "Protanopia Safe",
+  "id": "protanopia_safe",
+  "colors": {
+    "background": "#fffef7",
+    "text": {
+      "primary": "#451a03",
+      "secondary": "#78350f",
+      "muted": "#a16207"
+    },
+    "verses": {
+      "number": "#a16207",
+      "numberHighlighted": "#1e40af",
+      "textHighlighted": "#451a03",
+      "backgroundHighlighted": "#fef3c7",
+      "selected": "#ffffff",
+      "selectedBackground": "#1e40af"
+    },
+    "sidebar": {
+      "background": "#fef3c7",
+      "border": "#fed7aa",
+      "text": "#78350f",
+      "textHover": "#451a03"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#1e40af",
+        "text": "#ffffff",
+        "hover": "#1e3a8a"
+      },
+      "secondary": {
+        "background": "#a16207",
+        "text": "#ffffff",
+        "hover": "#92400e"
+      },
+      "success": {
+        "background": "#0369a1",
+        "text": "#ffffff",
+        "hover": "#0c4a6e"
+      },
+      "danger": {
+        "background": "#7f1d1d",
+        "text": "#ffffff",
+        "hover": "#991b1b"
+      }
+    },
+    "header": {
+      "background": "#fffef7",
+      "border": "#fed7aa",
+      "button": {
+        "text": "#a16207",
+        "hover": "#78350f",
+        "hoverBackground": "#fef3c7"
+      }
+    },
+    "navigation": {
+      "text": "#451a03",
+      "hover": "#1e40af",
+      "hoverBackground": "#dbeafe"
+    },
+    "commandPalette": {
+      "background": "#fef3c7",
+      "border": "#fed7aa",
+      "text": "#451a03",
+      "textMuted": "#78350f",
+      "highlight": "#ffffff",
+      "highlightBackground": "#1e40af"
+    }
+  }
+}

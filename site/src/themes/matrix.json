@@ -1,0 +1,70 @@
+{
+  "name": "Matrix",
+  "id": "matrix",
+  "colors": {
+    "background": "#0d1117",
+    "text": {
+      "primary": "#00ff00",
+      "secondary": "#39ff14",
+      "muted": "#00cc00"
+    },
+    "verses": {
+      "number": "#00cc00",
+      "numberHighlighted": "#39ff14",
+      "textHighlighted": "#00ff00",
+      "backgroundHighlighted": "#001100",
+      "selected": "#0d1117",
+      "selectedBackground": "#00ff00"
+    },
+    "sidebar": {
+      "background": "#161b22",
+      "border": "#30363d",
+      "text": "#00ff00",
+      "textHover": "#39ff14"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#00ff00",
+        "text": "#0d1117",
+        "hover": "#39ff14"
+      },
+      "secondary": {
+        "background": "#30363d",
+        "text": "#00ff00",
+        "hover": "#484f58"
+      },
+      "success": {
+        "background": "#238636",
+        "text": "#ffffff",
+        "hover": "#2ea043"
+      },
+      "danger": {
+        "background": "#da3633",
+        "text": "#ffffff",
+        "hover": "#f85149"
+      }
+    },
+    "header": {
+      "background": "#0d1117",
+      "border": "#30363d",
+      "button": {
+        "text": "#00cc00",
+        "hover": "#00ff00",
+        "hoverBackground": "#161b22"
+      }
+    },
+    "navigation": {
+      "text": "#00ff00",
+      "hover": "#39ff14",
+      "hoverBackground": "#161b22"
+    },
+    "commandPalette": {
+      "background": "#161b22",
+      "border": "#30363d",
+      "text": "#00ff00",
+      "textMuted": "#00cc00",
+      "highlight": "#0d1117",
+      "highlightBackground": "#00ff00"
+    }
+  }
+}

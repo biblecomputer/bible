@@ -1,0 +1,70 @@
+{
+  "name": "Steel Gray",
+  "id": "steel_gray",
+  "colors": {
+    "background": "#37474f",
+    "text": {
+      "primary": "#cfd8dc",
+      "secondary": "#b0bec5",
+      "muted": "#90a4ae"
+    },
+    "verses": {
+      "number": "#90a4ae",
+      "numberHighlighted": "#78909c",
+      "textHighlighted": "#cfd8dc",
+      "backgroundHighlighted": "#455a64",
+      "selected": "#37474f",
+      "selectedBackground": "#78909c"
+    },
+    "sidebar": {
+      "background": "#455a64",
+      "border": "#546e7a",
+      "text": "#cfd8dc",
+      "textHover": "#eceff1"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#78909c",
+        "text": "#37474f",
+        "hover": "#607d8b"
+      },
+      "secondary": {
+        "background": "#546e7a",
+        "text": "#cfd8dc",
+        "hover": "#455a64"
+      },
+      "success": {
+        "background": "#4caf50",
+        "text": "#ffffff",
+        "hover": "#388e3c"
+      },
+      "danger": {
+        "background": "#f44336",
+        "text": "#ffffff",
+        "hover": "#d32f2f"
+      }
+    },
+    "header": {
+      "background": "#37474f",
+      "border": "#455a64",
+      "button": {
+        "text": "#90a4ae",
+        "hover": "#cfd8dc",
+        "hoverBackground": "#455a64"
+      }
+    },
+    "navigation": {
+      "text": "#cfd8dc",
+      "hover": "#78909c",
+      "hoverBackground": "#455a64"
+    },
+    "commandPalette": {
+      "background": "#455a64",
+      "border": "#546e7a",
+      "text": "#cfd8dc",
+      "textMuted": "#b0bec5",
+      "highlight": "#37474f",
+      "highlightBackground": "#78909c"
+    }
+  }
+}

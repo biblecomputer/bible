@@ -1,0 +1,70 @@
+{
+  "name": "Charcoal Night",
+  "id": "charcoal_night",
+  "colors": {
+    "background": "#212121",
+    "text": {
+      "primary": "#eeeeee",
+      "secondary": "#bdbdbd",
+      "muted": "#9e9e9e"
+    },
+    "verses": {
+      "number": "#9e9e9e",
+      "numberHighlighted": "#757575",
+      "textHighlighted": "#eeeeee",
+      "backgroundHighlighted": "#424242",
+      "selected": "#212121",
+      "selectedBackground": "#757575"
+    },
+    "sidebar": {
+      "background": "#424242",
+      "border": "#616161",
+      "text": "#eeeeee",
+      "textHover": "#fafafa"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#757575",
+        "text": "#212121",
+        "hover": "#616161"
+      },
+      "secondary": {
+        "background": "#616161",
+        "text": "#eeeeee",
+        "hover": "#424242"
+      },
+      "success": {
+        "background": "#4caf50",
+        "text": "#ffffff",
+        "hover": "#388e3c"
+      },
+      "danger": {
+        "background": "#f44336",
+        "text": "#ffffff",
+        "hover": "#d32f2f"
+      }
+    },
+    "header": {
+      "background": "#212121",
+      "border": "#424242",
+      "button": {
+        "text": "#9e9e9e",
+        "hover": "#eeeeee",
+        "hoverBackground": "#424242"
+      }
+    },
+    "navigation": {
+      "text": "#eeeeee",
+      "hover": "#757575",
+      "hoverBackground": "#424242"
+    },
+    "commandPalette": {
+      "background": "#424242",
+      "border": "#616161",
+      "text": "#eeeeee",
+      "textMuted": "#bdbdbd",
+      "highlight": "#212121",
+      "highlightBackground": "#757575"
+    }
+  }
+}

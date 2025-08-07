@@ -1,0 +1,70 @@
+{
+  "name": "Cyberpunk",
+  "id": "cyberpunk",
+  "colors": {
+    "background": "#0a0a0a",
+    "text": {
+      "primary": "#00ffff",
+      "secondary": "#ff00ff",
+      "muted": "#ff0080"
+    },
+    "verses": {
+      "number": "#ff0080",
+      "numberHighlighted": "#ff00ff",
+      "textHighlighted": "#00ffff",
+      "backgroundHighlighted": "#1a0a1a",
+      "selected": "#0a0a0a",
+      "selectedBackground": "#ff00ff"
+    },
+    "sidebar": {
+      "background": "#1a0a1a",
+      "border": "#330033",
+      "text": "#00ffff",
+      "textHover": "#80ffff"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#ff00ff",
+        "text": "#0a0a0a",
+        "hover": "#cc00cc"
+      },
+      "secondary": {
+        "background": "#330033",
+        "text": "#00ffff",
+        "hover": "#4d004d"
+      },
+      "success": {
+        "background": "#00ff00",
+        "text": "#0a0a0a",
+        "hover": "#00cc00"
+      },
+      "danger": {
+        "background": "#ff0000",
+        "text": "#ffffff",
+        "hover": "#cc0000"
+      }
+    },
+    "header": {
+      "background": "#0a0a0a",
+      "border": "#1a0a1a",
+      "button": {
+        "text": "#ff0080",
+        "hover": "#00ffff",
+        "hoverBackground": "#1a0a1a"
+      }
+    },
+    "navigation": {
+      "text": "#00ffff",
+      "hover": "#ff00ff",
+      "hoverBackground": "#1a0a1a"
+    },
+    "commandPalette": {
+      "background": "#1a0a1a",
+      "border": "#330033",
+      "text": "#00ffff",
+      "textMuted": "#ff0080",
+      "highlight": "#0a0a0a",
+      "highlightBackground": "#ff00ff"
+    }
+  }
+}

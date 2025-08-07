@@ -1,0 +1,70 @@
+{
+  "name": "Wine Red",
+  "id": "wine_red",
+  "colors": {
+    "background": "#4a148c",
+    "text": {
+      "primary": "#f8bbd9",
+      "secondary": "#f48fb1",
+      "muted": "#f06292"
+    },
+    "verses": {
+      "number": "#f06292",
+      "numberHighlighted": "#e91e63",
+      "textHighlighted": "#f8bbd9",
+      "backgroundHighlighted": "#6a1b9a",
+      "selected": "#4a148c",
+      "selectedBackground": "#e91e63"
+    },
+    "sidebar": {
+      "background": "#6a1b9a",
+      "border": "#8e24aa",
+      "text": "#f8bbd9",
+      "textHover": "#fce4ec"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#e91e63",
+        "text": "#4a148c",
+        "hover": "#c2185b"
+      },
+      "secondary": {
+        "background": "#8e24aa",
+        "text": "#f8bbd9",
+        "hover": "#6a1b9a"
+      },
+      "success": {
+        "background": "#4caf50",
+        "text": "#ffffff",
+        "hover": "#388e3c"
+      },
+      "danger": {
+        "background": "#ff5722",
+        "text": "#ffffff",
+        "hover": "#e64a19"
+      }
+    },
+    "header": {
+      "background": "#4a148c",
+      "border": "#6a1b9a",
+      "button": {
+        "text": "#f06292",
+        "hover": "#f8bbd9",
+        "hoverBackground": "#6a1b9a"
+      }
+    },
+    "navigation": {
+      "text": "#f8bbd9",
+      "hover": "#e91e63",
+      "hoverBackground": "#6a1b9a"
+    },
+    "commandPalette": {
+      "background": "#6a1b9a",
+      "border": "#8e24aa",
+      "text": "#f8bbd9",
+      "textMuted": "#f48fb1",
+      "highlight": "#4a148c",
+      "highlightBackground": "#e91e63"
+    }
+  }
+}

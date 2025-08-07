@@ -1,0 +1,70 @@
+{
+  "name": "Space Nebula",
+  "id": "space_nebula",
+  "colors": {
+    "background": "#0f0f23",
+    "text": {
+      "primary": "#e879f9",
+      "secondary": "#c084fc",
+      "muted": "#a78bfa"
+    },
+    "verses": {
+      "number": "#a78bfa",
+      "numberHighlighted": "#8b5cf6",
+      "textHighlighted": "#e879f9",
+      "backgroundHighlighted": "#1e1b4b",
+      "selected": "#0f0f23",
+      "selectedBackground": "#8b5cf6"
+    },
+    "sidebar": {
+      "background": "#1e1b4b",
+      "border": "#312e81",
+      "text": "#e879f9",
+      "textHover": "#f0abfc"
+    },
+    "buttons": {
+      "primary": {
+        "background": "#8b5cf6",
+        "text": "#0f0f23",
+        "hover": "#7c3aed"
+      },
+      "secondary": {
+        "background": "#a78bfa",
+        "text": "#0f0f23",
+        "hover": "#8b5cf6"
+      },
+      "success": {
+        "background": "#10b981",
+        "text": "#ffffff",
+        "hover": "#059669"
+      },
+      "danger": {
+        "background": "#ef4444",
+        "text": "#ffffff",
+        "hover": "#dc2626"
+      }
+    },
+    "header": {
+      "background": "#0f0f23",
+      "border": "#1e1b4b",
+      "button": {
+        "text": "#a78bfa",
+        "hover": "#e879f9",
+        "hoverBackground": "#1e1b4b"
+      }
+    },
+    "navigation": {
+      "text": "#e879f9",
+      "hover": "#8b5cf6",
+      "hoverBackground": "#1e1b4b"
+    },
+    "commandPalette": {
+      "background": "#1e1b4b",
+      "border": "#312e81",
+      "text": "#e879f9",
+      "textMuted": "#c084fc",
+      "highlight": "#0f0f23",
+      "highlightBackground": "#8b5cf6"
+    }
+  }
+}
