@@ -12,7 +12,9 @@
       "number": "#9ca3af",
       "numberHighlighted": "#60a5fa",
       "textHighlighted": "#f9fafb",
-      "backgroundHighlighted": "#1f2937"
+      "backgroundHighlighted": "#1f2937",
+      "selected": "#ffffff",
+      "selectedBackground": "#3b82f6"
     },
     "sidebar": {
       "background": "#1f2937",

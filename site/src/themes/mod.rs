@@ -36,6 +36,9 @@ pub struct VerseColors {
     pub text_highlighted: String,
     #[serde(rename = "backgroundHighlighted")]
     pub background_highlighted: String,
+    pub selected: String,
+    #[serde(rename = "selectedBackground")]
+    pub selected_background: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -126,6 +129,8 @@ pub fn theme_to_css_vars(theme: &Theme) -> String {
         --theme-verse-number-highlighted: {};
         --theme-verse-text-highlighted: {};
         --theme-verse-background-highlighted: {};
+        --theme-verse-selected: {};
+        --theme-verse-selected-background: {};
         --theme-sidebar-background: {};
         --theme-sidebar-border: {};
         --theme-sidebar-text: {};
@@ -165,6 +170,8 @@ pub fn theme_to_css_vars(theme: &Theme) -> String {
         theme.colors.verses.number_highlighted,
         theme.colors.verses.text_highlighted,
         theme.colors.verses.background_highlighted,
+        theme.colors.verses.selected,
+        theme.colors.verses.selected_background,
         theme.colors.sidebar.background,
         theme.colors.sidebar.border,
         theme.colors.sidebar.text,
