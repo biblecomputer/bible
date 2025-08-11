@@ -851,6 +851,47 @@ fn KeyboardNavigationHandler(
                     });
                     return;
                 }
+                Instruction::ExportToPDF => {
+                    e.prevent_default();
+                    web_sys::console::log_1(&"🎯 PDF Export instruction received!".into());
+                    spawn_local(async move {
+                        web_sys::console::log_1(&"🔄 Getting current Bible data...".into());
+                        let bible = crate::core::get_current_bible().unwrap_or_else(|| {
+                            web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
+                            crate::core::get_bible().clone()
+                        });
+                        web_sys::console::log_1(&format!("✅ Bible data obtained with {} books", bible.books.len()).into());
+                        
+                        web_sys::console::log_1(&"🔄 Starting PDF generation...".into());
+                        match crate::utils::export_bible_to_pdf(&bible) {
+                                Ok(pdf_bytes) => {
+                                    web_sys::console::log_1(&format!("✅ PDF generation successful! {} bytes", pdf_bytes.len()).into());
+                                    
+                                    let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
+                                        web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
+                                        crate::storage::translation_storage::BibleTranslation {
+                                            name: "Unknown_Bible".to_string(),
+                                            short_name: "unknown".to_string(),
+                                            description: "".to_string(),
+                                            wikipedia: "".to_string(),
+                                            release_year: 2024,
+                                            languages: vec![],
+                                            iagon: "".to_string(),
+                                        }
+                                    });
+                                    let filename = format!("{}_Bible.pdf", translation_info.name.replace(" ", "_"));
+                                    web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
+                                    
+                                    web_sys::console::log_1(&"🔽 Triggering PDF download...".into());
+                                    crate::utils::trigger_pdf_download(pdf_bytes, &filename);
+                                }
+                            Err(e) => {
+                                web_sys::console::log_1(&format!("❌ Failed to generate PDF: {:?}", e).into());
+                            }
+                        }
+                    });
+                    return;
+                }
                 Instruction::NextReference => {
                     e.prevent_default();
                     // Cross-references will handle this via keyboard events

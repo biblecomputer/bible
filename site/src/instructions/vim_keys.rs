@@ -166,6 +166,7 @@ impl KeyboardMappings {
             "ShowTranslations" => Some(Instruction::ShowTranslations),
             "ToggleVersePallate" => Some(Instruction::ToggleVersePallate),
             "ToggleVerseVisibility" => Some(Instruction::ToggleVerseVisibility),
+            "ExportToPDF" => Some(Instruction::ExportToPDF),
             _ => None,
         }
     }
