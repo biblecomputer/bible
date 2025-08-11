@@ -1,8 +1,49 @@
 use crate::core::bible_core::Bible;
 use crate::storage::translations::get_current_translation;
+use crate::translation_map::translation::Translation;
+use crate::core::types::Language;
 use printpdf::*;
 use std::io::BufWriter;
 use web_sys::console;
+
+/// Convert a Language enum from storage to core::types::Language
+fn convert_language(lang: &crate::storage::translation_storage::Language) -> Language {
+    match lang {
+        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
+        crate::storage::translation_storage::Language::English => Language::English,
+    }
+}
+
+/// Get translated book name based on current translation
+fn get_translated_book_name(book_name: &str) -> String {
+    console::log_1(&format!("🔄 Translating book name: {}", book_name).into());
+    
+    if let Some(current_translation) = get_current_translation() {
+        console::log_1(&format!("📚 Current translation: {} ({:?})", current_translation.name, current_translation.languages).into());
+        
+        if let Some(first_language) = current_translation.languages.first() {
+            console::log_1(&format!("🌍 Using language: {:?}", first_language).into());
+            let translation = Translation::from_language(convert_language(first_language));
+            
+            // Convert book name to lowercase for mapping
+            let key = book_name.to_lowercase();
+            console::log_1(&format!("🔑 Looking up key: '{}'", key).into());
+            
+            if let Some(translated_name) = translation.get(&key) {
+                console::log_1(&format!("✅ Found translation: {} → {}", book_name, translated_name).into());
+                return translated_name;
+            } else {
+                console::log_1(&format!("❌ No translation found for key: '{}'", key).into());
+            }
+        }
+    } else {
+        console::log_1(&"❌ No current translation available".into());
+    }
+    
+    console::log_1(&format!("⏭️ Using original name: {}", book_name).into());
+    // Return original name if no translation found
+    book_name.to_string()
+}
 
 pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     console::log_1(&"🚀 Starting PDF export process".into());
@@ -88,9 +129,12 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
             current_y = Mm(270.0);
         }
         
-        // Book title
+        // Book title - use translated name
+        let translated_book_name = get_translated_book_name(&book.name);
+        console::log_1(&format!("📖 Book: {} → {}", book.name, translated_book_name).into());
+        
         current_layer_ref.use_text(
-            &book.name,
+            &translated_book_name,
             18.0,
             margin_left,
             current_y,
@@ -111,80 +155,89 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
                 current_y = Mm(270.0);
             }
             
-            // Chapter title
+            // Chapter title - centered format like "-- 1 --"
+            let chapter_title = format!("-- {} --", chapter.chapter);
+            let title_width = 14.0 * chapter_title.len() as f32 * 0.6; // Rough character width estimation
+            let centered_x = (margin_left + Mm(170.0)) / 2.0 - Mm(title_width / 2.0); // Center between margins
+            
             current_layer_ref.use_text(
-                &format!("Chapter {}", chapter.chapter),
+                &chapter_title,
                 14.0,
-                margin_left,
+                centered_x,
                 current_y,
                 &bold_font,
             );
             
-            current_y -= line_height * 1.5;
+            current_y -= line_height * 2.0;
+            
+            // Render verses as continuous flowing text like the website
+            let max_chars_per_line = 85;
+            let mut current_line = String::new();
+            let mut first_verse_in_chapter = true;
             
             for verse in &chapter.verses {
                 verse_count += 1;
                 
-                // Check if we need a new page for the verse
-                if current_y < page_bottom_margin + line_height * 3.0 {
-                    console::log_1(&"📄 Adding new page for verse".into());
-                    let (new_page, new_layer) = doc.add_page(Mm(210.0), Mm(297.0), "Layer 1");
-                    current_page = new_page;
-                    current_layer_ref = doc.get_page(current_page).get_layer(new_layer);
-                    current_y = Mm(270.0);
-                }
+                // Add verse number as a superscript-style inline number
+                let verse_text = if first_verse_in_chapter {
+                    format!("{} {}", verse.verse, verse.text)
+                } else {
+                    format!(" {} {}", verse.verse, verse.text)
+                };
                 
-                // Verse number and text
-                let verse_text = format!("{} {}", verse.verse, verse.text);
+                first_verse_in_chapter = false;
                 
-                // Simple text wrapping (split long verses into multiple lines)
-                let max_chars_per_line = 80;
+                // Split verse text into words and add them to flowing text
                 let words: Vec<&str> = verse_text.split_whitespace().collect();
-                let mut current_line = String::new();
                 
                 for word in words {
-                    if current_line.len() + word.len() + 1 > max_chars_per_line {
-                        if !current_line.is_empty() {
-                            current_layer_ref.use_text(
-                                &current_line,
-                                11.0,
-                                margin_left,
-                                current_y,
-                                &font,
-                            );
-                            current_y -= line_height;
-                            current_line.clear();
-                            
-                            // Check if we need a new page
-                            if current_y < page_bottom_margin + line_height {
-                                console::log_1(&"📄 Adding new page for text wrap".into());
-                                let (new_page, new_layer) = doc.add_page(Mm(210.0), Mm(297.0), "Layer 1");
-                                current_page = new_page;
-                                current_layer_ref = doc.get_page(current_page).get_layer(new_layer);
-                                current_y = Mm(270.0);
-                            }
-                        }
-                    }
+                    // Check if adding this word would exceed line length
+                    let word_with_space = if current_line.is_empty() {
+                        word.to_string()
+                    } else {
+                        format!(" {}", word)
+                    };
                     
-                    if !current_line.is_empty() {
-                        current_line.push(' ');
+                    if current_line.len() + word_with_space.len() > max_chars_per_line && !current_line.is_empty() {
+                        // Line is full, render it and start a new line
+                        current_layer_ref.use_text(
+                            current_line.trim(),
+                            11.0,
+                            margin_left,
+                            current_y,
+                            &font,
+                        );
+                        current_y -= line_height;
+                        current_line.clear();
+                        
+                        // Check if we need a new page
+                        if current_y < page_bottom_margin + line_height {
+                            console::log_1(&"📄 Adding new page for chapter text".into());
+                            let (new_page, new_layer) = doc.add_page(Mm(210.0), Mm(297.0), "Layer 1");
+                            current_page = new_page;
+                            current_layer_ref = doc.get_page(current_page).get_layer(new_layer);
+                            current_y = Mm(270.0);
+                        }
+                        
+                        // Start new line with current word (no leading space)
+                        current_line = word.to_string();
+                    } else {
+                        // Add word to current line
+                        current_line.push_str(&word_with_space);
                     }
-                    current_line.push_str(word);
                 }
-                
-                // Print remaining text
-                if !current_line.is_empty() {
-                    current_layer_ref.use_text(
-                        &current_line,
-                        11.0,
-                        margin_left,
-                        current_y,
-                        &font,
-                    );
-                    current_y -= line_height;
-                }
-                
-                current_y -= line_height * 0.3; // Small spacing between verses
+            }
+            
+            // Render any remaining text
+            if !current_line.is_empty() {
+                current_layer_ref.use_text(
+                    current_line.trim(),
+                    11.0,
+                    margin_left,
+                    current_y,
+                    &font,
+                );
+                current_y -= line_height;
             }
             
             current_y -= line_height; // Extra spacing between chapters

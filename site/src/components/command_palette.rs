@@ -359,7 +359,24 @@ pub fn CommandPalette(
             let pathname = location.pathname.get();
             let search = location.search.get();
             if let Some(context) = create_instruction_context(&pathname, &search) {
-                processor.process(instruction, &context);
+                let handled = processor.process(instruction.clone(), &context);
+                
+                // If the processor didn't handle the instruction, create a custom event
+                if !handled {
+                    use web_sys::CustomEvent;
+                    
+                    // Only handle ExportToPDF for now
+                    if matches!(instruction, crate::instructions::Instruction::ExportToPDF) {
+                        if let Some(window) = web_sys::window() {
+                            if let Some(document) = window.document() {
+                                // Create custom event with instruction data
+                                if let Ok(event) = CustomEvent::new("palette-instruction") {
+                                    let _ = document.dispatch_event(&event);
+                                }
+                            }
+                        }
+                    }
+                }
             }
             set_execute_instruction.set(None); // Reset
         }
