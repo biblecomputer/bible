@@ -1,5 +1,5 @@
 use crate::api::init_bible;
-use crate::components::{CommandPalette, CrossReferencesSidebar, Sidebar, ThemeSidebar};
+use crate::components::{CommandPalette, CrossReferencesSidebar, PdfLoadingProgress, Sidebar, ThemeSidebar};
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::instructions::{
     Instruction, InstructionContext, InstructionProcessor, VimKeyboardMapper,
@@ -653,7 +653,9 @@ fn KeyboardNavigationHandler(
     // Previous chapter tracking for "alt-tab" like switching
     let (previous_chapter_path, set_previous_chapter_path) = signal(Option::<String>::None);
     
-    // PDF export loading state
+    // PDF export progress state
+    let (pdf_progress, set_pdf_progress) = signal(0.0f32);
+    let (pdf_status, set_pdf_status) = signal("Preparing export...".to_string());
     let (is_pdf_exporting, set_is_pdf_exporting) = signal(false);
 
     // Reactive effect to track all path changes
@@ -858,8 +860,15 @@ fn KeyboardNavigationHandler(
                     e.prevent_default();
                     web_sys::console::log_1(&"🎯 PDF Export instruction received!".into());
                     let set_is_pdf_exporting = set_is_pdf_exporting.clone();
+                    let set_pdf_progress = set_pdf_progress.clone();
+                    let set_pdf_status = set_pdf_status.clone();
                     spawn_local(async move {
+                        web_sys::console::log_1(&"🚀 Setting PDF export flags...".into());
                         set_is_pdf_exporting.set(true);
+                        set_pdf_progress.set(0.0);
+                        set_pdf_status.set("Getting Bible data...".to_string());
+                        web_sys::console::log_1(&"✅ PDF export flags set".into());
+                        
                         web_sys::console::log_1(&"🔄 Getting current Bible data...".into());
                         let bible = crate::core::get_current_bible().unwrap_or_else(|| {
                             web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
@@ -867,31 +876,43 @@ fn KeyboardNavigationHandler(
                         });
                         web_sys::console::log_1(&format!("✅ Bible data obtained with {} books", bible.books.len()).into());
                         
+                        // Create progress callback
+                        let progress_callback = {
+                            let set_progress = set_pdf_progress.clone();
+                            let set_status = set_pdf_status.clone();
+                            move |progress: f32, status: String| {
+                                set_progress.set(progress);
+                                set_status.set(status);
+                            }
+                        };
+                        
                         web_sys::console::log_1(&"🔄 Starting PDF generation...".into());
-                        match crate::utils::export_bible_to_pdf(&bible) {
-                                Ok(pdf_bytes) => {
-                                    web_sys::console::log_1(&format!("✅ PDF generation successful! {} bytes", pdf_bytes.len()).into());
-                                    
-                                    let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
-                                        web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
-                                        crate::storage::translation_storage::BibleTranslation {
-                                            name: "Unknown_Bible".to_string(),
-                                            short_name: "unknown".to_string(),
-                                            description: "".to_string(),
-                                            wikipedia: "".to_string(),
-                                            release_year: 2024,
-                                            languages: vec![],
-                                            iagon: "".to_string(),
-                                        }
-                                    });
-                                    let filename = format!("{}_Bible.pdf", translation_info.name.replace(" ", "_"));
-                                    web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
-                                    
-                                    web_sys::console::log_1(&"🔽 Triggering PDF download...".into());
-                                    crate::utils::trigger_pdf_download(pdf_bytes, &filename);
-                                }
+                        match crate::utils::export_bible_to_pdf(&bible, Some(progress_callback)) {
+                            Ok(pdf_bytes) => {
+                                web_sys::console::log_1(&format!("✅ PDF generation successful! {} bytes", pdf_bytes.len()).into());
+                                set_pdf_status.set("Preparing download...".to_string());
+                                
+                                let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
+                                    web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
+                                    crate::storage::translation_storage::BibleTranslation {
+                                        name: "Unknown_Bible".to_string(),
+                                        short_name: "unknown".to_string(),
+                                        description: "".to_string(),
+                                        wikipedia: "".to_string(),
+                                        release_year: 2024,
+                                        languages: vec![],
+                                        iagon: "".to_string(),
+                                    }
+                                });
+                                let filename = format!("{}_Bible.pdf", translation_info.name.replace(" ", "_"));
+                                web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
+                                
+                                web_sys::console::log_1(&"🔽 Triggering PDF download...".into());
+                                crate::utils::trigger_pdf_download(pdf_bytes, &filename);
+                            }
                             Err(e) => {
                                 web_sys::console::log_1(&format!("❌ Failed to generate PDF: {:?}", e).into());
+                                set_pdf_status.set("Export failed!".to_string());
                             }
                         }
                         set_is_pdf_exporting.set(false);
@@ -975,21 +996,39 @@ fn KeyboardNavigationHandler(
     use wasm_bindgen::JsCast;
     
     let set_is_pdf_exporting_custom = set_is_pdf_exporting.clone();
+    let set_pdf_progress_custom = set_pdf_progress.clone();
+    let set_pdf_status_custom = set_pdf_status.clone();
     let custom_event_handler = Closure::wrap(Box::new(move |_event: web_sys::Event| {
         web_sys::console::log_1(&"🎯 CustomEvent received from command palette!".into());
         let set_is_pdf_exporting = set_is_pdf_exporting_custom.clone();
+        let set_progress = set_pdf_progress_custom.clone();
+        let set_status = set_pdf_status_custom.clone();
         spawn_local(async move {
             set_is_pdf_exporting.set(true);
+            set_progress.set(0.0);
+            set_status.set("Getting Bible data...".to_string());
+            
             web_sys::console::log_1(&"🔄 Getting current Bible data via CustomEvent...".into());
             let bible = crate::core::get_current_bible().unwrap_or_else(|| {
                 web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
                 crate::core::get_bible().clone()
             });
             
+            // Create progress callback
+            let progress_callback = {
+                let set_progress = set_progress.clone();
+                let set_status = set_status.clone();
+                move |progress: f32, status: String| {
+                    set_progress.set(progress);
+                    set_status.set(status);
+                }
+            };
+            
             web_sys::console::log_1(&"🔄 Starting PDF generation via CustomEvent...".into());
-            match crate::utils::export_bible_to_pdf(&bible) {
+            match crate::utils::export_bible_to_pdf(&bible, Some(progress_callback)) {
                 Ok(pdf_bytes) => {
                     web_sys::console::log_1(&format!("✅ PDF generation successful! {} bytes", pdf_bytes.len()).into());
+                    set_status.set("Preparing download...".to_string());
                     
                     let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
                         web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
@@ -1011,6 +1050,7 @@ fn KeyboardNavigationHandler(
                 }
                 Err(e) => {
                     web_sys::console::log_1(&format!("❌ Failed to generate PDF: {:?}", e).into());
+                    set_status.set("Export failed!".to_string());
                 }
             }
             set_is_pdf_exporting.set(false);
@@ -1036,21 +1076,12 @@ fn KeyboardNavigationHandler(
             </div>
         </Show>
         
-        // PDF export loading indicator
-        <Show when=move || is_pdf_exporting.get()>
-            <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-90 text-white px-6 py-4 rounded-lg text-center z-50 min-w-64">
-                <div class="flex items-center justify-center space-x-3">
-                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <div>
-                        <div class="text-lg font-semibold">Exporting PDF...</div>
-                        <div class="text-sm opacity-75">This may take a few moments</div>
-                    </div>
-                </div>
-            </div>
-        </Show>
+        // PDF export progress component
+        <PdfLoadingProgress 
+            progress=pdf_progress
+            status_message=pdf_status 
+            is_visible=is_pdf_exporting 
+        />
     }
 }
 
