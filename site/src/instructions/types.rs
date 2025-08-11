@@ -39,4 +39,5 @@ pub enum Instruction {
     ShowTranslations,
     ToggleVersePallate,
     ToggleVerseVisibility,
+    ExportToPDF,
 }

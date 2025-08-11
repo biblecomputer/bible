@@ -204,6 +204,7 @@ fn instruction_to_display(instruction_name: &str) -> (String, String) {
         "OpenAboutPage" => ("About".to_string(), "View information about this Bible website".to_string()),
         "ShowTranslations" => ("Show Translations".to_string(), "Go to the translation selection page".to_string()),
         "ToggleVersePallate" => ("Open Verse Palette".to_string(), "Open command palette for verse navigation".to_string()),
+        "ExportToPDF" => ("Export to PDF".to_string(), "Export the entire Bible as a PDF document".to_string()),
         _ => (instruction_name.to_string(), format!("Execute {}", instruction_name)),
     }
 }
@@ -228,7 +229,7 @@ fn get_all_instructions() -> Vec<SearchResult> {
         "SwitchToPreviousChapter", "CopyRawVerse", "CopyVerseWithReference",
         "ToggleSidebar", "ToggleCrossReferences", "ToggleBiblePallate", "ToggleCommandPallate",
         "NextReference", "PreviousReference", "NextPaletteResult", "PreviousPaletteResult",
-        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate"
+        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate", "ExportToPDF"
     ];
     
     for instruction in &all_possible_instructions {
@@ -325,6 +326,7 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
         "About" => Some(Instruction::OpenAboutPage),
         "Show Translations" => Some(Instruction::ShowTranslations),
         "Open Verse Palette" => Some(Instruction::ToggleVersePallate),
+        "Export to PDF" => Some(Instruction::ExportToPDF),
         _ => None,
     }
 }

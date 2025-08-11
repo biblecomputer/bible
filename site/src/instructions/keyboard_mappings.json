@@ -31,6 +31,7 @@
     "<C-S-R>": "ToggleCrossReferences",
     
     "v": "ToggleVerseVisibility",
+    "p": "ExportToPDF",
     
     "<C-o>": "ToggleBiblePallate",
     "<M-o>": "ToggleBiblePallate",
