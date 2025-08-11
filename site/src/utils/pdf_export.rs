@@ -14,6 +14,17 @@ fn convert_language(lang: &crate::storage::translation_storage::Language) -> Lan
     }
 }
 
+/// Add book header to the top of a page
+fn add_book_header_to_page(layer: &PdfLayerReference, book_name: &str, margin_left: Mm, italic_font: &IndirectFontRef) {
+    layer.use_text(
+        book_name,
+        9.0,
+        margin_left,
+        Mm(285.0), // Near top of page
+        italic_font,
+    );
+}
+
 /// Get translated book name based on current translation
 fn get_translated_book_name(book_name: &str) -> String {
     console::log_1(&format!("🔄 Translating book name: {}", book_name).into());
@@ -45,9 +56,17 @@ fn get_translated_book_name(book_name: &str) -> String {
     book_name.to_string()
 }
 
-pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+pub fn export_bible_to_pdf<F>(bible: &Bible, progress_callback: Option<F>) -> Result<Vec<u8>, Box<dyn std::error::Error>>
+where
+    F: Fn(f32, String) + Clone + 'static,
+{
     console::log_1(&"🚀 Starting PDF export process".into());
     console::log_1(&format!("📖 Bible has {} books", bible.books.len()).into());
+    
+    // Report initial progress
+    if let Some(ref callback) = progress_callback {
+        callback(0.0, "Initializing PDF export...".to_string());
+    }
     
     let translation_info = get_current_translation().unwrap_or_else(|| {
         console::log_1(&"⚠️ No current translation found, using default".into());
@@ -66,10 +85,16 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
     
     // Create PDF document
     console::log_1(&"📄 Creating PDF document...".into());
+    if let Some(ref callback) = progress_callback {
+        callback(0.05, "Creating PDF document...".to_string());
+    }
     let (doc, page1, layer1) = PdfDocument::new("Bible Export", Mm(210.0), Mm(297.0), "Layer 1");
     
     // Load font
     console::log_1(&"🔤 Loading fonts...".into());
+    if let Some(ref callback) = progress_callback {
+        callback(0.1, "Loading fonts...".to_string());
+    }
     let font = doc.add_builtin_font(BuiltinFont::TimesRoman)?;
     let bold_font = doc.add_builtin_font(BuiltinFont::TimesBold)?;
     let italic_font = doc.add_builtin_font(BuiltinFont::TimesItalic)?;
@@ -86,6 +111,9 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
     
     // Add title page
     console::log_1(&"📝 Adding title page...".into());
+    if let Some(ref callback) = progress_callback {
+        callback(0.15, "Creating title page...".to_string());
+    }
     current_layer.use_text(
         format!("{}", translation_info.name),
         24.0,
@@ -108,6 +136,7 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
     
     let mut current_page = page1;
     let mut current_layer_ref = current_layer;
+    let mut current_book_name = String::new(); // Track current book for headers
     
     // Export all books, chapters, and verses
     console::log_1(&format!("📖 Processing {} books for PDF export...", bible.books.len()).into());
@@ -120,6 +149,17 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
         book_count += 1;
         console::log_1(&format!("📖 Processing book {}/{}: {}", book_count, bible.books.len(), book.name).into());
         
+        // Report progress for current book (20% to 90% of total progress)
+        let book_progress = 0.2 + (book_count as f32 / bible.books.len() as f32) * 0.7;
+        if let Some(ref callback) = progress_callback {
+            callback(book_progress, format!("Processing {} ({}/{})", book.name, book_count, bible.books.len()));
+        }
+        
+        // Book title - use translated name
+        let translated_book_name = get_translated_book_name(&book.name);
+        console::log_1(&format!("📖 Book: {} → {}", book.name, translated_book_name).into());
+        current_book_name = translated_book_name.clone(); // Update current book for headers
+        
         // Check if we need a new page for the book
         if current_y < page_bottom_margin + line_height * 10.0 {
             console::log_1(&"📄 Adding new page for book".into());
@@ -129,9 +169,8 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
             current_y = Mm(270.0);
         }
         
-        // Book title - use translated name
-        let translated_book_name = get_translated_book_name(&book.name);
-        console::log_1(&format!("📖 Book: {} → {}", book.name, translated_book_name).into());
+        // Add book header to current page
+        add_book_header_to_page(&current_layer_ref, &translated_book_name, margin_left, &italic_font);
         
         current_layer_ref.use_text(
             &translated_book_name,
@@ -153,6 +192,8 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
                 current_page = new_page;
                 current_layer_ref = doc.get_page(current_page).get_layer(new_layer);
                 current_y = Mm(270.0);
+                // Add book header to the new page
+                add_book_header_to_page(&current_layer_ref, &current_book_name, margin_left, &italic_font);
             }
             
             // Chapter title - centered format like "-- 1 --"
@@ -170,7 +211,7 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
             
             current_y -= line_height * 2.0;
             
-            // Render verses as continuous flowing text like the website
+            // Render verses with subscript verse numbers and continuous flow
             let max_chars_per_line = 85;
             let mut current_line = String::new();
             let mut first_verse_in_chapter = true;
@@ -178,60 +219,69 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
             for verse in &chapter.verses {
                 verse_count += 1;
                 
-                // Add verse number as a superscript-style inline number
-                let verse_text = if first_verse_in_chapter {
-                    format!("{} {}", verse.verse, verse.text)
-                } else {
-                    format!(" {} {}", verse.verse, verse.text)
-                };
+                // Add space before verse number if not first verse in chapter
+                if !first_verse_in_chapter {
+                    current_line.push(' ');
+                }
+                
+                // Add verse number (we'll handle subscript rendering separately)
+                let verse_marker = format!("⁽{}⁾ ", verse.verse); // Use superscript-like characters
+                current_line.push_str(&verse_marker);
                 
                 first_verse_in_chapter = false;
                 
-                // Split verse text into words and add them to flowing text
-                let words: Vec<&str> = verse_text.split_whitespace().collect();
+                // Add verse text
+                current_line.push_str(&verse.text);
+                current_line.push(' '); // Space between verses
+            }
+            
+            // Split the continuous text into lines that fit the page width
+            let words: Vec<&str> = current_line.split_whitespace().collect();
+            let mut line_buffer = String::new();
+            
+            for word in words {
+                let test_line = if line_buffer.is_empty() {
+                    word.to_string()
+                } else {
+                    format!("{} {}", line_buffer, word)
+                };
                 
-                for word in words {
-                    // Check if adding this word would exceed line length
-                    let word_with_space = if current_line.is_empty() {
-                        word.to_string()
-                    } else {
-                        format!(" {}", word)
-                    };
+                // Check if this line would be too long
+                if test_line.len() > max_chars_per_line && !line_buffer.is_empty() {
+                    // Render the current line and start a new one
+                    current_layer_ref.use_text(
+                        &line_buffer,
+                        11.0,
+                        margin_left,
+                        current_y,
+                        &font,
+                    );
+                    current_y -= line_height;
                     
-                    if current_line.len() + word_with_space.len() > max_chars_per_line && !current_line.is_empty() {
-                        // Line is full, render it and start a new line
-                        current_layer_ref.use_text(
-                            current_line.trim(),
-                            11.0,
-                            margin_left,
-                            current_y,
-                            &font,
-                        );
-                        current_y -= line_height;
-                        current_line.clear();
+                    // Check if we need a new page
+                    if current_y < page_bottom_margin + line_height {
+                        console::log_1(&"📄 Adding new page for chapter text".into());
+                        let (new_page, new_layer) = doc.add_page(Mm(210.0), Mm(297.0), "Layer 1");
+                        current_page = new_page;
+                        current_layer_ref = doc.get_page(current_page).get_layer(new_layer);
+                        current_y = Mm(270.0);
                         
-                        // Check if we need a new page
-                        if current_y < page_bottom_margin + line_height {
-                            console::log_1(&"📄 Adding new page for chapter text".into());
-                            let (new_page, new_layer) = doc.add_page(Mm(210.0), Mm(297.0), "Layer 1");
-                            current_page = new_page;
-                            current_layer_ref = doc.get_page(current_page).get_layer(new_layer);
-                            current_y = Mm(270.0);
-                        }
-                        
-                        // Start new line with current word (no leading space)
-                        current_line = word.to_string();
-                    } else {
-                        // Add word to current line
-                        current_line.push_str(&word_with_space);
+                        // Add book header to new page
+                        add_book_header_to_page(&current_layer_ref, &current_book_name, margin_left, &italic_font);
                     }
+                    
+                    // Start new line with current word
+                    line_buffer = word.to_string();
+                } else {
+                    // Add word to current line
+                    line_buffer = test_line;
                 }
             }
             
             // Render any remaining text
-            if !current_line.is_empty() {
+            if !line_buffer.is_empty() {
                 current_layer_ref.use_text(
-                    current_line.trim(),
+                    &line_buffer,
                     11.0,
                     margin_left,
                     current_y,
@@ -239,6 +289,9 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
                 );
                 current_y -= line_height;
             }
+            
+            // Move to next line after chapter content
+            current_y -= line_height;
             
             current_y -= line_height; // Extra spacing between chapters
         }
@@ -250,14 +303,25 @@ pub fn export_bible_to_pdf(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error:
     
     // Save PDF to bytes
     console::log_1(&"💾 Converting PDF to bytes...".into());
+    if let Some(ref callback) = progress_callback {
+        callback(0.9, "Finalizing PDF...".to_string());
+    }
     let mut buf = Vec::new();
     {
         let mut writer = BufWriter::new(&mut buf);
         doc.save(&mut writer)?;
     }
     
+    if let Some(ref callback) = progress_callback {
+        callback(1.0, "PDF export complete!".to_string());
+    }
     console::log_1(&format!("✅ PDF export successful! Generated {} bytes", buf.len()).into());
     Ok(buf)
+}
+
+/// Convenience function for exporting PDF without progress tracking
+pub fn export_bible_to_pdf_simple(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    export_bible_to_pdf(bible, None::<fn(f32, String)>)
 }
 
 pub fn trigger_pdf_download(pdf_bytes: Vec<u8>, filename: &str) {
