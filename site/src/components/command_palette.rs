@@ -12,6 +12,30 @@ use leptos_router::NavigateOptions;
 use wasm_bindgen_futures::spawn_local;
 use leptos::web_sys::KeyboardEvent;
 use std::collections::HashMap;
+use std::sync::OnceLock;
+
+// Cache for normalized verse text to improve search performance
+static NORMALIZED_VERSE_CACHE: OnceLock<HashMap<String, String>> = OnceLock::new();
+
+// Initialize the verse cache
+fn get_normalized_verse_cache() -> &'static HashMap<String, String> {
+    NORMALIZED_VERSE_CACHE.get_or_init(|| {
+        let mut cache = HashMap::new();
+        let bible = get_bible();
+        
+        for book in &bible.books {
+            for chapter in &book.chapters {
+                for verse in &chapter.verses {
+                    let verse_key = format!("{}:{}:{}", book.name, chapter.chapter, verse.verse);
+                    let normalized_text = normalize_text_for_search(&verse.text);
+                    cache.insert(verse_key, normalized_text);
+                }
+            }
+        }
+        
+        cache
+    })
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SearchResult {
@@ -345,11 +369,30 @@ pub fn CommandPalette(
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
+    
+    // Separate signals for input display vs actual search query (for debouncing)
+    let (input_value, set_input_value) = signal(String::new());
     let (search_query, set_search_query) = signal(String::new());
     let (selected_index, set_selected_index) = signal(0usize);
     let (navigate_to, set_navigate_to) = signal::<Option<String>>(None);
     let (is_mounted, set_is_mounted) = signal(false);
     let (execute_instruction, set_execute_instruction) = signal::<Option<Instruction>>(None);
+    
+    // Debouncing effect: update search_query 150ms after input_value stops changing
+    Effect::new(move |_| {
+        let input_val = input_value.get();
+        let set_search_query_clone = set_search_query.clone();
+        
+        spawn_local(async move {
+            // Wait 150ms before updating search query
+            gloo_timers::future::TimeoutFuture::new(150).await;
+            
+            // Only update if the input value hasn't changed in the meantime
+            if input_val == input_value.get_untracked() {
+                set_search_query_clone.set(input_val);
+            }
+        });
+    });
     
     // Create a node ref for the input element
     let input_ref = NodeRef::<leptos::html::Input>::new();
@@ -399,7 +442,7 @@ pub fn CommandPalette(
     // Handle initial search query when palette opens
     Effect::new(move |_| {
         if let Some(query) = initial_search_query.get() {
-            set_search_query.set(query);
+            set_input_value.set(query); // Set input_value to show in field, debouncing will handle search_query
             // Note: We can't clear the signal here because this is a ReadSignal
             // The signal will be cleared by the parent component
         }
@@ -637,6 +680,10 @@ pub fn CommandPalette(
             let mut verse_matches: Vec<(SearchResult, usize)> = Vec::new();
             let mut search_count = 0;
             
+            // Normalize query once outside the loop for performance
+            let query_normalized = normalize_text_for_search(&query);
+            let verse_cache = get_normalized_verse_cache();
+            
             'global_search: for book in &get_bible().books {
                 for chapter in &book.chapters {
                     for verse in &chapter.verses {
@@ -645,29 +692,32 @@ pub fn CommandPalette(
                             break 'global_search;
                         }
                         
-                        let verse_text_lower = verse.text.to_lowercase();
-                        if verse_text_lower.contains(&query) {
-                            // Score based on how early the match appears in the verse
-                            let match_position = verse_text_lower.find(&query).unwrap_or(verse.text.len());
-                            let score = if verse_text_lower.starts_with(&query) {
-                                1000 // Starts with query
-                            } else if match_position < 10 {
-                                800 // Match near beginning
-                            } else if match_position < 30 {
-                                600 // Match in first part
-                            } else {
-                                400 // Match later in verse
-                            };
-                            
-                            verse_matches.push((
-                                SearchResult::Verse {
-                                    chapter: chapter.clone(),
-                                    verse_number: verse.verse,
-                                    verse_text: verse.text.clone(),
-                                },
-                                score
-                            ));
-                            search_count += 1;
+                        // Use cached normalized text for performance
+                        let verse_key = format!("{}:{}:{}", book.name, chapter.chapter, verse.verse);
+                        if let Some(verse_text_normalized) = verse_cache.get(&verse_key) {
+                            if verse_text_normalized.contains(&query_normalized) {
+                                // Score based on how early the match appears in the verse
+                                let match_position = verse_text_normalized.find(&query_normalized).unwrap_or(verse.text.len());
+                                let score = if verse_text_normalized.starts_with(&query_normalized) {
+                                    1000 // Starts with query
+                                } else if match_position < 10 {
+                                    800 // Match near beginning
+                                } else if match_position < 30 {
+                                    600 // Match in first part
+                                } else {
+                                    400 // Match later in verse
+                                };
+                                
+                                verse_matches.push((
+                                    SearchResult::Verse {
+                                        chapter: chapter.clone(),
+                                        verse_number: verse.verse,
+                                        verse_text: verse.text.clone(),
+                                    },
+                                    score
+                                ));
+                                search_count += 1;
+                            }
                         }
                     }
                 }
@@ -876,8 +926,8 @@ pub fn CommandPalette(
                             placeholder="Search chapters, verses, or text... (e.g., 'Genesis 1', 'john 3:16', 'love', '>' for shortcuts)"
                             class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
                             style="background-color: var(--theme-palette-background); color: var(--theme-palette-text); border-color: var(--theme-palette-border); --tw-ring-color: var(--theme-palette-highlight)"
-                            prop:value=search_query
-                            on:input=move |e| set_search_query.set(event_target_value(&e))
+                            prop:value=input_value
+                            on:input=move |e| set_input_value.set(event_target_value(&e))
                             role="combobox"
                             aria-expanded="true"
                             aria-autocomplete="list"
@@ -1073,7 +1123,7 @@ pub fn CommandPalette(
 /// - "gen 3" matches "genesis 3" (partial word + number)  
 /// - "john 3:16" matches "johannes 3:16" (partial word + full number)
 fn normalize_text_for_search(text: &str) -> String {
-    // Normalize Dutch characters and other diacritics for better search matching
+    // Normalize Dutch characters, remove punctuation, and clean up spacing for better search matching
     text.chars()
         .map(|c| match c {
             // Dutch characters
@@ -1094,11 +1144,17 @@ fn normalize_text_for_search(text: &str) -> String {
             'Ý' | 'Ỳ' | 'Ŷ' | 'Ÿ' => 'Y',
             'Ç' => 'C',
             'Ñ' => 'N',
+            // Remove punctuation characters - replace with space to maintain word boundaries
+            ',' | '.' | ';' | ':' | '!' | '?' | '"' | '\'' | '(' | ')' | '[' | ']' | '-' | '—' | '–' | '/' | '\\' | '«' | '»' => ' ',
             // Keep other characters as-is
             _ => c,
         })
         .collect::<String>()
         .to_lowercase()
+        // Clean up multiple spaces and trim
+        .split_whitespace()
+        .collect::<Vec<&str>>()
+        .join(" ")
 }
 
 fn convert_arabic_to_roman(text: &str) -> String {
