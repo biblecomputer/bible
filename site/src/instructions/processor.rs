@@ -188,7 +188,11 @@ where
     }
     
     fn handle_copy_raw_verse(&self, context: &InstructionContext) -> bool {
+        use leptos::web_sys::console;
+        
         let verse_ranges = context.get_verse_ranges();
+        console::log_1(&format!("📖 Copy raw verse - Found {} verse ranges", verse_ranges.len()).into());
+        
         let copy_text = if !verse_ranges.is_empty() {
             let mut verses_to_copy = Vec::new();
             
@@ -196,6 +200,7 @@ where
             for verse in &context.current_chapter.verses {
                 for range in &verse_ranges {
                     if range.contains(verse.verse) {
+                        console::log_1(&format!("📝 Including verse {}: {}", verse.verse, &verse.text[..verse.text.len().min(50)]).into());
                         verses_to_copy.push(verse);
                         break;
                     }
@@ -203,15 +208,19 @@ where
             }
             
             if !verses_to_copy.is_empty() {
-                verses_to_copy
+                let text = verses_to_copy
                     .iter()
                     .map(|verse| verse.text.clone())
                     .collect::<Vec<_>>()
-                    .join(" ")
+                    .join(" ");
+                console::log_1(&format!("📝 Raw copy: {} verses, {} chars", verses_to_copy.len(), text.len()).into());
+                text
             } else {
+                console::log_1(&"📖 No verses in ranges, copying chapter name".into());
                 context.current_chapter.name.clone()
             }
         } else {
+            console::log_1(&"📖 No verse ranges selected, copying chapter name".into());
             context.current_chapter.name.clone()
         };
         
@@ -220,7 +229,11 @@ where
     }
     
     fn handle_copy_verse_with_reference(&self, context: &InstructionContext) -> bool {
+        use leptos::web_sys::console;
+        
         let verse_ranges = context.get_verse_ranges();
+        console::log_1(&format!("📖 Copy with reference - Found {} verse ranges", verse_ranges.len()).into());
+        
         let mut copy_text = String::new();
         
         if !verse_ranges.is_empty() {
@@ -230,6 +243,7 @@ where
             for verse in &context.current_chapter.verses {
                 for range in &verse_ranges {
                     if range.contains(verse.verse) {
+                        console::log_1(&format!("📝 Including verse {} for reference copy", verse.verse).into());
                         verses_to_copy.push(verse);
                         break;
                     }
@@ -257,6 +271,8 @@ where
                 let translated_book_name = self.get_translated_book_name(&book_name);
                 let chapter_num = context.current_chapter.chapter.to_string();
                 
+                console::log_1(&format!("📚 Book: {}, Chapter: {}", translated_book_name, chapter_num).into());
+                
                 // Format reference
                 if verse_ranges.len() == 1 && verse_ranges[0].start == verse_ranges[0].end {
                     copy_text.push_str(&format!("{} {}:{}", translated_book_name, chapter_num, verse_ranges[0].start));
@@ -283,8 +299,11 @@ where
                     .next()
                     .unwrap_or("");
                 copy_text.push_str(&format!("https://bible.pruijs.net/{}/{}?verses={}", book_name_url, chapter_num, verses_param));
+                
+                console::log_1(&format!("📝 Reference copy: {} verses, complete with reference and link", verses_to_copy.len()).into());
             }
         } else {
+            console::log_1(&"📖 No verse ranges selected, copying chapter name for reference".into());
             copy_text = context.current_chapter.name.clone();
         }
         
@@ -293,17 +312,28 @@ where
     }
     
     fn copy_to_clipboard(&self, text: String) {
+        use leptos::web_sys::{console, window};
+        
+        console::log_1(&format!("📋 Attempting to copy text: '{}'", &text[..text.len().min(100)]).into());
+        
         spawn_local(async move {
-            if let Some(window) = leptos::web_sys::window() {
-                let clipboard = window.navigator().clipboard();
+            if let Some(window) = window() {
+                // Try modern Clipboard API
+                let navigator = window.navigator();
+                let clipboard = navigator.clipboard();
+                
+                console::log_1(&"📋 Using modern Clipboard API".into());
                 match JsFuture::from(clipboard.write_text(&text)).await {
                     Ok(_) => {
-                        leptos::web_sys::console::log_1(&"Copied to clipboard!".into());
+                        console::log_1(&"✅ Successfully copied to clipboard!".into());
                     }
-                    Err(_) => {
-                        leptos::web_sys::console::log_1(&"Failed to copy to clipboard".into());
+                    Err(e) => {
+                        console::log_1(&format!("❌ Clipboard API failed: {:?}", e).into());
+                        console::log_1(&"💡 Make sure you're using HTTPS and the page is focused".into());
                     }
                 }
+            } else {
+                console::log_1(&"❌ No window object available".into());
             }
         });
     }
