@@ -11,6 +11,7 @@ pub fn ThemeSidebar(
     current_theme: ReadSignal<Theme>,
     set_current_theme: WriteSignal<Theme>,
     set_sidebar_open: WriteSignal<bool>,
+    palette_open: ReadSignal<bool>,
 ) -> impl IntoView {
     let themes = get_themes();
     let themes_len = themes.len();
@@ -31,6 +32,11 @@ pub fn ThemeSidebar(
     let themes_for_keydown = themes.clone();
     let handle_keydown = move |e: KeyboardEvent| {
         if themes_len == 0 {
+            return;
+        }
+        
+        // Don't handle navigation when command palette is open (let palette handle it)
+        if palette_open.get() {
             return;
         }
         
