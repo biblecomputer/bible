@@ -40,4 +40,5 @@ pub enum Instruction {
     ToggleVersePallate,
     ToggleVerseVisibility,
     ExportToPDF,
+    ExportToMarkdown,
 }

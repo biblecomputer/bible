@@ -205,6 +205,7 @@ fn instruction_to_display(instruction_name: &str) -> (String, String) {
         "ShowTranslations" => ("Show Translations".to_string(), "Go to the translation selection page".to_string()),
         "ToggleVersePallate" => ("Open Verse Palette".to_string(), "Open command palette for verse navigation".to_string()),
         "ExportToPDF" => ("Export to PDF".to_string(), "Export the entire Bible as a PDF document".to_string()),
+        "ExportToMarkdown" => ("Export to Markdown".to_string(), "Export the entire Bible as a Markdown document".to_string()),
         _ => (instruction_name.to_string(), format!("Execute {}", instruction_name)),
     }
 }
@@ -229,7 +230,7 @@ fn get_all_instructions() -> Vec<SearchResult> {
         "SwitchToPreviousChapter", "CopyRawVerse", "CopyVerseWithReference",
         "ToggleSidebar", "ToggleCrossReferences", "ToggleBiblePallate", "ToggleCommandPallate",
         "NextReference", "PreviousReference", "NextPaletteResult", "PreviousPaletteResult",
-        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate", "ExportToPDF"
+        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate", "ExportToPDF", "ExportToMarkdown"
     ];
     
     for instruction in &all_possible_instructions {
@@ -327,6 +328,7 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
         "Show Translations" => Some(Instruction::ShowTranslations),
         "Open Verse Palette" => Some(Instruction::ToggleVersePallate),
         "Export to PDF" => Some(Instruction::ExportToPDF),
+        "Export to Markdown" => Some(Instruction::ExportToMarkdown),
         _ => None,
     }
 }
@@ -365,12 +367,20 @@ pub fn CommandPalette(
                 if !handled {
                     use web_sys::CustomEvent;
                     
-                    // Only handle ExportToPDF for now
-                    if matches!(instruction, crate::instructions::Instruction::ExportToPDF) {
+                    // Handle export instructions that need special processing
+                    if matches!(instruction, 
+                        crate::instructions::Instruction::ExportToPDF | 
+                        crate::instructions::Instruction::ExportToMarkdown
+                    ) {
                         if let Some(window) = web_sys::window() {
                             if let Some(document) = window.document() {
                                 // Create custom event with instruction data
-                                if let Ok(event) = CustomEvent::new("palette-instruction") {
+                                let event_name = match instruction {
+                                    crate::instructions::Instruction::ExportToPDF => "palette-pdf-export",
+                                    crate::instructions::Instruction::ExportToMarkdown => "palette-markdown-export",
+                                    _ => "palette-instruction",
+                                };
+                                if let Ok(event) = CustomEvent::new(event_name) {
                                     let _ = document.dispatch_event(&event);
                                 }
                             }
