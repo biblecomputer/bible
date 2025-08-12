@@ -33,6 +33,7 @@
     "v": "ToggleVerseVisibility",
     "p": "ExportToPDF",
     "m": "ExportToMarkdown",
+    "<S-M>": "ExportLinkedMarkdown",
     
     "<C-o>": "ToggleBiblePallate",
     "<M-o>": "ToggleBiblePallate",

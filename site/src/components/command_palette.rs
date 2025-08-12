@@ -206,6 +206,7 @@ fn instruction_to_display(instruction_name: &str) -> (String, String) {
         "ToggleVersePallate" => ("Open Verse Palette".to_string(), "Open command palette for verse navigation".to_string()),
         "ExportToPDF" => ("Export to PDF".to_string(), "Export the entire Bible as a PDF document".to_string()),
         "ExportToMarkdown" => ("Export to Markdown".to_string(), "Export the entire Bible as a Markdown document".to_string()),
+        "ExportLinkedMarkdown" => ("Export to Linked Markdown (Obsidian)".to_string(), "Export the entire Bible as linked Markdown files for Obsidian".to_string()),
         _ => (instruction_name.to_string(), format!("Execute {}", instruction_name)),
     }
 }
@@ -230,7 +231,7 @@ fn get_all_instructions() -> Vec<SearchResult> {
         "SwitchToPreviousChapter", "CopyRawVerse", "CopyVerseWithReference",
         "ToggleSidebar", "ToggleCrossReferences", "ToggleBiblePallate", "ToggleCommandPallate",
         "NextReference", "PreviousReference", "NextPaletteResult", "PreviousPaletteResult",
-        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate", "ExportToPDF", "ExportToMarkdown"
+        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate", "ExportToPDF", "ExportToMarkdown", "ExportLinkedMarkdown"
     ];
     
     for instruction in &all_possible_instructions {
@@ -329,6 +330,7 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
         "Open Verse Palette" => Some(Instruction::ToggleVersePallate),
         "Export to PDF" => Some(Instruction::ExportToPDF),
         "Export to Markdown" => Some(Instruction::ExportToMarkdown),
+        "Export to Linked Markdown (Obsidian)" => Some(Instruction::ExportLinkedMarkdown),
         _ => None,
     }
 }
@@ -370,7 +372,8 @@ pub fn CommandPalette(
                     // Handle export instructions that need special processing
                     if matches!(instruction, 
                         crate::instructions::Instruction::ExportToPDF | 
-                        crate::instructions::Instruction::ExportToMarkdown
+                        crate::instructions::Instruction::ExportToMarkdown |
+                        crate::instructions::Instruction::ExportLinkedMarkdown
                     ) {
                         if let Some(window) = web_sys::window() {
                             if let Some(document) = window.document() {
@@ -378,6 +381,7 @@ pub fn CommandPalette(
                                 let event_name = match instruction {
                                     crate::instructions::Instruction::ExportToPDF => "palette-pdf-export",
                                     crate::instructions::Instruction::ExportToMarkdown => "palette-markdown-export",
+                                    crate::instructions::Instruction::ExportLinkedMarkdown => "palette-linked-markdown-export",
                                     _ => "palette-instruction",
                                 };
                                 if let Ok(event) = CustomEvent::new(event_name) {

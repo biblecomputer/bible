@@ -168,6 +168,7 @@ impl KeyboardMappings {
             "ToggleVerseVisibility" => Some(Instruction::ToggleVerseVisibility),
             "ExportToPDF" => Some(Instruction::ExportToPDF),
             "ExportToMarkdown" => Some(Instruction::ExportToMarkdown),
+            "ExportLinkedMarkdown" => Some(Instruction::ExportLinkedMarkdown),
             _ => None,
         }
     }

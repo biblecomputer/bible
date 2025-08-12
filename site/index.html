@@ -30,6 +30,107 @@
 				}
 			}(window.location))
 		</script>
+		
+		<!-- JSZip library for creating ZIP files -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha512-XMVd28F1oH/O71fzwBnV7HucLxVwtxf26XV8P4wPk26EDxuGZ91N8bsOttmnomcCD3CS5ZMRL50H0GgOHvegtg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+		
+		<script type="text/javascript">
+			// Function to create and download ZIP file from Rust
+			window.create_and_download_zip = function(files, filename) {
+				console.log('🔽 JavaScript ZIP creation started');
+				console.log('📁 Files received:', files);
+				console.log('📄 Number of files:', Object.keys(files).length);
+				console.log('📦 ZIP filename:', filename);
+				console.log('🔍 First 10 file paths:');
+				
+				const filePaths = Object.keys(files);
+				for (let i = 0; i < Math.min(10, filePaths.length); i++) {
+					const filepath = filePaths[i];
+					const content = files[filepath];
+					console.log(`  ${i + 1}. "${filepath}" (${typeof content}, ${content.length || 'no length'} ${content instanceof Uint8Array ? 'bytes' : 'chars'})`);
+				}
+				
+				if (filePaths.length > 10) {
+					console.log(`  ... and ${filePaths.length - 10} more files`);
+				}
+				
+				if (typeof JSZip === 'undefined') {
+					console.error('❌ JSZip library not loaded');
+					throw new Error('JSZip library not available');
+				}
+				
+				const zip = new JSZip();
+				
+				// Add each file to the ZIP
+				for (const [filepath, content] of Object.entries(files)) {
+					console.log('📄 Adding file to ZIP:', filepath);
+					
+					// Convert Uint8Array to string if needed
+					let fileContent = content;
+					if (content instanceof Uint8Array) {
+						fileContent = new TextDecoder().decode(content);
+						console.log('🔄 Converted Uint8Array to string, length:', fileContent.length);
+					}
+					
+					zip.file(filepath, fileContent);
+					console.log('✅ Added file to ZIP:', filepath);
+				}
+				
+				console.log('🗜️ Generating ZIP file with', Object.keys(files).length, 'files...');
+				
+				// Debug: Check what files are actually in the ZIP
+				console.log('🔍 Files in ZIP:');
+				zip.forEach(function(relativePath, file) {
+					console.log(`  - ${relativePath} (${file.dir ? 'directory' : 'file'})`);
+				});
+				
+				// Generate ZIP and trigger download
+				zip.generateAsync({
+					type: 'blob',
+					compression: 'DEFLATE',
+					compressionOptions: {
+						level: 6
+					}
+				})
+					.then(function(blob) {
+						console.log('✅ ZIP generated successfully, size:', blob.size);
+						console.log('📄 Blob type:', blob.type);
+						
+						// Create a proper ZIP blob with correct MIME type
+						const zipBlob = new Blob([blob], { type: 'application/zip' });
+						console.log('📄 ZIP blob type:', zipBlob.type);
+						
+						// Create download link
+						const url = URL.createObjectURL(zipBlob);
+						const a = document.createElement('a');
+						a.href = url;
+						a.download = filename;
+						a.style.display = 'none';
+						
+						// Ensure the filename has .zip extension
+						if (!filename.endsWith('.zip')) {
+							a.download = filename + '.zip';
+						}
+						
+						console.log('📁 Download filename:', a.download);
+						
+						// Trigger download
+						document.body.appendChild(a);
+						a.click();
+						document.body.removeChild(a);
+						
+						// Clean up
+						URL.revokeObjectURL(url);
+						
+						console.log('🎉 ZIP download completed with', Object.keys(files).length, 'files!');
+						console.log('📝 Extract the ZIP file to get individual markdown files for Obsidian.');
+					})
+					.catch(function(error) {
+						console.error('❌ Failed to generate ZIP:', error);
+						throw error;
+					});
+			};
+		</script>
 	</head>
 	<body></body>
 </html>
