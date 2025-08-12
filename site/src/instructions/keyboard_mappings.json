@@ -4,6 +4,8 @@
     "k": "PreviousVerse",
     "<Down>": "NextVerse",
     "<Up>": "PreviousVerse",
+    "<S-J>": "ExtendSelectionNextVerse",
+    "<S-K>": "ExtendSelectionPreviousVerse",
     
     "l": "NextChapter",
     "h": "PreviousChapter",

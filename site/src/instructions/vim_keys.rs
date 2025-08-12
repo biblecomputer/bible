@@ -142,6 +142,8 @@ impl KeyboardMappings {
         match instruction_name {
             "NextVerse" => Some(Instruction::NextVerse),
             "PreviousVerse" => Some(Instruction::PreviousVerse),
+            "ExtendSelectionNextVerse" => Some(Instruction::ExtendSelectionNextVerse),
+            "ExtendSelectionPreviousVerse" => Some(Instruction::ExtendSelectionPreviousVerse),
             "NextChapter" => Some(Instruction::NextChapter),
             "PreviousChapter" => Some(Instruction::PreviousChapter),
             "NextBook" => Some(Instruction::NextBook),
