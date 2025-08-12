@@ -128,6 +128,8 @@ where
         match instruction {
             Instruction::NextVerse => self.handle_next_verse_with_multiplier(context, multiplier),
             Instruction::PreviousVerse => self.handle_previous_verse_with_multiplier(context, multiplier),
+            Instruction::ExtendSelectionNextVerse => self.handle_extend_selection_next_verse_with_multiplier(context, multiplier),
+            Instruction::ExtendSelectionPreviousVerse => self.handle_extend_selection_previous_verse_with_multiplier(context, multiplier),
             Instruction::NextChapter => self.handle_next_chapter_with_multiplier(context, multiplier),
             Instruction::PreviousChapter => self.handle_previous_chapter_with_multiplier(context, multiplier),
             Instruction::NextBook => self.handle_next_book_with_multiplier(context, multiplier),
@@ -398,6 +400,124 @@ where
             let new_path = current_chapter.to_path_with_verses(&[verse_range]);
             (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
         }
+        true
+    }
+    
+    fn handle_extend_selection_next_verse_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
+        let current_ranges = context.get_verse_ranges();
+        
+        // Determine the anchor point for the selection
+        let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty() {
+            // No current selection, start from current verse or beginning of chapter
+            let current_verse = context.get_current_verse();
+            if current_verse == 0 {
+                (1, 1, context.current_chapter.clone())
+            } else {
+                (current_verse, current_verse, context.current_chapter.clone())
+            }
+        } else {
+            // Find the rightmost (highest) verse in current selection as anchor
+            let last_range = current_ranges.iter().max_by_key(|r| r.end).unwrap();
+            (current_ranges.iter().min_by_key(|r| r.start).unwrap().start, last_range.end, context.current_chapter.clone())
+        };
+        
+        // Move target verse forward by multiplier
+        for _ in 0..multiplier {
+            if let Some(next_verse) = target_chapter.get_next_verse(target_verse) {
+                target_verse = next_verse;
+            } else if let Some(next_chapter) = get_bible().get_next_chapter(&target_chapter) {
+                // Cross chapter boundary
+                target_chapter = next_chapter;
+                target_verse = 1;
+            } else {
+                // Reached end of Bible
+                break;
+            }
+        }
+        
+        // Create new selection range from anchor to target
+        let new_range = if target_chapter.name == context.current_chapter.name {
+            // Same chapter - create single range
+            VerseRange { 
+                start: anchor_verse.min(target_verse), 
+                end: anchor_verse.max(target_verse) 
+            }
+        } else {
+            // Cross-chapter selection not supported for now, just select the target verse
+            target_verse = 1; // Reset to first verse of new chapter
+            VerseRange { start: target_verse, end: target_verse }
+        };
+        
+        // Navigate to new selection
+        let new_path = if target_chapter.name == context.current_chapter.name {
+            context.current_chapter.to_path_with_verses(&[new_range])
+        } else {
+            target_chapter.to_path_with_verses(&[new_range])
+        };
+        
+        (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
+        true
+    }
+    
+    fn handle_extend_selection_previous_verse_with_multiplier(&self, context: &InstructionContext, multiplier: u32) -> bool {
+        let current_ranges = context.get_verse_ranges();
+        
+        // Determine the anchor point for the selection
+        let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty() {
+            // No current selection, start from current verse or end of chapter
+            let current_verse = context.get_current_verse();
+            if current_verse == 0 {
+                let last_verse = context.current_chapter.verses.len() as u32;
+                (last_verse, last_verse, context.current_chapter.clone())
+            } else {
+                (current_verse, current_verse, context.current_chapter.clone())
+            }
+        } else {
+            // Find the leftmost (lowest) verse in current selection as anchor
+            let first_range = current_ranges.iter().min_by_key(|r| r.start).unwrap();
+            (current_ranges.iter().max_by_key(|r| r.end).unwrap().end, first_range.start, context.current_chapter.clone())
+        };
+        
+        // Move target verse backward by multiplier
+        for _ in 0..multiplier {
+            if target_verse == 1 {
+                // At first verse, try to go to previous chapter
+                if let Some(prev_chapter) = get_bible().get_previous_chapter(&target_chapter) {
+                    target_chapter = prev_chapter;
+                    target_verse = target_chapter.verses.len() as u32;
+                } else {
+                    // Reached beginning of Bible
+                    target_verse = 1;
+                    break;
+                }
+            } else if let Some(prev_verse) = target_chapter.get_previous_verse(target_verse) {
+                target_verse = prev_verse;
+            } else {
+                // Shouldn't happen, but break to be safe
+                break;
+            }
+        }
+        
+        // Create new selection range from target to anchor
+        let new_range = if target_chapter.name == context.current_chapter.name {
+            // Same chapter - create single range
+            VerseRange { 
+                start: anchor_verse.min(target_verse), 
+                end: anchor_verse.max(target_verse) 
+            }
+        } else {
+            // Cross-chapter selection not supported for now, just select the target verse
+            VerseRange { start: target_verse, end: target_verse }
+        };
+        
+        // Navigate to new selection
+        let new_path = if target_chapter.name == context.current_chapter.name {
+            context.current_chapter.to_path_with_verses(&[new_range])
+        } else {
+            target_chapter.to_path_with_verses(&[new_range])
+        };
+        
+        (self.navigate)(&new_path, NavigateOptions { scroll: false, ..Default::default() });
         true
     }
     

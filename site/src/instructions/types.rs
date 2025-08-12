@@ -12,6 +12,10 @@ pub enum Instruction {
     NextPaletteResult,
     PreviousPaletteResult,
 
+    // Range selection
+    ExtendSelectionNextVerse,
+    ExtendSelectionPreviousVerse,
+
     // Chapter/Verse jumping
     BeginningOfChapter,
     EndOfChapter,
