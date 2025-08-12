@@ -585,6 +585,7 @@ fn BibleWithSidebar(
                             current_theme=current_theme
                             set_current_theme=set_current_theme
                             set_sidebar_open=set_is_theme_sidebar_open
+                            palette_open=is_palette_open
                         />
                     </aside>
                 </Show>
