@@ -287,6 +287,7 @@ extern "C" {
 }
 
 /// Convenience function for exporting linked markdown without progress tracking
+#[allow(dead_code)]
 pub fn export_bible_to_linked_markdown_simple(bible: &Bible) -> Result<LinkedMarkdownExport, Box<dyn std::error::Error>> {
     export_bible_to_linked_markdown(bible, None::<fn(f32, String)>)
 }
