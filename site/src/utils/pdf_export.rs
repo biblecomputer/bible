@@ -104,9 +104,9 @@ where
     
     let mut current_y = Mm(270.0);
     let margin_left = Mm(20.0);
-    let margin_right = Mm(190.0);
+    let _margin_right = Mm(190.0);
     let line_height = Mm(5.0);
-    let page_height = Mm(297.0);
+    let _page_height = Mm(297.0);
     let page_bottom_margin = Mm(20.0);
     
     // Add title page

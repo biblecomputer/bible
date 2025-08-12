@@ -1,8 +1,6 @@
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
-use urlencoding::encode;
-use crate::core::get_current_bible;
 use crate::storage::{
     get_selected_translation, set_selected_translation, 
     is_translation_downloaded, download_translation_with_progress, switch_bible_translation, uninstall_translation,
@@ -24,9 +22,9 @@ fn TranslationItem(
     set_downloading_translation: WriteSignal<Option<String>>,
     download_progress: ReadSignal<f32>,
     set_download_progress: WriteSignal<f32>,
-    download_status: ReadSignal<String>,
+    _download_status: ReadSignal<String>,
     set_download_status: WriteSignal<String>,
-    download_error: ReadSignal<Option<String>>,
+    _download_error: ReadSignal<Option<String>>,
     set_download_error: WriteSignal<Option<String>>,
     uninstalling_translation: ReadSignal<Option<String>>,
     set_uninstalling_translation: WriteSignal<Option<String>>,
@@ -271,9 +269,9 @@ pub fn HomeTranslationPicker(
     
     // Debug: Watch downloading translation changes
     Effect::new(move |_| {
-        let current = downloading_translation.get();
+        let _current = downloading_translation.get();
         #[cfg(target_arch = "wasm32")]
-        web_sys::console::log_1(&format!("Downloading translation changed to: {:?}", current).into());
+        web_sys::console::log_1(&format!("Downloading translation changed to: {:?}", _current).into());
     });
     let (download_progress, set_download_progress) = signal::<f32>(0.0);
     let (download_status, set_download_status) = signal::<String>(String::new());
@@ -283,19 +281,19 @@ pub fn HomeTranslationPicker(
     
     // Debug: Watch uninstalling translation changes
     Effect::new(move |_| {
-        let current = uninstalling_translation.get();
+        let _current = uninstalling_translation.get();
         #[cfg(target_arch = "wasm32")]
-        web_sys::console::log_1(&format!("Uninstalling translation changed to: {:?}", current).into());
+        web_sys::console::log_1(&format!("Uninstalling translation changed to: {:?}", _current).into());
     });
     
-    let (uninstall_error, set_uninstall_error) = signal::<Option<String>>(None);
+    let (uninstall_error, _set_uninstall_error) = signal::<Option<String>>(None);
     let (ui_refresh_trigger, set_ui_refresh_trigger) = signal::<u32>(0);
     
     // Debug: Watch UI refresh trigger changes
     Effect::new(move |_| {
-        let current = ui_refresh_trigger.get();
+        let _current = ui_refresh_trigger.get();
         #[cfg(target_arch = "wasm32")]
-        web_sys::console::log_1(&format!("UI refresh trigger changed to: {}", current).into());
+        web_sys::console::log_1(&format!("UI refresh trigger changed to: {}", _current).into());
     });
     
     let navigate = use_navigate();
@@ -432,9 +430,9 @@ pub fn HomeTranslationPicker(
                                             set_downloading_translation=set_downloading_translation
                                             download_progress=download_progress
                                             set_download_progress=set_download_progress
-                                            download_status=download_status
+                                            _download_status=download_status
                                             set_download_status=set_download_status
-                                            download_error=download_error
+                                            _download_error=download_error
                                             set_download_error=set_download_error
                                             uninstalling_translation=uninstalling_translation
                                             set_uninstalling_translation=set_uninstalling_translation

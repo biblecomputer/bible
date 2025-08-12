@@ -214,7 +214,7 @@ pub fn trigger_linked_markdown_download(export: LinkedMarkdownExport, filename: 
     console::log_1(&format!("📄 Number of files: {}", export.files.len()).into());
     console::log_1(&format!("📦 ZIP filename: {}", filename).into());
     
-    let window = match window() {
+    let _window = match window() {
         Some(w) => {
             console::log_1(&"✅ Window object obtained".into());
             w
