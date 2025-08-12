@@ -134,9 +134,9 @@ where
     
     current_y -= line_height * 4.0;
     
-    let mut current_page = page1;
+    let mut current_page;
     let mut current_layer_ref = current_layer;
-    let mut current_book_name = String::new(); // Track current book for headers
+    let mut current_book_name; // Track current book for headers
     
     // Export all books, chapters, and verses
     console::log_1(&format!("📖 Processing {} books for PDF export...", bible.books.len()).into());
@@ -320,6 +320,7 @@ where
 }
 
 /// Convenience function for exporting PDF without progress tracking
+#[allow(dead_code)]
 pub fn export_bible_to_pdf_simple(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     export_bible_to_pdf(bible, None::<fn(f32, String)>)
 }
