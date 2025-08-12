@@ -212,7 +212,7 @@ where
                     .iter()
                     .map(|verse| verse.text.clone())
                     .collect::<Vec<_>>()
-                    .join(" ");
+                    .join("\n");
                 console::log_1(&format!("📝 Raw copy: {} verses, {} chars", verses_to_copy.len(), text.len()).into());
                 text
             } else {
@@ -256,7 +256,7 @@ where
                     .iter()
                     .map(|verse| verse.text.clone())
                     .collect::<Vec<_>>()
-                    .join(" ");
+                    .join("\n");
                 
                 // Add reference and link
                 copy_text.push_str("\n\n");
