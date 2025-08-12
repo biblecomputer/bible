@@ -19,7 +19,7 @@ use leptos_router::components::{Route, Router, Routes};
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::path;
 use leptos_router::NavigateOptions;
-use urlencoding::decode;
+use urlencoding::{decode, encode};
 use wasm_bindgen_futures::spawn_local;
 
 
@@ -299,7 +299,7 @@ fn BibleWithSidebar(
             set_right_sidebar_open=set_is_right_sidebar_open
             _theme_sidebar_open=is_theme_sidebar_open
             set_theme_sidebar_open=set_is_theme_sidebar_open
-            verse_visibility_enabled=verse_visibility_enabled
+            _verse_visibility_enabled=verse_visibility_enabled
             set_verse_visibility_enabled=set_verse_visibility_enabled
             next_palette_result=next_palette_result
             previous_palette_result=previous_palette_result
@@ -641,7 +641,7 @@ fn KeyboardNavigationHandler(
     set_right_sidebar_open: WriteSignal<bool>,
     _theme_sidebar_open: ReadSignal<bool>,
     set_theme_sidebar_open: WriteSignal<bool>,
-    verse_visibility_enabled: ReadSignal<bool>,
+    _verse_visibility_enabled: ReadSignal<bool>,
     set_verse_visibility_enabled: WriteSignal<bool>,
     next_palette_result: RwSignal<bool>,
     previous_palette_result: RwSignal<bool>,
@@ -1356,10 +1356,8 @@ fn Home(
     current_theme: ReadSignal<Theme>,
     set_current_theme: WriteSignal<Theme>,
 ) -> impl IntoView {
-    use crate::core::get_current_bible;
     use crate::storage::{get_selected_translation, is_translation_downloaded};
     use leptos_router::hooks::{use_location, use_navigate};
-    use urlencoding::encode;
 
     let navigate = use_navigate();
     let location = use_location();
@@ -1404,7 +1402,6 @@ fn ChapterWrapper(
 ) -> impl IntoView {
     use crate::storage::{get_selected_translation, is_translation_downloaded};
     use leptos_router::hooks::{use_location, use_navigate};
-    use urlencoding::encode;
 
     let navigate = use_navigate();
     let location = use_location();

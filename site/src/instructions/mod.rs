@@ -6,7 +6,7 @@ pub use types::*;
 pub use processor::*;
 pub use vim_keys::*;
 
-use leptos::prelude::{ReadSignal, WriteSignal, create_signal, Set};
+use leptos::prelude::{ReadSignal, WriteSignal, signal, Set};
 use std::sync::OnceLock;
 
 // Global signal for dispatching instructions from command palette to main app
@@ -14,7 +14,7 @@ static GLOBAL_INSTRUCTION_SIGNAL: OnceLock<(ReadSignal<Option<Instruction>>, Wri
 
 /// Initialize the global instruction signal (call this from main app)
 pub fn init_global_instruction_signal() -> (ReadSignal<Option<Instruction>>, WriteSignal<Option<Instruction>>) {
-    let signals = create_signal::<Option<Instruction>>(None);
+    let signals = signal::<Option<Instruction>>(None);
     GLOBAL_INSTRUCTION_SIGNAL.set(signals).expect("Global instruction signal can only be initialized once");
     signals
 }
