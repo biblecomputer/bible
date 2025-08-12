@@ -41,4 +41,5 @@ pub enum Instruction {
     ToggleVerseVisibility,
     ExportToPDF,
     ExportToMarkdown,
+    ExportLinkedMarkdown,
 }
