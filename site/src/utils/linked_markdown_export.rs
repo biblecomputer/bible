@@ -69,6 +69,7 @@ where
     console::log_1(&format!("📚 Using translation: {}", translation_info.name).into());
     
     let folder_name = translation_info.name.to_lowercase().replace(" ", "_");
+    let short_name = &translation_info.short_name;
     let mut files = HashMap::new();
     
     if let Some(ref callback) = progress_callback {
@@ -93,7 +94,7 @@ where
     // Add book index with links
     for book in &bible.books {
         let translated_book_name = get_translated_book_name(&book.name);
-        let book_filename = translated_book_name.to_lowercase().replace(" ", "_");
+        let book_filename = format!("{} {}", translated_book_name.to_lowercase().replace(" ", "_"), short_name);
         main_content.push_str(&format!("- [[{}]]\n", book_filename));
     }
     
@@ -119,7 +120,7 @@ where
         }
         
         let translated_book_name = get_translated_book_name(&book.name);
-        let book_filename = format!("{}.md", translated_book_name.to_lowercase().replace(" ", "_"));
+        let book_filename = format!("{} {}.md", translated_book_name.to_lowercase().replace(" ", "_"), short_name);
         
         // Create book index file
         let mut book_content = String::new();
@@ -128,7 +129,7 @@ where
         
         // Add chapter links
         for chapter in &book.chapters {
-            let chapter_filename = format!("{} {}", translated_book_name.to_lowercase().replace(" ", "_"), chapter.chapter);
+            let chapter_filename = format!("{} {} {}", translated_book_name.to_lowercase().replace(" ", "_"), chapter.chapter, short_name);
             book_content.push_str(&format!("- [[{}]]\n", chapter_filename));
         }
         
@@ -138,7 +139,7 @@ where
         for (chapter_index, chapter) in book.chapters.iter().enumerate() {
             chapter_count += 1;
             
-            let chapter_filename = format!("{} {}.md", translated_book_name.to_lowercase().replace(" ", "_"), chapter.chapter);
+            let chapter_filename = format!("{} {} {}.md", translated_book_name.to_lowercase().replace(" ", "_"), chapter.chapter, short_name);
             let mut chapter_content = String::new();
             
             // Chapter title
@@ -148,7 +149,7 @@ where
             // Handle previous link
             if chapter_index > 0 {
                 // Previous chapter in same book
-                let prev_chapter_filename = format!("{} {}", translated_book_name.to_lowercase().replace(" ", "_"), book.chapters[chapter_index - 1].chapter);
+                let prev_chapter_filename = format!("{} {} {}", translated_book_name.to_lowercase().replace(" ", "_"), book.chapters[chapter_index - 1].chapter, short_name);
                 chapter_content.push_str(&format!("previous: [[{}]]\n", prev_chapter_filename));
             } else {
                 // First chapter of this book, try to link to last chapter of previous book
@@ -157,7 +158,7 @@ where
                     let prev_book_translated = get_translated_book_name(&prev_book.name);
                     if !prev_book.chapters.is_empty() {
                         let last_chapter = prev_book.chapters.last().unwrap();
-                        let prev_chapter_filename = format!("{} {}", prev_book_translated.to_lowercase().replace(" ", "_"), last_chapter.chapter);
+                        let prev_chapter_filename = format!("{} {} {}", prev_book_translated.to_lowercase().replace(" ", "_"), last_chapter.chapter, short_name);
                         chapter_content.push_str(&format!("previous: [[{}]]\n", prev_chapter_filename));
                     }
                 }
@@ -166,7 +167,7 @@ where
             // Handle next link
             if chapter_index < book.chapters.len() - 1 {
                 // Next chapter in same book
-                let next_chapter_filename = format!("{} {}", translated_book_name.to_lowercase().replace(" ", "_"), book.chapters[chapter_index + 1].chapter);
+                let next_chapter_filename = format!("{} {} {}", translated_book_name.to_lowercase().replace(" ", "_"), book.chapters[chapter_index + 1].chapter, short_name);
                 chapter_content.push_str(&format!("next: [[{}]]\n", next_chapter_filename));
             } else {
                 // Last chapter of this book, try to link to first chapter of next book
@@ -174,7 +175,7 @@ where
                     let next_book = &bible.books[book_count]; // book_count is 1-based, so this gets next book
                     let next_book_translated = get_translated_book_name(&next_book.name);
                     if !next_book.chapters.is_empty() {
-                        let next_chapter_filename = format!("{} {}", next_book_translated.to_lowercase().replace(" ", "_"), next_book.chapters[0].chapter);
+                        let next_chapter_filename = format!("{} {} {}", next_book_translated.to_lowercase().replace(" ", "_"), next_book.chapters[0].chapter, short_name);
                         chapter_content.push_str(&format!("next: [[{}]]\n", next_chapter_filename));
                     }
                 }
