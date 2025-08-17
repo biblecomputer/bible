@@ -100,7 +100,7 @@ pub async fn download_translation(
     let bible = fetch_translation_from_url(&translation.iagon).await?;
 
     let translation_cache_key = format!("translation_{}", translation.short_name);
-    save_translation_to_cache(&translation_cache_key, &bible).await?;
+    save_translation_to_cache_internal(&translation_cache_key, &bible).await?;
 
     add_downloaded_translation(&translation.short_name)?;
 
@@ -121,7 +121,7 @@ where
     progress_callback(0.8, "Saving to storage...".to_string());
     
     let translation_cache_key = format!("translation_{}", translation.short_name);
-    save_translation_to_cache(&translation_cache_key, &bible).await?;
+    save_translation_to_cache_internal(&translation_cache_key, &bible).await?;
 
     progress_callback(0.95, "Updating translation list...".to_string());
     
@@ -189,38 +189,6 @@ where
     Err(last_error.unwrap_or_else(|| "All proxy attempts failed".into()))
 }
 
-async fn save_translation_to_cache(
-    cache_key: &str,
-    bible: &Bible,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let rexie = Rexie::builder("TranslationCache")
-        .version(1)
-        .add_object_store(ObjectStore::new("translations"))
-        .build()
-        .await
-        .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
-
-    let transaction = rexie
-        .transaction(&["translations"], TransactionMode::ReadWrite)
-        .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
-    let store = transaction
-        .store("translations")
-        .map_err(|e| format!("Failed to get store: {:?}", e))?;
-
-    let json_data = serde_json::to_string(bible)
-        .map_err(|e| format!("Failed to serialize Bible data: {:?}", e))?;
-
-    store
-        .put(&json_data.into(), Some(&cache_key.into()))
-        .await
-        .map_err(|e| format!("Failed to save translation data: {:?}", e))?;
-
-    transaction
-        .commit()
-        .await
-        .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
-    Ok(())
-}
 
 async fn load_translation_from_cache(cache_key: &str) -> Result<Bible, Box<dyn std::error::Error>> {
     let rexie = Rexie::builder("TranslationCache")
@@ -251,6 +219,46 @@ async fn load_translation_from_cache(cache_key: &str) -> Result<Bible, Box<dyn s
         Ok(None) => Err("Translation not found in cache".into()),
         Err(_) => Err("Failed to read cached translation".into()),
     }
+}
+
+pub async fn save_translation_to_cache(
+    cache_key: &str,
+    bible: &Bible,
+) -> Result<(), Box<dyn std::error::Error>> {
+    save_translation_to_cache_internal(cache_key, bible).await
+}
+
+async fn save_translation_to_cache_internal(
+    cache_key: &str,
+    bible: &Bible,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let rexie = Rexie::builder("TranslationCache")
+        .version(1)
+        .add_object_store(ObjectStore::new("translations"))
+        .build()
+        .await
+        .map_err(|e| format!("Failed to open IndexedDB: {:?}", e))?;
+
+    let transaction = rexie
+        .transaction(&["translations"], TransactionMode::ReadWrite)
+        .map_err(|e| format!("Failed to create transaction: {:?}", e))?;
+    let store = transaction
+        .store("translations")
+        .map_err(|e| format!("Failed to get store: {:?}", e))?;
+
+    let json_data = serde_json::to_string(bible)
+        .map_err(|e| format!("Failed to serialize Bible data: {:?}", e))?;
+
+    store
+        .put(&json_data.into(), Some(&cache_key.into()))
+        .await
+        .map_err(|e| format!("Failed to save translation data: {:?}", e))?;
+
+    transaction
+        .commit()
+        .await
+        .map_err(|e| format!("Failed to commit transaction: {:?}", e))?;
+    Ok(())
 }
 
 async fn remove_translation_from_cache(cache_key: &str) -> Result<(), Box<dyn std::error::Error>> {

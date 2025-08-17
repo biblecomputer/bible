@@ -1,6 +1,13 @@
 use crate::storage::translation_storage::{get_selected_translation, BibleTranslation, Language};
+use gloo_storage::{LocalStorage, Storage};
 
-pub fn get_translations() -> Vec<BibleTranslation> {
+const CUSTOM_TRANSLATIONS_KEY: &str = "custom_translations";
+
+pub fn get_custom_translations() -> Vec<BibleTranslation> {
+    LocalStorage::get::<Vec<BibleTranslation>>(CUSTOM_TRANSLATIONS_KEY).unwrap_or_default()
+}
+
+pub fn get_builtin_translations() -> Vec<BibleTranslation> {
     vec![
         BibleTranslation {
             name: String::from("Staten vertaling"),
@@ -48,6 +55,12 @@ pub fn get_translations() -> Vec<BibleTranslation> {
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjIxMTQ0NzVmZTAwZjg3Y2VmOTEw:YzEzMGExYjU0OWI1M2I4ODk4MWJmYjgwNmM3YzE1ODJkZWJmMjhiNmYxOGMzMGY2ZTk0MTFlYjUyN2IzOGRjZQ"),
         }
     ]
+}
+
+pub fn get_translations() -> Vec<BibleTranslation> {
+    let mut translations = get_builtin_translations();
+    translations.extend(get_custom_translations());
+    translations
 }
 
 pub fn get_current_translation() -> Option<BibleTranslation> {

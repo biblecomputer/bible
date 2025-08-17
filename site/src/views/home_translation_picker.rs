@@ -6,7 +6,7 @@ use crate::storage::{
     is_translation_downloaded, download_translation_with_progress, switch_bible_translation, uninstall_translation,
     get_available_languages, get_translations_by_language, BibleTranslation, Language
 };
-use crate::components::theme_switcher::ThemeSwitcher;
+use crate::components::{theme_switcher::ThemeSwitcher, CustomTranslationImport};
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone, PartialEq)]
@@ -446,6 +446,15 @@ pub fn HomeTranslationPicker(
                                         />
                                     }
                                 }).collect_view()}
+                                
+                                <CustomTranslationImport
+                                    selected_language=RwSignal::new(selected_language.clone()).read_only()
+                                    on_success=move || {
+                                        set_ui_refresh_trigger.update(|n| *n += 1);
+                                        let current_selected = get_selected_translation().unwrap_or_else(|| "sv".to_string());
+                                        set_selected_translation_signal.set(current_selected);
+                                    }
+                                />
                             </div>
                         }.into_any()
                     }
