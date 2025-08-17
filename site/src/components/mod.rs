@@ -5,6 +5,7 @@ pub mod theme_sidebar;
 pub mod translation_switcher;
 pub mod cross_references_sidebar;
 pub mod pdf_loading_progress;
+pub mod custom_translation_import;
 
 pub use command_palette::*;
 pub use sidebar::*;
@@ -12,4 +13,5 @@ pub use sidebar::*;
 pub use theme_sidebar::*;
 pub use cross_references_sidebar::*;
 pub use pdf_loading_progress::*;
+pub use custom_translation_import::*;
 // pub use translation_switcher::*;
