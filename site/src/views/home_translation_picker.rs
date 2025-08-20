@@ -402,7 +402,6 @@ pub fn HomeTranslationPicker(
                         }).collect_view().into_any()
                     }
                     ViewState::TranslationSelection(selected_language) => {
-                        let translations = get_translations_by_language(&selected_language);
                         let selected_language_name = selected_language.display_name().to_string();
                         view! {
                             <div class="mb-4">
@@ -422,7 +421,11 @@ pub fn HomeTranslationPicker(
                                 </h2>
                             </div>
                             <div class="space-y-4">
-                                {translations.into_iter().map(|translation| {
+                                {
+                                    // Watch the refresh trigger to update the translation list when custom translations are added/removed
+                                    let _ = ui_refresh_trigger.get();
+                                    let translations = get_translations_by_language(&selected_language);
+                                    translations.into_iter().map(|translation| {
                                     view! {
                                         <TranslationItem
                                             translation=translation
@@ -445,7 +448,8 @@ pub fn HomeTranslationPicker(
                                             navigate_to_first_chapter=navigate_to_first_chapter.clone()
                                         />
                                     }
-                                }).collect_view()}
+                                }).collect_view()
+                                }
                                 
                                 <CustomTranslationImport
                                     selected_language=RwSignal::new(selected_language.clone()).read_only()
