@@ -62,8 +62,12 @@ pub mod vim_keys;
 /// Instruction execution logic and context management
 pub mod processor;
 
+/// Instruction handler logic organized by functionality
+pub mod logic;
+
 // === Public Exports ===
 
 pub use types::*;
 pub use vim_keys::*;
 pub use processor::*;
+pub use logic::*;
