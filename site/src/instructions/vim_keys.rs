@@ -321,4 +321,12 @@ impl VimKeyboardMapper {
     pub fn get_current_input_display(&self) -> String {
         format!("{}{}", self.multiplier_buffer, self.sequence_buffer)
     }
+    
+    pub fn get_sequence_buffer(&self) -> &str {
+        &self.sequence_buffer
+    }
+    
+    pub fn get_multiplier_buffer(&self) -> &str {
+        &self.multiplier_buffer
+    }
 }
