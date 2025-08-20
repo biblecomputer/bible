@@ -2,17 +2,17 @@ use leptos::ev;
 use leptos::prelude::*;
 use leptos::web_sys::KeyboardEvent;
 use leptos_router::hooks::{use_location, use_navigate};
+use leptos_router::location::Location;
 use leptos_router::NavigateOptions;
-use urlencoding::encode;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
+use crate::core::get_bible;
 use crate::instructions::{
     Instruction, InstructionContext, InstructionProcessor, VimKeyboardMapper,
 };
-use crate::storage::{
-    save_references_sidebar_open, save_sidebar_open, save_verse_visibility,
-};
+use crate::storage::{save_references_sidebar_open, save_sidebar_open, save_verse_visibility};
 use crate::utils::is_mobile_screen;
 
 /// Helper function to create instruction context from URL
@@ -22,14 +22,477 @@ fn create_instruction_context(pathname: &str, search: &str) -> Option<Instructio
         let book_name = path_parts[0].replace('_', " ");
         if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
             if let Ok(current_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
-                return Some(InstructionContext::new(
-                    current_chapter,
-                    search.to_string(),
-                ));
+                return Some(InstructionContext::new(current_chapter, search.to_string()));
             }
         }
     }
     None
+}
+
+// === Export Handler Functions ===
+
+fn handle_export_to_pdf(
+    set_is_pdf_exporting: WriteSignal<bool>,
+    set_pdf_progress: WriteSignal<f32>,
+    set_pdf_status: WriteSignal<String>,
+) {
+    web_sys::console::log_1(&"🎯 PDF Export instruction received!".into());
+    let set_is_pdf_exporting = set_is_pdf_exporting.clone();
+    let set_pdf_progress = set_pdf_progress.clone();
+    let set_pdf_status = set_pdf_status.clone();
+    spawn_local(async move {
+        web_sys::console::log_1(&"🚀 Setting PDF export flags...".into());
+        set_is_pdf_exporting.set(true);
+        set_pdf_progress.set(0.0);
+        set_pdf_status.set("Getting Bible data...".to_string());
+        web_sys::console::log_1(&"✅ PDF export flags set".into());
+
+        web_sys::console::log_1(&"🔄 Getting current Bible data...".into());
+        let bible = crate::core::get_current_bible().unwrap_or_else(|| {
+            web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
+            crate::core::get_bible().clone()
+        });
+        web_sys::console::log_1(
+            &format!("✅ Bible data obtained with {} books", bible.books.len()).into(),
+        );
+
+        // Create progress callback
+        let progress_callback = {
+            let set_progress = set_pdf_progress.clone();
+            let set_status = set_pdf_status.clone();
+            move |progress: f32, status: String| {
+                set_progress.set(progress);
+                set_status.set(status);
+            }
+        };
+
+        web_sys::console::log_1(&"🔄 Starting PDF generation...".into());
+        match crate::utils::export_bible_to_pdf(&bible, Some(progress_callback)) {
+            Ok(pdf_bytes) => {
+                web_sys::console::log_1(
+                    &format!("✅ PDF generation successful! {} bytes", pdf_bytes.len()).into(),
+                );
+                set_pdf_status.set("Preparing download...".to_string());
+
+                let translation_info = crate::storage::translations::get_current_translation()
+                    .unwrap_or_else(|| {
+                        web_sys::console::log_1(
+                            &"⚠️ No translation info found, using default".into(),
+                        );
+                        crate::storage::translation_storage::BibleTranslation {
+                            name: "Unknown_Bible".to_string(),
+                            short_name: "unknown".to_string(),
+                            release_year: 2024,
+                            languages: vec![],
+                            iagon: "".to_string(),
+                        }
+                    });
+                let filename = format!("{}_Bible.pdf", translation_info.name.replace(" ", "_"));
+                web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
+
+                web_sys::console::log_1(&"🔽 Triggering PDF download...".into());
+                crate::utils::trigger_pdf_download(pdf_bytes, &filename);
+            }
+            Err(e) => {
+                web_sys::console::log_1(&format!("❌ Failed to generate PDF: {:?}", e).into());
+                set_pdf_status.set("Export failed!".to_string());
+            }
+        }
+        set_is_pdf_exporting.set(false);
+    });
+}
+
+fn handle_export_to_markdown(
+    set_is_pdf_exporting: WriteSignal<bool>,
+    set_pdf_progress: WriteSignal<f32>,
+    set_pdf_status: WriteSignal<String>,
+) {
+    web_sys::console::log_1(&"📝 Markdown Export instruction received!".into());
+    let set_is_pdf_exporting = set_is_pdf_exporting.clone();
+    let set_pdf_progress = set_pdf_progress.clone();
+    let set_pdf_status = set_pdf_status.clone();
+    spawn_local(async move {
+        web_sys::console::log_1(&"🚀 Setting Markdown export flags...".into());
+        set_is_pdf_exporting.set(true);
+        set_pdf_progress.set(0.0);
+        set_pdf_status.set("Getting Bible data...".to_string());
+        web_sys::console::log_1(&"✅ Markdown export flags set".into());
+
+        web_sys::console::log_1(&"🔄 Getting current Bible data...".into());
+        let bible = crate::core::get_current_bible().unwrap_or_else(|| {
+            web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
+            crate::core::get_bible().clone()
+        });
+        web_sys::console::log_1(
+            &format!("✅ Bible data obtained with {} books", bible.books.len()).into(),
+        );
+
+        // Create progress callback
+        let progress_callback = {
+            let set_progress = set_pdf_progress.clone();
+            let set_status = set_pdf_status.clone();
+            move |progress: f32, status: String| {
+                set_progress.set(progress);
+                set_status.set(status);
+            }
+        };
+
+        web_sys::console::log_1(&"🔄 Starting Markdown generation...".into());
+        match crate::utils::export_bible_to_markdown(&bible, Some(progress_callback)) {
+            Ok(markdown_content) => {
+                web_sys::console::log_1(
+                    &format!(
+                        "✅ Markdown generation successful! {} characters",
+                        markdown_content.len()
+                    )
+                    .into(),
+                );
+                set_pdf_status.set("Preparing download...".to_string());
+
+                let translation_info = crate::storage::translations::get_current_translation()
+                    .unwrap_or_else(|| {
+                        web_sys::console::log_1(
+                            &"⚠️ No translation info found, using default".into(),
+                        );
+                        crate::storage::translation_storage::BibleTranslation {
+                            name: "Unknown_Bible".to_string(),
+                            short_name: "unknown".to_string(),
+                            release_year: 2024,
+                            languages: vec![],
+                            iagon: "".to_string(),
+                        }
+                    });
+                let filename = format!("{}_Bible.md", translation_info.name.replace(" ", "_"));
+                web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
+
+                web_sys::console::log_1(&"🔽 Triggering Markdown download...".into());
+                crate::utils::trigger_markdown_download(markdown_content, &filename);
+            }
+            Err(e) => {
+                web_sys::console::log_1(&format!("❌ Failed to generate Markdown: {:?}", e).into());
+                set_pdf_status.set("Export failed!".to_string());
+            }
+        }
+        set_is_pdf_exporting.set(false);
+    });
+}
+
+fn handle_export_linked_markdown(
+    set_is_pdf_exporting: WriteSignal<bool>,
+    set_pdf_progress: WriteSignal<f32>,
+    set_pdf_status: WriteSignal<String>,
+) {
+    web_sys::console::log_1(&"🔗 Linked Markdown Export instruction received!".into());
+    let set_is_pdf_exporting = set_is_pdf_exporting.clone();
+    let set_pdf_progress = set_pdf_progress.clone();
+    let set_pdf_status = set_pdf_status.clone();
+    spawn_local(async move {
+        web_sys::console::log_1(&"🚀 Setting Linked Markdown export flags...".into());
+        set_is_pdf_exporting.set(true);
+        set_pdf_progress.set(0.0);
+        set_pdf_status.set("Getting Bible data...".to_string());
+        web_sys::console::log_1(&"✅ Linked Markdown export flags set".into());
+
+        web_sys::console::log_1(&"🔄 Getting current Bible data...".into());
+        let bible = crate::core::get_current_bible().unwrap_or_else(|| {
+            web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
+            crate::core::get_bible().clone()
+        });
+        web_sys::console::log_1(
+            &format!("✅ Bible data obtained with {} books", bible.books.len()).into(),
+        );
+
+        // Create progress callback
+        let progress_callback = {
+            let set_progress = set_pdf_progress.clone();
+            let set_status = set_pdf_status.clone();
+            move |progress: f32, status: String| {
+                set_progress.set(progress);
+                set_status.set(status);
+            }
+        };
+
+        web_sys::console::log_1(&"🔄 Starting Linked Markdown generation...".into());
+        match crate::utils::export_bible_to_linked_markdown(&bible, Some(progress_callback)) {
+            Ok(linked_export) => {
+                web_sys::console::log_1(
+                    &format!(
+                        "✅ Linked Markdown generation successful! {} files created",
+                        linked_export.files.len()
+                    )
+                    .into(),
+                );
+                set_pdf_status.set("Preparing download...".to_string());
+
+                let translation_info = crate::storage::translations::get_current_translation()
+                    .unwrap_or_else(|| {
+                        web_sys::console::log_1(
+                            &"⚠️ No translation info found, using default".into(),
+                        );
+                        crate::storage::translation_storage::BibleTranslation {
+                            name: "Unknown_Bible".to_string(),
+                            short_name: "unknown".to_string(),
+                            release_year: 2024,
+                            languages: vec![],
+                            iagon: "".to_string(),
+                        }
+                    });
+                let filename = format!(
+                    "{}_Obsidian_Vault.zip",
+                    translation_info.name.replace(" ", "_")
+                );
+                web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
+
+                web_sys::console::log_1(&"🔽 Triggering Linked Markdown download...".into());
+                crate::utils::trigger_linked_markdown_download(linked_export, &filename);
+            }
+            Err(e) => {
+                web_sys::console::log_1(
+                    &format!("❌ Failed to generate Linked Markdown: {:?}", e).into(),
+                );
+                set_pdf_status.set("Export failed!".to_string());
+            }
+        }
+        set_is_pdf_exporting.set(false);
+    });
+}
+
+// === UI Toggle Handler Functions ===
+
+fn handle_toggle_bible_palette(
+    palette_open: ReadSignal<bool>,
+    set_palette_open: WriteSignal<bool>,
+    set_left_sidebar_open: WriteSignal<bool>,
+) {
+    let is_currently_open = palette_open.get();
+    set_palette_open.set(!is_currently_open);
+    // Close sidebar on mobile when command palette opens
+    if !is_currently_open && is_mobile_screen() {
+        set_left_sidebar_open.set(false);
+        save_sidebar_open(false);
+    }
+}
+
+fn handle_toggle_command_palette(
+    set_palette_open: WriteSignal<bool>,
+    set_initial_search_query: WriteSignal<Option<String>>,
+    set_left_sidebar_open: WriteSignal<bool>,
+) {
+    // Open the command palette with ">" pre-filled
+    set_initial_search_query.set(Some(">".to_string()));
+    set_palette_open.set(true);
+    // Close sidebar on mobile when command palette opens
+    if is_mobile_screen() {
+        set_left_sidebar_open.set(false);
+        save_sidebar_open(false);
+    }
+}
+
+fn handle_toggle_verse_palette(
+    set_palette_open: WriteSignal<bool>,
+    set_initial_search_query: WriteSignal<Option<String>>,
+    set_left_sidebar_open: WriteSignal<bool>,
+) {
+    // Open the command palette with ":" pre-filled
+    set_initial_search_query.set(Some(":".to_string()));
+    set_palette_open.set(true);
+    // Close sidebar on mobile when command palette opens
+    if is_mobile_screen() {
+        set_left_sidebar_open.set(false);
+        save_sidebar_open(false);
+    }
+}
+
+fn handle_toggle_sidebar(set_left_sidebar_open: WriteSignal<bool>) {
+    set_left_sidebar_open.update(|open| {
+        *open = !*open;
+        save_sidebar_open(*open);
+    });
+}
+
+fn handle_toggle_cross_references(
+    set_right_sidebar_open: WriteSignal<bool>,
+    set_theme_sidebar_open: WriteSignal<bool>,
+) {
+    set_right_sidebar_open.update(|open| {
+        *open = !*open;
+        save_references_sidebar_open(*open);
+        // Close theme sidebar if opening references sidebar
+        if *open {
+            set_theme_sidebar_open.set(false);
+        }
+    });
+}
+
+fn handle_toggle_theme_sidebar(
+    set_theme_sidebar_open: WriteSignal<bool>,
+    set_right_sidebar_open: WriteSignal<bool>,
+) {
+    set_theme_sidebar_open.update(|open| {
+        *open = !*open;
+        // Close references sidebar if opening theme sidebar
+        if *open {
+            set_right_sidebar_open.set(false);
+            save_references_sidebar_open(false);
+        }
+    });
+}
+
+fn handle_toggle_translation_comparison(
+    set_translation_comparison_open: WriteSignal<bool>,
+    set_right_sidebar_open: WriteSignal<bool>,
+    set_theme_sidebar_open: WriteSignal<bool>,
+) {
+    set_translation_comparison_open.update(|open| {
+        *open = !*open;
+        // Close other right-side panels if opening comparison panel
+        if *open {
+            set_right_sidebar_open.set(false);
+            set_theme_sidebar_open.set(false);
+            save_references_sidebar_open(false);
+        }
+    });
+}
+
+fn handle_toggle_verse_visibility(set_verse_visibility_enabled: WriteSignal<bool>) {
+    set_verse_visibility_enabled.update(|visible| {
+        *visible = !*visible;
+        save_verse_visibility(*visible);
+    });
+}
+
+// === Navigation Handler Functions ===
+
+fn handle_open_github_repository() {
+    if let Some(window) = leptos::web_sys::window() {
+        let _ = window
+            .location()
+            .set_href("https://github.com/sempruijs/bible");
+    }
+}
+
+fn handle_switch_to_previous_chapter<F>(
+    previous_chapter_path: ReadSignal<Option<String>>,
+    set_previous_chapter_path: WriteSignal<Option<String>>,
+    location: Location,
+    navigate: F,
+) where
+    F: Fn(&str, NavigateOptions),
+{
+    if let Some(prev_path) = previous_chapter_path.get() {
+        let current_path = location.pathname.get();
+        set_previous_chapter_path.set(Some(current_path));
+        navigate(
+            &prev_path,
+            NavigateOptions {
+                scroll: false,
+                ..Default::default()
+            },
+        );
+    }
+}
+
+fn handle_go_to_verse<F>(
+    verse_num: u32,
+    location: Location,
+    processor: &InstructionProcessor<F>,
+) where
+    F: Fn(&str, NavigateOptions) + Clone,
+{
+    // Process the instruction if we have a valid context
+    let pathname = location.pathname.get();
+    let search = location.search.get();
+    if let Some(context) = create_instruction_context(&pathname, &search) {
+        processor.process(Instruction::GoToVerse(verse_num), &context);
+    }
+}
+
+fn handle_next_palette_result(palette_open: ReadSignal<bool>, next_palette_result: RwSignal<bool>) {
+    if palette_open.get() {
+        // Command palette is open, trigger navigation in palette
+        next_palette_result.set(true);
+    }
+}
+
+fn handle_previous_palette_result(
+    palette_open: ReadSignal<bool>,
+    previous_palette_result: RwSignal<bool>,
+) {
+    if palette_open.get() {
+        // Command palette is open, trigger navigation in palette
+        previous_palette_result.set(true);
+    }
+}
+
+// === Custom Event Handler Functions ===
+
+fn setup_export_event_listeners(
+    set_is_pdf_exporting: WriteSignal<bool>,
+    set_pdf_progress: WriteSignal<f32>,
+    set_pdf_status: WriteSignal<String>,
+) {
+    if let Some(window) = web_sys::window() {
+        if let Some(document) = window.document() {
+            // PDF export event listener
+            let set_is_pdf_exporting_pdf = set_is_pdf_exporting.clone();
+            let set_pdf_progress_pdf = set_pdf_progress.clone();
+            let set_pdf_status_pdf = set_pdf_status.clone();
+            let pdf_event_handler = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+                web_sys::console::log_1(&"🎯 CustomEvent received from command palette!".into());
+                handle_export_to_pdf(
+                    set_is_pdf_exporting_pdf,
+                    set_pdf_progress_pdf,
+                    set_pdf_status_pdf,
+                );
+            }) as Box<dyn FnMut(_)>);
+
+            let _ = document.add_event_listener_with_callback(
+                "palette-pdf-export",
+                pdf_event_handler.as_ref().unchecked_ref(),
+            );
+            pdf_event_handler.forget();
+
+            // Markdown export event listener
+            let set_is_pdf_exporting_md = set_is_pdf_exporting.clone();
+            let set_pdf_progress_md = set_pdf_progress.clone();
+            let set_pdf_status_md = set_pdf_status.clone();
+            let markdown_event_handler = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+                web_sys::console::log_1(
+                    &"📝 Markdown CustomEvent received from command palette!".into(),
+                );
+                handle_export_to_markdown(
+                    set_is_pdf_exporting_md,
+                    set_pdf_progress_md,
+                    set_pdf_status_md,
+                );
+            }) as Box<dyn FnMut(_)>);
+
+            let _ = document.add_event_listener_with_callback(
+                "palette-markdown-export",
+                markdown_event_handler.as_ref().unchecked_ref(),
+            );
+            markdown_event_handler.forget();
+
+            // Linked Markdown export event listener
+            let linked_markdown_event_handler =
+                Closure::wrap(Box::new(move |_event: web_sys::Event| {
+                    web_sys::console::log_1(
+                        &"🔗 Linked Markdown CustomEvent received from command palette!".into(),
+                    );
+                    handle_export_linked_markdown(
+                        set_is_pdf_exporting,
+                        set_pdf_progress,
+                        set_pdf_status,
+                    );
+                }) as Box<dyn FnMut(_)>);
+
+            let _ = document.add_event_listener_with_callback(
+                "palette-linked-markdown-export",
+                linked_markdown_event_handler.as_ref().unchecked_ref(),
+            );
+            linked_markdown_event_handler.forget();
+        }
+    }
 }
 
 #[component]
@@ -55,7 +518,7 @@ pub fn KeyboardNavigationHandler(
 
     // Previous chapter tracking for "alt-tab" like switching
     let (previous_chapter_path, set_previous_chapter_path) = signal(Option::<String>::None);
-    
+
     // PDF export progress state
     let (pdf_progress, set_pdf_progress) = signal(0.0f32);
     let (pdf_status, set_pdf_status) = signal("Preparing export...".to_string());
@@ -100,7 +563,7 @@ pub fn KeyboardNavigationHandler(
                 if let Some(active_element) = document.active_element() {
                     // Check if the active element is an input, textarea, or has contenteditable
                     let tag_name = active_element.tag_name().to_lowercase();
-                    tag_name == "input" 
+                    tag_name == "input"
                         || tag_name == "textarea"
                         || active_element.get_attribute("contenteditable").is_some()
                 } else {
@@ -118,11 +581,11 @@ pub fn KeyboardNavigationHandler(
             // Only process Ctrl+J, Ctrl+K, Ctrl+O, Escape, Enter for palette navigation
             let key = e.key();
             let is_control_sequence = e.ctrl_key() && (key == "j" || key == "k" || key == "o")
-                || key == "Escape" 
+                || key == "Escape"
                 || key == "Enter"
-                || key == "ArrowUp" 
+                || key == "ArrowUp"
                 || key == "ArrowDown";
-                
+
             if !is_control_sequence {
                 // Let normal typing behavior work
                 return;
@@ -143,7 +606,10 @@ pub fn KeyboardNavigationHandler(
                     Instruction::ToggleBiblePallate | Instruction::ToggleCommandPallate => {
                         // Let palette toggle instructions through to be processed below
                     }
-                    Instruction::ToggleSidebar | Instruction::ToggleCrossReferences | Instruction::ToggleThemeSidebar | Instruction::ToggleVerseVisibility => {
+                    Instruction::ToggleSidebar
+                    | Instruction::ToggleCrossReferences
+                    | Instruction::ToggleThemeSidebar
+                    | Instruction::ToggleVerseVisibility => {
                         // Let UI toggle instructions through to be processed below
                     }
                     Instruction::NextReference | Instruction::PreviousReference => {
@@ -179,280 +645,86 @@ pub fn KeyboardNavigationHandler(
             match instruction {
                 Instruction::ToggleBiblePallate => {
                     e.prevent_default();
-                    let is_currently_open = palette_open.get();
-                    set_palette_open.set(!is_currently_open);
-                    // Close sidebar on mobile when command palette opens
-                    if !is_currently_open && is_mobile_screen() {
-                        set_left_sidebar_open.set(false);
-                        save_sidebar_open(false);
-                    }
+                    handle_toggle_bible_palette(
+                        palette_open,
+                        set_palette_open,
+                        set_left_sidebar_open,
+                    );
                     return;
                 }
                 Instruction::ToggleCommandPallate => {
                     e.prevent_default();
-                    // Open the command palette with ">" pre-filled
-                    set_initial_search_query.set(Some(">".to_string()));
-                    set_palette_open.set(true);
-                    // Close sidebar on mobile when command palette opens
-                    if is_mobile_screen() {
-                        set_left_sidebar_open.set(false);
-                        save_sidebar_open(false);
-                    }
+                    handle_toggle_command_palette(
+                        set_palette_open,
+                        set_initial_search_query,
+                        set_left_sidebar_open,
+                    );
                     return;
                 }
                 Instruction::ToggleVersePallate => {
                     e.prevent_default();
-                    // Open the command palette with ":" pre-filled
-                    set_initial_search_query.set(Some(":".to_string()));
-                    set_palette_open.set(true);
-                    // Close sidebar on mobile when command palette opens
-                    if is_mobile_screen() {
-                        set_left_sidebar_open.set(false);
-                        save_sidebar_open(false);
-                    }
+                    handle_toggle_verse_palette(
+                        set_palette_open,
+                        set_initial_search_query,
+                        set_left_sidebar_open,
+                    );
                     return;
                 }
                 Instruction::OpenGithubRepository => {
                     e.prevent_default();
-                    if let Some(window) = leptos::web_sys::window() {
-                        let _ = window.location().set_href("https://github.com/sempruijs/bible");
-                    }
+                    handle_open_github_repository();
                     return;
                 }
                 Instruction::ToggleSidebar => {
                     e.prevent_default();
-                    set_left_sidebar_open.update(|open| {
-                        *open = !*open;
-                        save_sidebar_open(*open);
-                    });
+                    handle_toggle_sidebar(set_left_sidebar_open);
                     return;
                 }
                 Instruction::ToggleCrossReferences => {
                     e.prevent_default();
-                    set_right_sidebar_open.update(|open| {
-                        *open = !*open;
-                        save_references_sidebar_open(*open);
-                        // Close theme sidebar if opening references sidebar
-                        if *open {
-                            set_theme_sidebar_open.set(false);
-                        }
-                    });
+                    handle_toggle_cross_references(set_right_sidebar_open, set_theme_sidebar_open);
                     return;
                 }
                 Instruction::ToggleThemeSidebar => {
                     e.prevent_default();
-                    set_theme_sidebar_open.update(|open| {
-                        *open = !*open;
-                        // Close references sidebar if opening theme sidebar
-                        if *open {
-                            set_right_sidebar_open.set(false);
-                            save_references_sidebar_open(false);
-                        }
-                    });
+                    handle_toggle_theme_sidebar(set_theme_sidebar_open, set_right_sidebar_open);
                     return;
                 }
                 Instruction::ToggleTranslationComparison => {
                     e.prevent_default();
-                    set_translation_comparison_open.update(|open| {
-                        *open = !*open;
-                        // Close other right-side panels if opening comparison panel
-                        if *open {
-                            set_right_sidebar_open.set(false);
-                            set_theme_sidebar_open.set(false);
-                            save_references_sidebar_open(false);
-                        }
-                    });
+                    handle_toggle_translation_comparison(
+                        set_translation_comparison_open,
+                        set_right_sidebar_open,
+                        set_theme_sidebar_open,
+                    );
                     return;
                 }
                 Instruction::ToggleVerseVisibility => {
                     e.prevent_default();
-                    set_verse_visibility_enabled.update(|visible| {
-                        *visible = !*visible;
-                        save_verse_visibility(*visible);
-                    });
+                    handle_toggle_verse_visibility(set_verse_visibility_enabled);
                     return;
                 }
                 Instruction::ExportToPDF => {
                     e.prevent_default();
-                    web_sys::console::log_1(&"🎯 PDF Export instruction received!".into());
-                    let set_is_pdf_exporting = set_is_pdf_exporting.clone();
-                    let set_pdf_progress = set_pdf_progress.clone();
-                    let set_pdf_status = set_pdf_status.clone();
-                    spawn_local(async move {
-                        web_sys::console::log_1(&"🚀 Setting PDF export flags...".into());
-                        set_is_pdf_exporting.set(true);
-                        set_pdf_progress.set(0.0);
-                        set_pdf_status.set("Getting Bible data...".to_string());
-                        web_sys::console::log_1(&"✅ PDF export flags set".into());
-                        
-                        web_sys::console::log_1(&"🔄 Getting current Bible data...".into());
-                        let bible = crate::core::get_current_bible().unwrap_or_else(|| {
-                            web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
-                            crate::core::get_bible().clone()
-                        });
-                        web_sys::console::log_1(&format!("✅ Bible data obtained with {} books", bible.books.len()).into());
-                        
-                        // Create progress callback
-                        let progress_callback = {
-                            let set_progress = set_pdf_progress.clone();
-                            let set_status = set_pdf_status.clone();
-                            move |progress: f32, status: String| {
-                                set_progress.set(progress);
-                                set_status.set(status);
-                            }
-                        };
-                        
-                        web_sys::console::log_1(&"🔄 Starting PDF generation...".into());
-                        match crate::utils::export_bible_to_pdf(&bible, Some(progress_callback)) {
-                            Ok(pdf_bytes) => {
-                                web_sys::console::log_1(&format!("✅ PDF generation successful! {} bytes", pdf_bytes.len()).into());
-                                set_pdf_status.set("Preparing download...".to_string());
-                                
-                                let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
-                                    web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
-                                    crate::storage::translation_storage::BibleTranslation {
-                                        name: "Unknown_Bible".to_string(),
-                                        short_name: "unknown".to_string(),
-                                        release_year: 2024,
-                                        languages: vec![],
-                                        iagon: "".to_string(),
-                                    }
-                                });
-                                let filename = format!("{}_Bible.pdf", translation_info.name.replace(" ", "_"));
-                                web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
-                                
-                                web_sys::console::log_1(&"🔽 Triggering PDF download...".into());
-                                crate::utils::trigger_pdf_download(pdf_bytes, &filename);
-                            }
-                            Err(e) => {
-                                web_sys::console::log_1(&format!("❌ Failed to generate PDF: {:?}", e).into());
-                                set_pdf_status.set("Export failed!".to_string());
-                            }
-                        }
-                        set_is_pdf_exporting.set(false);
-                    });
+                    handle_export_to_pdf(set_is_pdf_exporting, set_pdf_progress, set_pdf_status);
                     return;
                 }
                 Instruction::ExportToMarkdown => {
                     e.prevent_default();
-                    web_sys::console::log_1(&"📝 Markdown Export instruction received!".into());
-                    let set_is_pdf_exporting = set_is_pdf_exporting.clone();
-                    let set_pdf_progress = set_pdf_progress.clone();
-                    let set_pdf_status = set_pdf_status.clone();
-                    spawn_local(async move {
-                        web_sys::console::log_1(&"🚀 Setting Markdown export flags...".into());
-                        set_is_pdf_exporting.set(true);
-                        set_pdf_progress.set(0.0);
-                        set_pdf_status.set("Getting Bible data...".to_string());
-                        web_sys::console::log_1(&"✅ Markdown export flags set".into());
-                        
-                        web_sys::console::log_1(&"🔄 Getting current Bible data...".into());
-                        let bible = crate::core::get_current_bible().unwrap_or_else(|| {
-                            web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
-                            crate::core::get_bible().clone()
-                        });
-                        web_sys::console::log_1(&format!("✅ Bible data obtained with {} books", bible.books.len()).into());
-                        
-                        // Create progress callback
-                        let progress_callback = {
-                            let set_progress = set_pdf_progress.clone();
-                            let set_status = set_pdf_status.clone();
-                            move |progress: f32, status: String| {
-                                set_progress.set(progress);
-                                set_status.set(status);
-                            }
-                        };
-                        
-                        web_sys::console::log_1(&"🔄 Starting Markdown generation...".into());
-                        match crate::utils::export_bible_to_markdown(&bible, Some(progress_callback)) {
-                            Ok(markdown_content) => {
-                                web_sys::console::log_1(&format!("✅ Markdown generation successful! {} characters", markdown_content.len()).into());
-                                set_pdf_status.set("Preparing download...".to_string());
-                                
-                                let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
-                                    web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
-                                    crate::storage::translation_storage::BibleTranslation {
-                                        name: "Unknown_Bible".to_string(),
-                                        short_name: "unknown".to_string(),
-                                        release_year: 2024,
-                                        languages: vec![],
-                                        iagon: "".to_string(),
-                                    }
-                                });
-                                let filename = format!("{}_Bible.md", translation_info.name.replace(" ", "_"));
-                                web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
-                                
-                                web_sys::console::log_1(&"🔽 Triggering Markdown download...".into());
-                                crate::utils::trigger_markdown_download(markdown_content, &filename);
-                            }
-                            Err(e) => {
-                                web_sys::console::log_1(&format!("❌ Failed to generate Markdown: {:?}", e).into());
-                                set_pdf_status.set("Export failed!".to_string());
-                            }
-                        }
-                        set_is_pdf_exporting.set(false);
-                    });
+                    handle_export_to_markdown(
+                        set_is_pdf_exporting,
+                        set_pdf_progress,
+                        set_pdf_status,
+                    );
                     return;
                 }
                 Instruction::ExportLinkedMarkdown => {
                     e.prevent_default();
-                    web_sys::console::log_1(&"🔗 Linked Markdown Export instruction received!".into());
-                    let set_is_pdf_exporting = set_is_pdf_exporting.clone();
-                    let set_pdf_progress = set_pdf_progress.clone();
-                    let set_pdf_status = set_pdf_status.clone();
-                    spawn_local(async move {
-                        web_sys::console::log_1(&"🚀 Setting Linked Markdown export flags...".into());
-                        set_is_pdf_exporting.set(true);
-                        set_pdf_progress.set(0.0);
-                        set_pdf_status.set("Getting Bible data...".to_string());
-                        web_sys::console::log_1(&"✅ Linked Markdown export flags set".into());
-                        
-                        web_sys::console::log_1(&"🔄 Getting current Bible data...".into());
-                        let bible = crate::core::get_current_bible().unwrap_or_else(|| {
-                            web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
-                            crate::core::get_bible().clone()
-                        });
-                        web_sys::console::log_1(&format!("✅ Bible data obtained with {} books", bible.books.len()).into());
-                        
-                        // Create progress callback
-                        let progress_callback = {
-                            let set_progress = set_pdf_progress.clone();
-                            let set_status = set_pdf_status.clone();
-                            move |progress: f32, status: String| {
-                                set_progress.set(progress);
-                                set_status.set(status);
-                            }
-                        };
-                        
-                        web_sys::console::log_1(&"🔄 Starting Linked Markdown generation...".into());
-                        match crate::utils::export_bible_to_linked_markdown(&bible, Some(progress_callback)) {
-                            Ok(linked_export) => {
-                                web_sys::console::log_1(&format!("✅ Linked Markdown generation successful! {} files created", linked_export.files.len()).into());
-                                set_pdf_status.set("Preparing download...".to_string());
-                                
-                                let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
-                                    web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
-                                    crate::storage::translation_storage::BibleTranslation {
-                                        name: "Unknown_Bible".to_string(),
-                                        short_name: "unknown".to_string(),
-                                        release_year: 2024,
-                                        languages: vec![],
-                                        iagon: "".to_string(),
-                                    }
-                                });
-                                let filename = format!("{}_Obsidian_Vault.zip", translation_info.name.replace(" ", "_"));
-                                web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
-                                
-                                web_sys::console::log_1(&"🔽 Triggering Linked Markdown download...".into());
-                                crate::utils::trigger_linked_markdown_download(linked_export, &filename);
-                            }
-                            Err(e) => {
-                                web_sys::console::log_1(&format!("❌ Failed to generate Linked Markdown: {:?}", e).into());
-                                set_pdf_status.set("Export failed!".to_string());
-                            }
-                        }
-                        set_is_pdf_exporting.set(false);
-                    });
+                    handle_export_linked_markdown(
+                        set_is_pdf_exporting,
+                        set_pdf_progress,
+                        set_pdf_status,
+                    );
                     return;
                 }
                 Instruction::NextReference => {
@@ -469,45 +741,27 @@ pub fn KeyboardNavigationHandler(
                 }
                 Instruction::NextPaletteResult => {
                     e.prevent_default();
-                    if palette_open.get() {
-                        // Command palette is open, trigger navigation in palette
-                        next_palette_result.set(true);
-                    }
+                    handle_next_palette_result(palette_open, next_palette_result);
                     return;
                 }
                 Instruction::PreviousPaletteResult => {
                     e.prevent_default();
-                    if palette_open.get() {
-                        // Command palette is open, trigger navigation in palette
-                        previous_palette_result.set(true);
-                    }
+                    handle_previous_palette_result(palette_open, previous_palette_result);
                     return;
                 }
                 Instruction::SwitchToPreviousChapter => {
                     e.prevent_default();
-                    if let Some(prev_path) = previous_chapter_path.get() {
-                        let current_path = location.pathname.get();
-                        set_previous_chapter_path.set(Some(current_path));
-                        navigate(
-                            &prev_path,
-                            NavigateOptions {
-                                scroll: false,
-                                ..Default::default()
-                            },
-                        );
-                    }
+                    handle_switch_to_previous_chapter(
+                        previous_chapter_path,
+                        set_previous_chapter_path,
+                        location.clone(),
+                        navigate.clone(),
+                    );
                     return;
                 }
                 Instruction::GoToVerse(verse_num) => {
-                    // Handle go to verse navigation
                     e.prevent_default();
-
-                    // Process the instruction if we have a valid context
-                    let pathname = location.pathname.get();
-                    let search = location.search.get();
-                    if let Some(context) = create_instruction_context(&pathname, &search) {
-                        processor.process(Instruction::GoToVerse(verse_num), &context);
-                    }
+                    handle_go_to_verse(verse_num, location.clone(), &processor);
                     return;
                 }
                 _ => {
@@ -526,217 +780,9 @@ pub fn KeyboardNavigationHandler(
 
     // Add global keydown listener - this runs only once when the App mounts
     window_event_listener(ev::keydown, handle_keydown);
-    
-    // Add CustomEvent listener for command palette PDF export
-    use wasm_bindgen::prelude::*;
-    use wasm_bindgen::JsCast;
-    
-    let set_is_pdf_exporting_custom = set_is_pdf_exporting.clone();
-    let set_pdf_progress_custom = set_pdf_progress.clone();
-    let set_pdf_status_custom = set_pdf_status.clone();
-    let custom_event_handler = Closure::wrap(Box::new(move |_event: web_sys::Event| {
-        web_sys::console::log_1(&"🎯 CustomEvent received from command palette!".into());
-        let set_is_pdf_exporting = set_is_pdf_exporting_custom.clone();
-        let set_progress = set_pdf_progress_custom.clone();
-        let set_status = set_pdf_status_custom.clone();
-        spawn_local(async move {
-            set_is_pdf_exporting.set(true);
-            set_progress.set(0.0);
-            set_status.set("Getting Bible data...".to_string());
-            
-            web_sys::console::log_1(&"🔄 Getting current Bible data via CustomEvent...".into());
-            let bible = crate::core::get_current_bible().unwrap_or_else(|| {
-                web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
-                crate::core::get_bible().clone()
-            });
-            
-            // Create progress callback
-            let progress_callback = {
-                let set_progress = set_progress.clone();
-                let set_status = set_status.clone();
-                move |progress: f32, status: String| {
-                    set_progress.set(progress);
-                    set_status.set(status);
-                }
-            };
-            
-            web_sys::console::log_1(&"🔄 Starting PDF generation via CustomEvent...".into());
-            match crate::utils::export_bible_to_pdf(&bible, Some(progress_callback)) {
-                Ok(pdf_bytes) => {
-                    web_sys::console::log_1(&format!("✅ PDF generation successful! {} bytes", pdf_bytes.len()).into());
-                    set_status.set("Preparing download...".to_string());
-                    
-                    let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
-                        web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
-                        crate::storage::translation_storage::BibleTranslation {
-                            name: "Unknown_Bible".to_string(),
-                            short_name: "unknown".to_string(),
-                            release_year: 2024,
-                            languages: vec![],
-                            iagon: "".to_string(),
-                        }
-                    });
-                    let filename = format!("{}_Bible.pdf", translation_info.name.replace(" ", "_"));
-                    web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
-                    
-                    web_sys::console::log_1(&"🔽 Triggering PDF download...".into());
-                    crate::utils::trigger_pdf_download(pdf_bytes, &filename);
-                }
-                Err(e) => {
-                    web_sys::console::log_1(&format!("❌ Failed to generate PDF: {:?}", e).into());
-                    set_status.set("Export failed!".to_string());
-                }
-            }
-            set_is_pdf_exporting.set(false);
-        });
-    }) as Box<dyn FnMut(_)>);
-    
-    if let Some(window) = web_sys::window() {
-        if let Some(document) = window.document() {
-            let _ = document.add_event_listener_with_callback(
-                "palette-pdf-export",
-                custom_event_handler.as_ref().unchecked_ref(),
-            );
-            // Keep the closure alive by forgetting it
-            custom_event_handler.forget();
-            
-            // Add CustomEvent listener for command palette Markdown export
-            let set_is_pdf_exporting_markdown = set_is_pdf_exporting.clone();
-            let set_pdf_progress_markdown = set_pdf_progress.clone();
-            let set_pdf_status_markdown = set_pdf_status.clone();
-            let markdown_event_handler = Closure::wrap(Box::new(move |_event: web_sys::Event| {
-                web_sys::console::log_1(&"📝 Markdown CustomEvent received from command palette!".into());
-                let set_is_pdf_exporting = set_is_pdf_exporting_markdown.clone();
-                let set_progress = set_pdf_progress_markdown.clone();
-                let set_status = set_pdf_status_markdown.clone();
-                spawn_local(async move {
-                    set_is_pdf_exporting.set(true);
-                    set_progress.set(0.0);
-                    set_status.set("Getting Bible data...".to_string());
-                    
-                    web_sys::console::log_1(&"🔄 Getting current Bible data via Markdown CustomEvent...".into());
-                    let bible = crate::core::get_current_bible().unwrap_or_else(|| {
-                        web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
-                        crate::core::get_bible().clone()
-                    });
-                    
-                    // Create progress callback
-                    let progress_callback = {
-                        let set_progress = set_progress.clone();
-                        let set_status = set_status.clone();
-                        move |progress: f32, status: String| {
-                            set_progress.set(progress);
-                            set_status.set(status);
-                        }
-                    };
-                    
-                    web_sys::console::log_1(&"🔄 Starting Markdown generation via CustomEvent...".into());
-                    match crate::utils::export_bible_to_markdown(&bible, Some(progress_callback)) {
-                        Ok(markdown_content) => {
-                            web_sys::console::log_1(&format!("✅ Markdown generation successful! {} characters", markdown_content.len()).into());
-                            set_status.set("Preparing download...".to_string());
-                            
-                            let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
-                                web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
-                                crate::storage::translation_storage::BibleTranslation {
-                                    name: "Unknown_Bible".to_string(),
-                                    short_name: "unknown".to_string(),
-                                    release_year: 2024,
-                                    languages: vec![],
-                                    iagon: "".to_string(),
-                                }
-                            });
-                            let filename = format!("{}_Bible.md", translation_info.name.replace(" ", "_"));
-                            web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
-                            
-                            web_sys::console::log_1(&"🔽 Triggering Markdown download...".into());
-                            crate::utils::trigger_markdown_download(markdown_content, &filename);
-                        }
-                        Err(e) => {
-                            web_sys::console::log_1(&format!("❌ Failed to generate Markdown: {:?}", e).into());
-                            set_status.set("Export failed!".to_string());
-                        }
-                    }
-                    set_is_pdf_exporting.set(false);
-                });
-            }) as Box<dyn FnMut(_)>);
-            
-            let _ = document.add_event_listener_with_callback(
-                "palette-markdown-export",
-                markdown_event_handler.as_ref().unchecked_ref(),
-            );
-            // Keep the closure alive by forgetting it
-            markdown_event_handler.forget();
-            
-            // Add CustomEvent listener for command palette Linked Markdown export
-            let set_is_pdf_exporting_linked = set_is_pdf_exporting.clone();
-            let set_pdf_progress_linked = set_pdf_progress.clone();
-            let set_pdf_status_linked = set_pdf_status.clone();
-            let linked_markdown_event_handler = Closure::wrap(Box::new(move |_event: web_sys::Event| {
-                web_sys::console::log_1(&"🔗 Linked Markdown CustomEvent received from command palette!".into());
-                let set_is_pdf_exporting = set_is_pdf_exporting_linked.clone();
-                let set_progress = set_pdf_progress_linked.clone();
-                let set_status = set_pdf_status_linked.clone();
-                spawn_local(async move {
-                    set_is_pdf_exporting.set(true);
-                    set_progress.set(0.0);
-                    set_status.set("Getting Bible data...".to_string());
-                    
-                    web_sys::console::log_1(&"🔄 Getting current Bible data via Linked Markdown CustomEvent...".into());
-                    let bible = crate::core::get_current_bible().unwrap_or_else(|| {
-                        web_sys::console::log_1(&"⚠️ No current Bible found, using default".into());
-                        crate::core::get_bible().clone()
-                    });
-                    
-                    // Create progress callback
-                    let progress_callback = {
-                        let set_progress = set_progress.clone();
-                        let set_status = set_status.clone();
-                        move |progress: f32, status: String| {
-                            set_progress.set(progress);
-                            set_status.set(status);
-                        }
-                    };
-                    
-                    web_sys::console::log_1(&"🔄 Starting Linked Markdown generation via CustomEvent...".into());
-                    match crate::utils::export_bible_to_linked_markdown(&bible, Some(progress_callback)) {
-                        Ok(linked_export) => {
-                            web_sys::console::log_1(&format!("✅ Linked Markdown generation successful! {} files created", linked_export.files.len()).into());
-                            set_status.set("Preparing download...".to_string());
-                            
-                            let translation_info = crate::storage::translations::get_current_translation().unwrap_or_else(|| {
-                                web_sys::console::log_1(&"⚠️ No translation info found, using default".into());
-                                crate::storage::translation_storage::BibleTranslation {
-                                    name: "Unknown_Bible".to_string(),
-                                    short_name: "unknown".to_string(),
-                                    release_year: 2024,
-                                    languages: vec![],
-                                    iagon: "".to_string(),
-                                }
-                            });
-                            let filename = format!("{}_Obsidian_Vault.md", translation_info.name.replace(" ", "_"));
-                            web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
-                            
-                            web_sys::console::log_1(&"🔽 Triggering Linked Markdown download...".into());
-                            crate::utils::trigger_linked_markdown_download(linked_export, &filename);
-                        }
-                        Err(e) => {
-                            web_sys::console::log_1(&format!("❌ Failed to generate Linked Markdown: {:?}", e).into());
-                            set_status.set("Export failed!".to_string());
-                        }
-                    }
-                    set_is_pdf_exporting.set(false);
-                });
-            }) as Box<dyn FnMut(_)>);
-            
-            let _ = document.add_event_listener_with_callback(
-                "palette-linked-markdown-export",
-                linked_markdown_event_handler.as_ref().unchecked_ref(),
-            );
-            // Keep the closure alive by forgetting it
-            linked_markdown_event_handler.forget();
-        }
-    }
+
+    // Set up export event listeners
+    setup_export_event_listeners(set_is_pdf_exporting, set_pdf_progress, set_pdf_status);
 
     view! {
         // Visual feedback for vim command buffer
@@ -745,12 +791,12 @@ pub fn KeyboardNavigationHandler(
                 {move || vim_display.get().unwrap_or_default()}
             </div>
         </Show>
-        
+
         // PDF export progress component
-        <crate::components::PdfLoadingProgress 
+        <crate::components::PdfLoadingProgress
             progress=pdf_progress
-            status_message=pdf_status 
-            is_visible=is_pdf_exporting 
+            status_message=pdf_status
+            is_visible=is_pdf_exporting
         />
     }
 }
