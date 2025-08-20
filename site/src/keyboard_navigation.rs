@@ -82,15 +82,31 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
         }
 
         // Get instruction from vim-style keyboard mapper
-        let instruction_result = vim_mapper.try_with_untracked(|mapper| {
-            let mut local_mapper = mapper.clone();
-            let result = local_mapper.map_to_instruction(&e);
+        let instruction_result = {
+            // Get the current mapper state
+            let mut current_mapper = vim_mapper.try_with_untracked(|mapper| mapper.clone()).unwrap_or_else(|| VimKeyboardMapper::new());
+            
+            #[cfg(target_arch = "wasm32")]
+            leptos::web_sys::console::log_1(&format!("🔤 Key pressed: '{}', current sequence: '{}', multiplier: '{}'", 
+                e.key(), 
+                current_mapper.get_sequence_buffer(), 
+                current_mapper.get_multiplier_buffer()
+            ).into());
+            
+            let result = current_mapper.map_to_instruction(&e);
+            
+            #[cfg(target_arch = "wasm32")]
+            leptos::web_sys::console::log_1(&format!("🎯 Mapper result: {:?}, new sequence: '{}', new multiplier: '{}'", 
+                result, 
+                current_mapper.get_sequence_buffer(), 
+                current_mapper.get_multiplier_buffer()
+            ).into());
 
             // Store the updated mapper back
-            let _ = vim_mapper.try_update_untracked(|m| *m = local_mapper);
+            let _ = vim_mapper.try_update_untracked(|m| *m = current_mapper);
 
             result
-        }).unwrap_or(None);
+        };
 
         // Handle palette navigation priority when palette is open
         let palette_open_check = view_state.try_with(|state| state.is_command_palette_open).unwrap_or(false);

@@ -191,6 +191,9 @@ impl ViewState {
     }
 
     pub fn execute_with_multiplier(&mut self, instruction: &Instruction, multiplier: u32) -> InstructionResult {
+        #[cfg(target_arch = "wasm32")]
+        leptos::web_sys::console::log_1(&format!("🎮 Executing instruction with multiplier: {:?} x{}", instruction, multiplier).into());
+        
         match instruction {
             Instruction::NextVerse => self.handle_next_verse_with_multiplier(multiplier),
             Instruction::PreviousVerse => self.handle_previous_verse_with_multiplier(multiplier),
