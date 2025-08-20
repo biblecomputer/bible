@@ -12,11 +12,9 @@
  */
 
 // === External Dependencies ===
-use leptos::ev;
 use leptos::prelude::*;
-use leptos::web_sys::KeyboardEvent;
 use leptos_router::components::{Route, Router, Routes};
-use leptos_router::hooks::{use_location, use_navigate};
+use leptos_router::hooks::{use_location};
 use leptos_router::path;
 use leptos_router::NavigateOptions;
 use urlencoding::encode;
@@ -32,7 +30,7 @@ use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::keyboard_navigation::KeyboardNavigationHandler;
 use crate::storage::{
     get_references_sidebar_open, get_sidebar_open, save_references_sidebar_open, save_sidebar_open,
-    get_verse_visibility, save_verse_visibility, get_selected_theme,
+    get_verse_visibility, get_selected_theme,
     add_recent_chapter,
 };
 use crate::themes::{get_theme_by_id, get_default_theme, theme_to_css_vars, Theme};
