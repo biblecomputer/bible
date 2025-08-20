@@ -7,12 +7,6 @@ use std::collections::HashMap;
 use wasm_bindgen::prelude::*;
 
 /// Convert a Language enum from storage to core::types::Language
-fn convert_language(lang: &crate::storage::translation_storage::Language) -> Language {
-    match lang {
-        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
-        crate::storage::translation_storage::Language::English => Language::English,
-    }
-}
 
 /// Get translated book name based on current translation
 fn get_translated_book_name(book_name: &str) -> String {
@@ -20,7 +14,7 @@ fn get_translated_book_name(book_name: &str) -> String {
     
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(convert_language(first_language));
+            let translation = Translation::from_language(*first_language);
             let key = book_name.to_lowercase();
             
             if let Some(translated_name) = translation.get(&key) {

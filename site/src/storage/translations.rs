@@ -1,4 +1,5 @@
-use crate::storage::translation_storage::{get_selected_translation, BibleTranslation, Language};
+use crate::storage::translation_storage::{get_selected_translation, BibleTranslation};
+use crate::core::types::Language;
 use gloo_storage::{LocalStorage, Storage};
 
 const CUSTOM_TRANSLATIONS_KEY: &str = "custom_translations";

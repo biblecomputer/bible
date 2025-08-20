@@ -2,9 +2,9 @@ use crate::core::{get_bible, init_bible_signal};
 use crate::core::*;
 use crate::utils::is_mobile_screen;
 use crate::storage::translations::get_current_translation;
-use crate::storage::save_sidebar_open;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
+use crate::view_state::ViewStateSignal;
 use leptos::component;
 use leptos::prelude::*;
 use leptos::view;
@@ -14,17 +14,11 @@ use leptos_router::NavigateOptions;
 use leptos_router::location::Location;
 use urlencoding::decode;
 
-fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
-    match storage_lang {
-        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
-        crate::storage::translation_storage::Language::English => Language::English,
-    }
-}
 
 fn get_translated_name(input: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(convert_language(first_language));
+            let translation = Translation::from_language(*first_language);
             
             // Convert input to lowercase and replace spaces with underscores for lookup
             let lookup_key = input.to_lowercase().replace(' ', "_");
@@ -42,7 +36,7 @@ fn get_translated_name(input: &str) -> String {
 fn is_name_translated(input: &str) -> bool {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(convert_language(first_language));
+            let translation = Translation::from_language(*first_language);
             
             // Convert input to lowercase and replace spaces with underscores for lookup
             let lookup_key = input.to_lowercase().replace(' ', "_");
@@ -57,8 +51,8 @@ fn get_ui_text(key: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
             match (key, first_language) {
-                ("books", crate::storage::translation_storage::Language::Dutch) => "Boeken".to_string(),
-                ("books", crate::storage::translation_storage::Language::English) => "Books".to_string(),
+                ("books", Language::Dutch) => "Boeken".to_string(),
+                ("books", Language::English) => "Books".to_string(),
                 _ => key.to_string(),
             }
         } else {
@@ -74,7 +68,7 @@ fn get_ui_text(key: &str) -> String {
 }
 
 #[component]
-pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
+pub fn Sidebar(view_state: ViewStateSignal) -> impl IntoView {
     let location = use_location();
     let bible_signal = init_bible_signal();
     
@@ -115,7 +109,7 @@ pub fn Sidebar(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
                     selected_book=selected_book
                     set_selected_book=set_selected_book
                     location=location.clone()
-                    set_sidebar_open=set_sidebar_open
+                    view_state=view_state
                 />
             }).collect::<Vec<_>>()}
             </ul>
@@ -130,7 +124,7 @@ fn BookView(
     selected_book: ReadSignal<String>,
     set_selected_book: WriteSignal<String>,
     location: Location,
-    set_sidebar_open: WriteSignal<bool>,
+    view_state: ViewStateSignal,
 ) -> impl IntoView {
     let navigate = use_navigate();
 
@@ -210,8 +204,7 @@ fn BookView(
                                 navigate(&nav_path, NavigateOptions { scroll: false, ..Default::default() });
                                 // Close sidebar on mobile when chapter is selected
                                 if is_mobile_screen() {
-                                    set_sidebar_open.set(false);
-                                    save_sidebar_open(false);
+                                    view_state.update(|state| state.is_left_sidebar_open = false);
                                 }
                             }
                         }

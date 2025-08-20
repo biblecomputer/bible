@@ -39,7 +39,7 @@ pub struct BibleTranslation {
     pub wikipedia: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum Language {
     Dutch,
     English,

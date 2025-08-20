@@ -6,8 +6,9 @@ use wasm_bindgen_futures::spawn_local;
 use gloo_storage::{LocalStorage, Storage};
 use serde::{Deserialize, Serialize};
 use crate::core::Bible;
+use crate::core::types::Language;
 use crate::storage::{
-    BibleTranslation, Language, add_downloaded_translation, set_selected_translation,
+    BibleTranslation, add_downloaded_translation, set_selected_translation,
     switch_bible_translation, save_translation_to_cache
 };
 

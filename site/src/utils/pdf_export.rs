@@ -6,13 +6,6 @@ use printpdf::*;
 use std::io::BufWriter;
 use web_sys::console;
 
-/// Convert a Language enum from storage to core::types::Language
-fn convert_language(lang: &crate::storage::translation_storage::Language) -> Language {
-    match lang {
-        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
-        crate::storage::translation_storage::Language::English => Language::English,
-    }
-}
 
 /// Add book header to the top of a page
 fn add_book_header_to_page(layer: &PdfLayerReference, book_name: &str, margin_left: Mm, italic_font: &IndirectFontRef) {
@@ -34,7 +27,7 @@ fn get_translated_book_name(book_name: &str) -> String {
         
         if let Some(first_language) = current_translation.languages.first() {
             console::log_1(&format!("🌍 Using language: {:?}", first_language).into());
-            let translation = Translation::from_language(convert_language(first_language));
+            let translation = Translation::from_language(*first_language);
             
             // Convert book name to lowercase for mapping
             let key = book_name.to_lowercase();

@@ -4,7 +4,7 @@ use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
 use crate::utils::is_mobile_screen;
-use crate::storage::save_references_sidebar_open;
+use crate::view_state::ViewStateSignal;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
@@ -111,23 +111,17 @@ fn get_canonical_book_name(display_name: &str) -> String {
 }
 
 
-fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
-    match storage_lang {
-        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
-        crate::storage::translation_storage::Language::English => Language::English,
-    }
-}
 
 fn get_ui_text(key: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
             match (key, first_language) {
-                ("cross_references", crate::storage::translation_storage::Language::Dutch) => "Kruisverwijzingen".to_string(),
-                ("cross_references", crate::storage::translation_storage::Language::English) => "Cross References".to_string(),
-                ("no_references", crate::storage::translation_storage::Language::Dutch) => "Geen kruisverwijzingen gevonden".to_string(),
-                ("no_references", crate::storage::translation_storage::Language::English) => "No cross references found".to_string(),
-                ("votes", crate::storage::translation_storage::Language::Dutch) => "stemmen".to_string(),
-                ("votes", crate::storage::translation_storage::Language::English) => "votes".to_string(),
+                ("cross_references", Language::Dutch) => "Kruisverwijzingen".to_string(),
+                ("cross_references", Language::English) => "Cross References".to_string(),
+                ("no_references", Language::Dutch) => "Geen kruisverwijzingen gevonden".to_string(),
+                ("no_references", Language::English) => "No cross references found".to_string(),
+                ("votes", Language::Dutch) => "stemmen".to_string(),
+                ("votes", Language::English) => "votes".to_string(),
                 _ => key.to_string(),
             }
         } else {
@@ -147,7 +141,7 @@ fn get_ui_text(key: &str) -> String {
 fn get_translated_book_name(book_name: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(convert_language(first_language));
+            let translation = Translation::from_language(*first_language);
             
             // Convert book name to lowercase and replace spaces with underscores for lookup
             let lookup_key = book_name.to_lowercase().replace(' ', "_");
@@ -262,8 +256,7 @@ pub fn CrossReferencesSidebar(
     book_name: String,
     chapter: u32,
     verse: u32,
-    set_sidebar_open: WriteSignal<bool>,
-    palette_open: ReadSignal<bool>,
+    view_state: ViewStateSignal,
 ) -> impl IntoView {
     // Reference selection state for keyboard navigation with debouncing
     let (selected_reference_index, set_selected_reference_index) = signal(0usize);
@@ -374,7 +367,7 @@ pub fn CrossReferencesSidebar(
         
         
         // Don't handle navigation when command palette is open (let palette handle it)
-        if palette_open.get() {
+        if view_state.with(|state| state.is_command_palette_open) {
             return;
         }
         
@@ -484,8 +477,7 @@ pub fn CrossReferencesSidebar(
                     navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
                     // Close sidebar on mobile when reference is selected
                     if is_mobile_screen() {
-                        set_sidebar_open.set(false);
-                        save_references_sidebar_open(false);
+                        view_state.update(|state| state.is_right_sidebar_open = false);
                     }
                 } else {
                     web_sys::console::warn_1(&format!("Attempted to navigate to reference at invalid index: {} (refs.len: {})", current, refs.len()).into());
@@ -547,7 +539,7 @@ pub fn CrossReferencesSidebar(
                                 <ReferenceItem 
                                     reference=reference
                                     is_selected=is_selected
-                                    set_sidebar_open=set_sidebar_open
+                                    view_state=view_state
                                     reference_id=reference_id
                                 />
                             }
@@ -618,7 +610,7 @@ pub fn CrossReferencesSidebar(
 fn ReferenceItem(
     reference: Reference,
     is_selected: Memo<bool>,
-    set_sidebar_open: WriteSignal<bool>,
+    view_state: ViewStateSignal,
     reference_id: String,
 ) -> impl IntoView {
     let navigate = use_navigate();
@@ -655,8 +647,7 @@ fn ReferenceItem(
                     navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
                     // Close sidebar on mobile when reference is selected
                     if is_mobile_screen() {
-                        set_sidebar_open.set(false);
-                        save_references_sidebar_open(false);
+                        view_state.update(|state| state.is_right_sidebar_open = false);
                     }
                 }
             >
