@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos_router::location::Location;
 use leptos_router::NavigateOptions;
 use crate::instructions::{Instruction, InstructionProcessor};
+use crate::view_state::ViewStateSignal;
 
 /// Helper function to create instruction context from URL
 pub fn create_instruction_context(pathname: &str, search: &str) -> Option<crate::instructions::InstructionContext> {
@@ -65,20 +66,17 @@ pub fn handle_go_to_verse<F>(
 }
 
 /// Handle navigating to the next palette result
-pub fn handle_next_palette_result(palette_open: ReadSignal<bool>, next_palette_result: RwSignal<bool>) {
-    if palette_open.get() {
+pub fn handle_next_palette_result(view_state: ViewStateSignal) {
+    if view_state.with(|state| state.is_command_palette_open) {
         // Command palette is open, trigger navigation in palette
-        next_palette_result.set(true);
+        view_state.update(|state| state.trigger_next_palette_result());
     }
 }
 
 /// Handle navigating to the previous palette result
-pub fn handle_previous_palette_result(
-    palette_open: ReadSignal<bool>,
-    previous_palette_result: RwSignal<bool>,
-) {
-    if palette_open.get() {
+pub fn handle_previous_palette_result(view_state: ViewStateSignal) {
+    if view_state.with(|state| state.is_command_palette_open) {
         // Command palette is open, trigger navigation in palette
-        previous_palette_result.set(true);
+        view_state.update(|state| state.trigger_previous_palette_result());
     }
 }
