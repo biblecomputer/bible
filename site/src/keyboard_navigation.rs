@@ -26,7 +26,7 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
 
             // Track previous chapter path for navigation history
             if !last_path.is_empty() && last_path != current_path {
-                view_state.update(|state| {
+                let _ = view_state.try_update(|state| {
                     state.set_previous_chapter_path(Some(last_path.clone()));
                 });
             }
@@ -36,14 +36,14 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
 
     // Visual display for vim command buffer
     let vim_display = Memo::new(move |_| {
-        vim_mapper.with(|mapper| {
+        vim_mapper.try_with(|mapper| {
             let display = mapper.get_current_input_display();
             if display.is_empty() {
                 None
             } else {
                 Some(display)
             }
-        })
+        }).unwrap_or(None)
     });
 
     // Set up keyboard event handler
@@ -67,7 +67,8 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
         };
 
         // If user is typing in input and palette is open, only intercept specific control keys
-        if view_state.with(|state| state.is_command_palette_open) && is_typing_in_input {
+        let palette_open = view_state.try_with(|state| state.is_command_palette_open).unwrap_or(false);
+        if palette_open && is_typing_in_input {
             let key = e.key();
             let is_control_sequence = e.ctrl_key() && (key == "j" || key == "k" || key == "o")
                 || key == "Escape"
@@ -81,18 +82,19 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
         }
 
         // Get instruction from vim-style keyboard mapper
-        let instruction_result = vim_mapper.with_untracked(|mapper| {
+        let instruction_result = vim_mapper.try_with_untracked(|mapper| {
             let mut local_mapper = mapper.clone();
             let result = local_mapper.map_to_instruction(&e);
 
             // Store the updated mapper back
-            vim_mapper.update_untracked(|m| *m = local_mapper);
+            let _ = vim_mapper.try_update_untracked(|m| *m = local_mapper);
 
             result
-        });
+        }).unwrap_or(None);
 
         // Handle palette navigation priority when palette is open
-        if view_state.with(|state| state.is_command_palette_open) {
+        let palette_open_check = view_state.try_with(|state| state.is_command_palette_open).unwrap_or(false);
+        if palette_open_check {
             if let Some((ref instruction, _)) = instruction_result {
                 match instruction {
                     Instruction::NextPaletteResult | Instruction::PreviousPaletteResult => {
@@ -205,11 +207,13 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
 
             // Keep them in sync with ViewState
             Effect::new(move |_| {
-                view_state.with(|state| {
+                if let Some(_) = view_state.try_with(|state| {
                     set_export_progress.set(state.export_progress);
                     set_export_status.set(state.export_status.clone());
                     set_is_exporting.set(state.is_exporting);
-                });
+                }) {
+                    // Successfully updated
+                }
             });
 
             view! {
