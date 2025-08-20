@@ -12,8 +12,6 @@ pub fn get_builtin_translations() -> Vec<BibleTranslation> {
         BibleTranslation {
             name: String::from("Staten vertaling"),
             short_name: String::from("nl_sv"),
-            description: String::from("De Statenvertaling is een Nederlandse Bijbelvertaling uit 1637, vervaardigd in opdracht van de Staten-Generaal. Zij baseerden zich nauwgezet op de oorspronkelijke Hebreeuwse en Griekse grondteksten. Deze vertaling wordt gekenmerkt door haar plechtige, eerbiedige taal en heeft eeuwenlang grote invloed gehad op het protestantse geloofsleven in Nederland."),
-            wikipedia: String::from("https://nl.wikipedia.org/wiki/Statenvertaling"),
             release_year: 1637,
             languages: vec![Language::Dutch],
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyOTM0NzVmZTAwZjg3Y2VjN2Iy:MjhiNDNiOTMyNDllYTAwMzRmYWM4ZTdmOTdlZDU3NGExNzQxNjA4MzBiNzU3MThmNjE5ZGEzODZiNjVlOWE2MA"),
@@ -21,8 +19,6 @@ pub fn get_builtin_translations() -> Vec<BibleTranslation> {
         BibleTranslation {
             name: String::from("Petrus Canicius vertaling"),
             short_name: String::from("pcv"),
-            description: String::from("De Petrus Canisiusvertaling is een katholieke Nederlandse bijbelvertaling uit de 20e eeuw, genoemd naar jezuïet Petrus Canisius. Ze bood een begrijpelijker alternatief voor de Statenvertaling en werd veel gebruikt in gezinnen, kerken en scholen, tot de Willibrordvertaling haar opvolgde."),
-            wikipedia: String::from("https://nl.wikipedia.org/wiki/Petrus_Canisiusvertaling"),
             release_year: 1939,
             languages: vec![Language::Dutch],
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/NjhhNWE4M2NlZDM0YjkxMmFjZjBlZWUx:OGI2ODYxMDRmMWNlMTNmNDBhOWQ0M2U5NjAwZjA1OGY2ZWI4MGQwNDE0MThkYWQwYTc3NDc2YWI4OWJhMTViYQ"),
@@ -30,8 +26,6 @@ pub fn get_builtin_translations() -> Vec<BibleTranslation> {
         BibleTranslation {
             name: String::from("King james version"),
             short_name: String::from("en_kjv"),
-            description: String::from("The King James Version is an English translation of the Bible published in 1611, commissioned by King James I of England. It was created by 47 scholars and is known for its literary excellence and enduring influence on English literature and Protestant Christianity. The KJV uses formal equivalence translation and features majestic, archaic English that has shaped religious language for centuries."),
-            wikipedia: String::from("https://en.wikipedia.org/wiki/King_James_Version"),
             release_year: 1611,
             languages: vec![Language::English],
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyZGM0NzVmZTAwZjg3Y2VkNDU0:Yjc0MjAwNzMzN2RmM2UyMGVkZDgzYThiMWRjZWIxMjM0OTUwMjZhNDVhMWFkOGZmMThjOTU4NTUzMmUwY2FhYQ"),
@@ -39,8 +33,6 @@ pub fn get_builtin_translations() -> Vec<BibleTranslation> {
         BibleTranslation {
             name: String::from("American King james version"),
             short_name: String::from("en_akjv"),
-            description: String::from("The American King James Version (AKJV) is a modernized update of the original 1769 Oxford edition of the King James Bible. Created by Michael Peter Engelbrite, this version retains the literary beauty and structure of the original KJV while updating some archaic English words and spellings to make the text more accessible to contemporary readers. Importantly, the AKJV makes no changes to the underlying meaning of the scriptures, preserving the integrity and style of the King James tradition. It is in the public domain and widely used by those who appreciate the KJV but prefer a slightly more readable form."),
-            wikipedia: String::from("https://studybible.info/version/AKJV"),
             release_year: 1999,
             languages: vec![Language::English],
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyZGI0NzVmZTAwZjg3Y2VkNDQ2:MWRjOGI2N2Y3OGE1MWY5MmU1YmMwYjhiZjY2NjM3ZWRkMjY0OWZiMWY4ZDg3MTZmMmU1ODViOTgwNDM4ZjU3Zg"),
@@ -48,8 +40,6 @@ pub fn get_builtin_translations() -> Vec<BibleTranslation> {
         BibleTranslation {
             name: String::from("Americain Standard Version"),
             short_name: String::from("en_asv"),
-            description: String::from("American Standard Version (ASV) – Published in 1901, the ASV is a highly literal English translation of the Bible, rooted in the tradition of the King James Version but updated to reflect more accurate renderings from the Hebrew and Greek manuscripts. It is known for its formal equivalence (word-for-word translation), the use of “Jehovah” for God’s name, and its influence on later versions such as the NASB. Though somewhat archaic in style today, it remains a respected choice for serious Bible study."),
-            wikipedia: String::from("https://en.wikipedia.org/wiki/American_Standard_Version"),
             release_year: 1901,
             languages: vec![Language::English],
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjI0ZmM0NzVmZTAwZjg3Y2YzMTg4:MTEzMjZkOTVlZTFkMWNhOGM0YmFmNDkwOWFkMjdmOTI3NjY5YjQ2NzA3NjViOTJlYTE2MzNmMzFkMzRiY2MwNQ"),
@@ -57,8 +47,6 @@ pub fn get_builtin_translations() -> Vec<BibleTranslation> {
         BibleTranslation {
             name: String::from("Green's Modern King James Version"),
             short_name: String::from("en_mkjv"),
-            description: String::from("Green’s Modern King James Version (MKJV) is a conservative update of the King James Bible, produced by Jay P. Green Sr. It retains the traditional style and majesty of the original KJV while updating archaic words and grammar for clarity and readability. First published in the 1960s, the MKJV seeks to preserve the accuracy and literary beauty of the Authorized Version, using the Textus Receptus as its Greek source. It is often appreciated by readers who desire a modernized yet faithful rendering of the Scriptures."),
-            wikipedia: String::from("https://www.gotquestions.org/Modern-King-James-Version-MKJV.html"),
             release_year: 1962,
             languages: vec![Language::English],
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjIxMTQ0NzVmZTAwZjg3Y2VmOTEw:YzEzMGExYjU0OWI1M2I4ODk4MWJmYjgwNmM3YzE1ODJkZWJmMjhiNmYxOGMzMGY2ZTk0MTFlYjUyN2IzOGRjZQ"),

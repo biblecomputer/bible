@@ -898,8 +898,6 @@ fn KeyboardNavigationHandler(
                                     crate::storage::translation_storage::BibleTranslation {
                                         name: "Unknown_Bible".to_string(),
                                         short_name: "unknown".to_string(),
-                                        description: "".to_string(),
-                                        wikipedia: "".to_string(),
                                         release_year: 2024,
                                         languages: vec![],
                                         iagon: "".to_string(),
@@ -961,8 +959,6 @@ fn KeyboardNavigationHandler(
                                     crate::storage::translation_storage::BibleTranslation {
                                         name: "Unknown_Bible".to_string(),
                                         short_name: "unknown".to_string(),
-                                        description: "".to_string(),
-                                        wikipedia: "".to_string(),
                                         release_year: 2024,
                                         languages: vec![],
                                         iagon: "".to_string(),
@@ -1024,8 +1020,6 @@ fn KeyboardNavigationHandler(
                                     crate::storage::translation_storage::BibleTranslation {
                                         name: "Unknown_Bible".to_string(),
                                         short_name: "unknown".to_string(),
-                                        description: "".to_string(),
-                                        wikipedia: "".to_string(),
                                         release_year: 2024,
                                         languages: vec![],
                                         iagon: "".to_string(),
@@ -1162,8 +1156,6 @@ fn KeyboardNavigationHandler(
                         crate::storage::translation_storage::BibleTranslation {
                             name: "Unknown_Bible".to_string(),
                             short_name: "unknown".to_string(),
-                            description: "".to_string(),
-                            wikipedia: "".to_string(),
                             release_year: 2024,
                             languages: vec![],
                             iagon: "".to_string(),
@@ -1234,8 +1226,6 @@ fn KeyboardNavigationHandler(
                                 crate::storage::translation_storage::BibleTranslation {
                                     name: "Unknown_Bible".to_string(),
                                     short_name: "unknown".to_string(),
-                                    description: "".to_string(),
-                                    wikipedia: "".to_string(),
                                     release_year: 2024,
                                     languages: vec![],
                                     iagon: "".to_string(),
@@ -1304,8 +1294,6 @@ fn KeyboardNavigationHandler(
                                 crate::storage::translation_storage::BibleTranslation {
                                     name: "Unknown_Bible".to_string(),
                                     short_name: "unknown".to_string(),
-                                    description: "".to_string(),
-                                    wikipedia: "".to_string(),
                                     release_year: 2024,
                                     languages: vec![],
                                     iagon: "".to_string(),

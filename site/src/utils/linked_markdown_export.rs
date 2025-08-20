@@ -58,8 +58,6 @@ where
         crate::storage::translation_storage::BibleTranslation {
             name: "Unknown Bible".to_string(),
             short_name: "unknown".to_string(), 
-            description: "".to_string(),
-            wikipedia: "".to_string(),
             release_year: 2024,
             languages: vec![],
             iagon: "".to_string(),
@@ -83,12 +81,7 @@ where
     // Add metadata
     main_content.push_str(&format!("# {}\n\n", translation_info.name));
     main_content.push_str(&format!("**Published:** {}\n", translation_info.release_year));
-    if !translation_info.description.is_empty() {
-        main_content.push_str(&format!("**Description:** {}\n", translation_info.description));
-    }
-    if !translation_info.wikipedia.is_empty() {
-        main_content.push_str(&format!("**Wikipedia:** {}\n", translation_info.wikipedia));
-    }
+    main_content.push_str(&format!("**Release Year:** {}\n", translation_info.release_year));
     main_content.push_str("\n## Book Index\n\n");
     
     // Add book index with links

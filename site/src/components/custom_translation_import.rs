@@ -57,7 +57,6 @@ pub fn CustomTranslationImport(
     
     let (translation_name, set_translation_name) = signal(String::new());
     let (release_year, set_release_year) = signal(String::new());
-    let (wikipedia_link, set_wikipedia_link) = signal(String::new());
     let (_file_selected, set_file_selected) = signal(false);
     let (file_content, set_file_content) = signal::<Option<String>>(None);
     
@@ -66,7 +65,6 @@ pub fn CustomTranslationImport(
     let reset_form = move || {
         set_translation_name.set(String::new());
         set_release_year.set(String::new());
-        set_wikipedia_link.set(String::new());
         set_file_selected.set(false);
         set_file_content.set(None);
         set_import_error.set(None);
@@ -129,7 +127,6 @@ pub fn CustomTranslationImport(
             set_import_error.set(None);
 
             let name = translation_name.get();
-            let wiki_link = wikipedia_link.get();
             let lang = selected_language.get();
             let success_callback = on_success.clone();
             
@@ -141,16 +138,9 @@ pub fn CustomTranslationImport(
                         let translation = BibleTranslation {
                             name: name,
                             short_name: short_name.clone(),
-                            description: format!("Aangepaste vertaling geïmporteerd op {}", 
-                                js_sys::Date::new_0().to_locale_string("nl-NL", &js_sys::Object::new())),
                             release_year: year,
                             iagon: String::new(),
                             languages: vec![lang],
-                            wikipedia: if wiki_link.trim().is_empty() { 
-                                "https://nl.wikipedia.org/wiki/Bijbel".to_string() 
-                            } else { 
-                                wiki_link 
-                            },
                         };
 
                         match save_custom_translation_to_cache(&translation, &bible).await {
@@ -271,19 +261,6 @@ pub fn CustomTranslationImport(
                                 />
                             </div>
 
-                            <div>
-                                <label class="block text-sm font-medium mb-1" style="color: var(--theme-text-primary)">
-                                    "Wikipedia link (optioneel)"
-                                </label>
-                                <input
-                                    type="url"
-                                    class="w-full px-3 py-2 border rounded-md"
-                                    style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border); color: var(--theme-text-primary)"
-                                    placeholder="https://nl.wikipedia.org/wiki/..."
-                                    prop:value=move || wikipedia_link.get()
-                                    on:input=move |ev| set_wikipedia_link.set(event_target_value(&ev))
-                                />
-                            </div>
 
                             <div>
                                 <label class="block text-sm font-medium mb-1" style="color: var(--theme-text-primary)">
