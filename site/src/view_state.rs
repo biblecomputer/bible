@@ -69,6 +69,115 @@ impl ViewState {
     pub fn new() -> Self {
         Self::default()
     }
+
+    pub fn execute(&mut self, instruction: &Instruction) -> InstructionResult {
+        #[cfg(target_arch = "wasm32")]
+        leptos::web_sys::console::log_1(&format!("🎮 Executing instruction: {:?}", instruction).into());
+        
+        match instruction {
+            // UI Toggle instructions
+            Instruction::ToggleCommandPallate => {
+                self.toggle_command_palette();
+                InstructionResult::Handled
+            }
+            Instruction::ToggleSidebar => {
+                self.toggle_left_sidebar();
+                InstructionResult::Handled
+            }
+            Instruction::ToggleCrossReferences => {
+                self.toggle_right_sidebar();
+                InstructionResult::Handled
+            }
+            Instruction::ToggleThemeSidebar => {
+                self.toggle_theme_sidebar();
+                InstructionResult::Handled
+            }
+            Instruction::ToggleTranslationComparison => {
+                self.toggle_translation_comparison();
+                InstructionResult::Handled
+            }
+            Instruction::ToggleVerseVisibility => {
+                self.toggle_verse_visibility();
+                InstructionResult::Handled
+            }
+            
+            // Navigation instructions
+            Instruction::NextVerse => {
+                let result = self.handle_next_verse();
+                #[cfg(target_arch = "wasm32")]
+                leptos::web_sys::console::log_1(&format!("📖 NextVerse result: {:?}", result).into());
+                result
+            }
+            Instruction::PreviousVerse => {
+                let result = self.handle_previous_verse();
+                #[cfg(target_arch = "wasm32")]
+                leptos::web_sys::console::log_1(&format!("📖 PreviousVerse result: {:?}", result).into());
+                result
+            }
+            Instruction::NextChapter => {
+                let result = self.handle_next_chapter();
+                #[cfg(target_arch = "wasm32")]
+                leptos::web_sys::console::log_1(&format!("📖 NextChapter result: {:?}", result).into());
+                result
+            }
+            Instruction::PreviousChapter => {
+                let result = self.handle_previous_chapter();
+                #[cfg(target_arch = "wasm32")]
+                leptos::web_sys::console::log_1(&format!("📖 PreviousChapter result: {:?}", result).into());
+                result
+            }
+            Instruction::NextBook => self.handle_next_book(),
+            Instruction::PreviousBook => self.handle_previous_book(),
+            Instruction::BeginningOfChapter => self.handle_beginning_of_chapter(),
+            Instruction::EndOfChapter => self.handle_end_of_chapter(),
+            Instruction::GoToVerse(verse_num) => self.handle_go_to_verse(*verse_num),
+            
+            // Selection instructions  
+            Instruction::ExtendSelectionNextVerse => self.handle_extend_selection_next_verse(),
+            Instruction::ExtendSelectionPreviousVerse => self.handle_extend_selection_previous_verse(),
+            
+            // Previous chapter navigation
+            Instruction::SwitchToPreviousChapter => self.handle_switch_to_previous_chapter(),
+            
+            // Palette navigation
+            Instruction::NextPaletteResult => {
+                self.trigger_next_palette_result();
+                InstructionResult::Handled
+            }
+            Instruction::PreviousPaletteResult => {
+                self.trigger_previous_palette_result();
+                InstructionResult::Handled
+            }
+            
+            // Instructions that need external handling
+            Instruction::CopyRawVerse | 
+            Instruction::CopyVerseWithReference |
+            Instruction::ExportToPDF |
+            Instruction::ExportToMarkdown |
+            Instruction::ExportLinkedMarkdown |
+            Instruction::OpenGithubRepository |
+            Instruction::RandomVerse |
+            Instruction::RandomChapter |
+            Instruction::OpenAboutPage |
+            Instruction::ShowTranslations |
+            Instruction::ToggleBiblePallate |
+            Instruction::ToggleVersePallate |
+            Instruction::NextReference |
+            Instruction::PreviousReference => InstructionResult::NotHandled,
+        }
+    }
+
+    pub fn execute_with_multiplier(&mut self, instruction: &Instruction, multiplier: u32) -> InstructionResult {
+        match instruction {
+            Instruction::NextVerse => self.handle_next_verse_with_multiplier(multiplier),
+            Instruction::PreviousVerse => self.handle_previous_verse_with_multiplier(multiplier),
+            Instruction::NextChapter => self.handle_next_chapter_with_multiplier(multiplier),
+            Instruction::PreviousChapter => self.handle_previous_chapter_with_multiplier(multiplier),
+            Instruction::NextBook => self.handle_next_book_with_multiplier(multiplier),
+            Instruction::PreviousBook => self.handle_previous_book_with_multiplier(multiplier),
+            _ => self.execute(instruction),
+        }
+    }
     
     /// Toggle the left sidebar and persist to storage
     pub fn toggle_left_sidebar(&mut self) {
