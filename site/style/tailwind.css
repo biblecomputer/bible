@@ -1,3 +1,65 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  /* Navigation span elements should not be selectable or clickable */
+  nav span {
+    user-select: none;
+    pointer-events: none;
+  }
+  
+  /* General hover effects */
+  button:hover {
+    opacity: 0.9;
+  }
+  
+  a:hover {
+    opacity: 0.8;
+  }
+  
+  /* Theme-aware component classes */
+  .header-button {
+    color: var(--theme-header-button-text);
+  }
+  
+  .header-button:hover {
+    color: var(--theme-header-button-hover) !important;
+    background-color: var(--theme-header-button-hover-background) !important;
+  }
+  
+  .navigation-button:hover {
+    color: var(--theme-navigation-hover) !important;
+    background-color: var(--theme-navigation-hover-background) !important;
+  }
+  
+  .palette-result-item:hover {
+    background-color: var(--theme-palette-highlight-background) !important;
+    color: var(--theme-palette-highlight) !important;
+  }
+  
+  .translation-button-primary {
+    background-color: var(--theme-buttons-primary-background) !important;
+    color: var(--theme-buttons-primary-text) !important;
+  }
+  
+  .translation-button-success {
+    background-color: var(--theme-buttons-success-background) !important;
+    color: var(--theme-buttons-success-text) !important;
+  }
+  
+  .translation-button-danger {
+    background-color: var(--theme-buttons-danger-background) !important;
+    color: var(--theme-buttons-danger-text) !important;
+  }
+  
+  .translation-link {
+    color: var(--theme-buttons-primary-background) !important;
+  }
+  
+  .about-code {
+    background-color: var(--theme-sidebar-background) !important;
+    color: var(--theme-text-primary) !important;
+    border: 1px solid var(--theme-sidebar-border) !important;
+  }
+}
