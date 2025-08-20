@@ -164,52 +164,6 @@ fn BibleApp() -> impl IntoView {
     });
 
     view! {
-        <style>
-            "
-            .header-button:hover {{
-                color: var(--theme-header-button-hover) !important;
-                background-color: var(--theme-header-button-hover-background) !important;
-            }}
-            .navigation-button:hover {{
-                color: var(--theme-navigation-hover) !important;
-                background-color: var(--theme-navigation-hover-background) !important;
-            }}
-            .palette-result-item:hover {{
-                background-color: var(--theme-palette-highlight-background) !important;
-                color: var(--theme-palette-highlight) !important;
-            }}
-            nav span {{
-                user-select: none;
-                pointer-events: none;
-            }}
-            button:hover {{
-                opacity: 0.9;
-            }}
-            a:hover {{
-                opacity: 0.8;
-            }}
-            .translation-button-primary {{
-                background-color: var(--theme-buttons-primary-background) !important;
-                color: var(--theme-buttons-primary-text) !important;
-            }}
-            .translation-button-success {{
-                background-color: var(--theme-buttons-success-background) !important;
-                color: var(--theme-buttons-success-text) !important;
-            }}
-            .translation-button-danger {{
-                background-color: var(--theme-buttons-danger-background) !important;
-                color: var(--theme-buttons-danger-text) !important;
-            }}
-            .translation-link {{
-                color: var(--theme-buttons-primary-background) !important;
-            }}
-            .about-code {{
-                background-color: var(--theme-sidebar-background) !important;
-                color: var(--theme-text-primary) !important;
-                border: 1px solid var(--theme-sidebar-border) !important;
-            }}
-            "
-        </style>
         <Router>
             <Routes fallback=|| "Not found.">
                 <Route path=path!("/") view=move || view! { <Home current_theme=current_theme set_current_theme=set_current_theme /> } />
@@ -325,7 +279,6 @@ fn BibleWithSidebar(
                 <div class="flex items-center space-x-2">
                     <button
                         class="p-2 rounded transition-colors header-button"
-                        style="color: var(--theme-header-button-text)"
                         on:click=move |_| {
                             set_is_left_sidebar_open.update(|open| {
                                 *open = !*open;
@@ -354,7 +307,6 @@ fn BibleWithSidebar(
                         <a
                             href="/?choose=true"
                             class="flex items-center px-3 py-2 text-sm rounded transition-colors header-button"
-                            style="color: var(--theme-header-button-text)"
                             aria-label="Kies vertaling"
                             title="Terug naar vertalingskeuze"
                         >
@@ -366,12 +318,11 @@ fn BibleWithSidebar(
                     </div>
                     <div class="flex items-center space-x-2">
                         <button
-                            class="p-2 rounded transition-colors header-button"
-                            style=move || {
+                            class=move || {
                                 if cross_references_data.get().is_some() {
-                                    "color: var(--theme-header-button-text)"
+                                    "p-2 rounded transition-colors header-button"
                                 } else {
-                                    "color: var(--theme-text-muted)"
+                                    "p-2 rounded transition-colors header-button opacity-50"
                                 }
                             }
                             on:click=move |_| {
@@ -410,7 +361,6 @@ fn BibleWithSidebar(
                         </button>
                         <button
                             class="p-2 rounded transition-colors header-button"
-                            style="color: var(--theme-header-button-text)"
                             on:click=move |_| {
                                 set_is_theme_sidebar_open.update(|open| {
                                     *open = !*open;
@@ -443,7 +393,6 @@ fn BibleWithSidebar(
                         <a
                             href="/about"
                             class="p-2 ml-2 rounded transition-colors header-button"
-                            style="color: var(--theme-header-button-text)"
                             aria-label="About page"
                             title="About this Bible website"
                         >
@@ -533,7 +482,7 @@ fn BibleWithSidebar(
                                             fill="none"
                                             stroke="currentColor"
                                             stroke-width="1.5"
-                                            class="mb-4 text-gray-400"
+                                            class="mb-4"
                                             aria-hidden="true"
                                         >
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -542,16 +491,17 @@ fn BibleWithSidebar(
                                             <line x1="16" y1="17" x2="8" y2="17"/>
                                             <polyline points="10,9 9,9 8,9"/>
                                         </svg>
-                                        <h3 class="text-lg font-medium text-gray-700 mb-2">References</h3>
+                                        <h3 class="text-lg font-medium mb-2" style="color: var(--theme-text-primary)">References</h3>
                                         <p class="text-sm leading-relaxed">
                                             Please select a verse by navigating with arrow keys or
-                                            <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs font-mono">j</kbd>
+                                            <kbd class="px-1.5 py-0.5 border rounded text-xs font-mono" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border); color: var(--theme-text-primary)">j</kbd>
                                             /
-                                            <kbd class="px-1.5 py-0.5 bg-gray-100 border border-gray-300 rounded text-xs font-mono">k</kbd>
+                                            <kbd class="px-1.5 py-0.5 border rounded text-xs font-mono" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border); color: var(--theme-text-primary)">k</kbd>
                                             to see cross-references.
                                         </p>
                                         <button
-                                            class="mt-4 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+                                            class="mt-4 px-3 py-1.5 text-sm rounded transition-colors hover:opacity-80"
+                                            style="color: var(--theme-text-muted)"
                                             on:click=move |_| {
                                                 set_is_right_sidebar_open.set(false);
                                                 save_references_sidebar_open(false);
