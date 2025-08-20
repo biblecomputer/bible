@@ -118,8 +118,8 @@ impl KeyboardMapper {
             ("s", false, false, false, false) => Some(Instruction::SwitchToPreviousChapter),
             
             // Copy operations
-            ("c", false, false, false, false) => Some(Instruction::CopyRawVerse),
-            ("C", true, false, false, false) | ("c", true, false, false, false) => {
+            ("y", false, false, false, false) => Some(Instruction::CopyRawVerse),
+            ("Y", true, false, false, false) | ("y", true, false, false, false) => {
                 Some(Instruction::CopyVerseWithReference)
             }
             
