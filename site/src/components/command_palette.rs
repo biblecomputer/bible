@@ -231,6 +231,7 @@ fn instruction_to_display(instruction_name: &str) -> (String, String) {
         "ExportToPDF" => ("Export to PDF".to_string(), "Export the entire Bible as a PDF document".to_string()),
         "ExportToMarkdown" => ("Export to Markdown".to_string(), "Export the entire Bible as a Markdown document".to_string()),
         "ExportLinkedMarkdown" => ("Export to Linked Markdown (Obsidian)".to_string(), "Export the entire Bible as linked Markdown files for Obsidian".to_string()),
+        "ToggleTranslationComparison" => ("Compare Translations".to_string(), "Open translation comparison panel for current verse".to_string()),
         _ => (instruction_name.to_string(), format!("Execute {}", instruction_name)),
     }
 }
@@ -255,7 +256,7 @@ fn get_all_instructions() -> Vec<SearchResult> {
         "SwitchToPreviousChapter", "CopyRawVerse", "CopyVerseWithReference",
         "ToggleSidebar", "ToggleCrossReferences", "ToggleBiblePallate", "ToggleCommandPallate",
         "NextReference", "PreviousReference", "NextPaletteResult", "PreviousPaletteResult",
-        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate", "ExportToPDF", "ExportToMarkdown", "ExportLinkedMarkdown"
+        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate", "ToggleTranslationComparison", "ExportToPDF", "ExportToMarkdown", "ExportLinkedMarkdown"
     ];
     
     for instruction in &all_possible_instructions {
@@ -355,6 +356,7 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
         "Export to PDF" => Some(Instruction::ExportToPDF),
         "Export to Markdown" => Some(Instruction::ExportToMarkdown),
         "Export to Linked Markdown (Obsidian)" => Some(Instruction::ExportLinkedMarkdown),
+        "Compare Translations" => Some(Instruction::ToggleTranslationComparison),
         _ => None,
     }
 }

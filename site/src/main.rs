@@ -1,5 +1,33 @@
+/*!
+ * Bible Application Main Module
+ * 
+ * This is the main entry point for the Bible web application. It contains:
+ * - Main app component with global state management
+ * - Keyboard navigation handler for shortcuts
+ * - UI layout with sidebars, navigation, and content areas
+ * - Helper components for auto-hide functionality
+ * 
+ * The app uses Leptos for reactive UI and follows a component-based architecture
+ * with clear separation between state management, UI, and business logic.
+ */
+
+// === External Dependencies ===
+use leptos::ev;
+use leptos::prelude::*;
+use leptos::web_sys::KeyboardEvent;
+use leptos_router::components::{Route, Router, Routes};
+use leptos_router::hooks::{use_location, use_navigate};
+use leptos_router::path;
+use leptos_router::NavigateOptions;
+use urlencoding::encode;
+use wasm_bindgen_futures::spawn_local;
+
+// === Internal Dependencies ===
 use crate::api::init_bible;
-use crate::components::{CommandPalette, CrossReferencesSidebar, PdfLoadingProgress, Sidebar, ThemeSidebar};
+use crate::components::{
+    CommandPalette, CrossReferencesSidebar, PdfLoadingProgress, 
+    Sidebar, ThemeSidebar, TranslationComparison
+};
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::instructions::{
     Instruction, InstructionContext, InstructionProcessor, VimKeyboardMapper,
@@ -10,21 +38,14 @@ use crate::storage::{
     add_recent_chapter,
 };
 use crate::themes::{get_theme_by_id, get_default_theme, theme_to_css_vars, Theme};
-use crate::utils::is_mobile_screen;
+use crate::utils::{is_mobile_screen, parse_book_chapter_from_url};
 use crate::views::{About, ChapterDetail, HomeTranslationPicker};
-use leptos::ev;
-use leptos::prelude::*;
-use leptos::web_sys::KeyboardEvent;
-use leptos_router::components::{Route, Router, Routes};
-use leptos_router::hooks::{use_location, use_navigate};
-use leptos_router::path;
-use leptos_router::NavigateOptions;
-use urlencoding::{decode, encode};
-use wasm_bindgen_futures::spawn_local;
 
 
 
-// Helper function to create instruction context from URL
+// === Utility Functions ===
+
+/// Helper function to create instruction context from URL
 fn create_instruction_context(pathname: &str, search: &str) -> Option<InstructionContext> {
     let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
     if path_parts.len() == 2 {
@@ -51,11 +72,22 @@ mod translation_map;
 mod utils;
 mod views;
 
+// === Application Entry Point ===
+
+/// Main application entry point
+/// 
+/// Initializes the Bible data, mounts the app component to the DOM,
+/// and starts the Leptos reactive system.
 fn main() {
     console_error_panic_hook::set_once();
     mount_to_body(App)
 }
 
+// === Main App Components ===
+
+/// Root application component
+/// 
+/// Sets up routing and global context for the entire application.
 #[component]
 fn App() -> impl IntoView {
     // Bible data loading state
@@ -208,6 +240,10 @@ fn BibleApp() -> impl IntoView {
     }
 }
 
+/// Main Bible application component with sidebar layout
+/// 
+/// Manages global state for sidebars, keyboard navigation, and UI panels.
+/// Handles theming, cross-references, and translation comparison functionality.
 #[component]
 fn BibleWithSidebar(
     current_theme: ReadSignal<Theme>,
@@ -234,6 +270,8 @@ fn BibleWithSidebar(
     let (is_right_sidebar_open, set_is_right_sidebar_open) = signal(get_references_sidebar_open());
     // Theme sidebar visibility state
     let (is_theme_sidebar_open, set_is_theme_sidebar_open) = signal(false);
+    // Translation comparison panel visibility state
+    let (is_translation_comparison_open, set_is_translation_comparison_open) = signal(false);
     // Verse visibility state - initialize from localStorage
     let (verse_visibility_enabled, set_verse_visibility_enabled) = signal(get_verse_visibility());
     let location = use_location();
@@ -243,24 +281,15 @@ fn BibleWithSidebar(
         let pathname = location.pathname.get();
         let _search = location.search.get();
 
-        // Parse URL to get book, chapter, and verse info
-        let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
-        if path_parts.len() == 2 {
-            let book_name = if let Ok(decoded) = decode(path_parts[0]) {
-                decoded.into_owned()
-            } else {
-                path_parts[0].replace('_', " ")
-            };
-
-            if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
-                // Check if there are verse parameters and if it's exactly one verse
-                let verse_ranges = parse_verse_ranges_from_url();
-                if verse_ranges.len() == 1 {
-                    let range = &verse_ranges[0];
-                    if range.start == range.end {
-                        // Single verse selected - return cross-references data
-                        return Some((book_name, chapter_num, range.start));
-                    }
+        // Parse URL to get book and chapter info
+        if let Some((book_name, chapter_num)) = parse_book_chapter_from_url(&pathname) {
+            // Check if there are verse parameters and if it's exactly one verse
+            let verse_ranges = parse_verse_ranges_from_url();
+            if verse_ranges.len() == 1 {
+                let range = &verse_ranges[0];
+                if range.start == range.end {
+                    // Single verse selected - return cross-references data
+                    return Some((book_name, chapter_num, range.start));
                 }
             }
         }
@@ -268,23 +297,20 @@ fn BibleWithSidebar(
         None // No cross-references data available
     });
 
+    // Current book and chapter data for translation comparison
+    let current_book_chapter = Memo::new(move |_| {
+        let pathname = location.pathname.get();
+        parse_book_chapter_from_url(&pathname)
+    });
+
     // Track recent chapters when URL changes
     Effect::new(move |_| {
         let pathname = location.pathname.get();
-        let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
         
-        if path_parts.len() == 2 {
-            let book_name = if let Ok(decoded) = urlencoding::decode(path_parts[0]) {
-                decoded.into_owned()
-            } else {
-                path_parts[0].replace('_', " ")
-            };
-            
-            if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
-                if let Ok(_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
-                    let chapter_display = format!("{} {}", book_name, chapter_num);
-                    add_recent_chapter(book_name, chapter_num, chapter_display, pathname);
-                }
+        if let Some((book_name, chapter_num)) = parse_book_chapter_from_url(&pathname) {
+            if let Ok(_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
+                let chapter_display = format!("{} {}", book_name, chapter_num);
+                add_recent_chapter(book_name, chapter_num, chapter_display, pathname);
             }
         }
     });
@@ -299,6 +325,8 @@ fn BibleWithSidebar(
             set_right_sidebar_open=set_is_right_sidebar_open
             _theme_sidebar_open=is_theme_sidebar_open
             set_theme_sidebar_open=set_is_theme_sidebar_open
+            _translation_comparison_open=is_translation_comparison_open
+            set_translation_comparison_open=set_is_translation_comparison_open
             _verse_visibility_enabled=verse_visibility_enabled
             set_verse_visibility_enabled=set_verse_visibility_enabled
             next_palette_result=next_palette_result
@@ -604,6 +632,25 @@ fn BibleWithSidebar(
                         }
                     />
                 </Show>
+
+                // Translation comparison panel
+                {move || {
+                    if let Some((book_name, chapter_num)) = current_book_chapter.get() {
+                        let (current_book_signal, _) = signal(book_name.clone());
+                        let (current_chapter_signal, _) = signal(chapter_num);
+                        
+                        view! {
+                            <TranslationComparison
+                                is_open=is_translation_comparison_open.into()
+                                set_is_open=set_is_translation_comparison_open
+                                current_book=current_book_signal
+                                current_chapter=current_chapter_signal
+                            />
+                        }.into_any()
+                    } else {
+                        view! { <></> }.into_any()
+                    }
+                }}
             </div>
     }
 }
@@ -642,6 +689,8 @@ fn KeyboardNavigationHandler(
     set_right_sidebar_open: WriteSignal<bool>,
     _theme_sidebar_open: ReadSignal<bool>,
     set_theme_sidebar_open: WriteSignal<bool>,
+    _translation_comparison_open: ReadSignal<bool>,
+    set_translation_comparison_open: WriteSignal<bool>,
     _verse_visibility_enabled: ReadSignal<bool>,
     set_verse_visibility_enabled: WriteSignal<bool>,
     next_palette_result: RwSignal<bool>,
@@ -844,6 +893,19 @@ fn KeyboardNavigationHandler(
                         // Close references sidebar if opening theme sidebar
                         if *open {
                             set_right_sidebar_open.set(false);
+                            save_references_sidebar_open(false);
+                        }
+                    });
+                    return;
+                }
+                Instruction::ToggleTranslationComparison => {
+                    e.prevent_default();
+                    set_translation_comparison_open.update(|open| {
+                        *open = !*open;
+                        // Close other right-side panels if opening comparison panel
+                        if *open {
+                            set_right_sidebar_open.set(false);
+                            set_theme_sidebar_open.set(false);
                             save_references_sidebar_open(false);
                         }
                     });
