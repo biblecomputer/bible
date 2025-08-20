@@ -4,14 +4,11 @@ use leptos::web_sys::KeyboardEvent;
 use leptos_router::hooks::{use_location, use_navigate};
 
 use crate::instructions::{
-    Instruction, InstructionProcessor, VimKeyboardMapper,
-    // Import all handler functions from the logic modules
+    Instruction, InstructionProcessor,
+    // Import handler functions that are still needed
     handle_export_to_pdf, handle_export_to_markdown, handle_export_linked_markdown,
-    handle_toggle_bible_palette, handle_toggle_command_palette, handle_toggle_verse_palette,
-    handle_toggle_sidebar, handle_toggle_cross_references, handle_toggle_theme_sidebar,
-    handle_toggle_translation_comparison, handle_toggle_verse_visibility,
-    handle_open_github_repository, handle_switch_to_previous_chapter, handle_go_to_verse,
-    handle_next_palette_result, handle_previous_palette_result, setup_export_event_listeners,
+    handle_toggle_bible_palette, handle_toggle_verse_palette,
+    handle_open_github_repository,
     update_view_state_from_url,
 };
 use crate::view_state::ViewStateSignal;
@@ -23,39 +20,42 @@ pub fn KeyboardNavigationHandler(
     let navigate = use_navigate();
     let location = use_location();
 
-    // Previous chapter tracking for "alt-tab" like switching
-    let (previous_chapter_path, set_previous_chapter_path) = signal(Option::<String>::None);
+    // Note: Previous chapter tracking and export progress are now managed in ViewState
 
-    // PDF export progress state
-    let (pdf_progress, set_pdf_progress) = signal(0.0f32);
-    let (pdf_status, set_pdf_status) = signal("Preparing export...".to_string());
-    let (is_pdf_exporting, set_is_pdf_exporting) = signal(false);
-
-    // Reactive effect to track all path changes
+    // Reactive effect to track path changes and update ViewState
     {
         let mut last_path = String::new();
         Effect::new(move |_| {
             let current_path = location.pathname.get();
+            let current_search = location.search.get();
+            
+            // Update ViewState with current navigation context
+            update_view_state_from_url(view_state, &current_path, &current_search);
+            
+            // Track previous chapter path for alt-tab switching
             if !last_path.is_empty() && last_path != current_path {
-                set_previous_chapter_path.set(Some(last_path.clone()));
+                view_state.update(|state| {
+                    state.set_previous_chapter_path(Some(last_path.clone()));
+                });
             }
             last_path = current_path;
         });
     }
 
-    // Create instruction processor and vim keyboard mapper
+    // Note: VimKeyboardMapper is now managed in ViewState
+    // Keep a local processor only for instructions that need external handling
     let processor = InstructionProcessor::new(navigate.clone());
-    let (vim_mapper, set_vim_mapper) = signal(VimKeyboardMapper::new());
 
-    // Visual display for vim command buffer
+    // Visual display for vim command buffer from ViewState
     let vim_display = Memo::new(move |_| {
-        let mapper = vim_mapper.get();
-        let display = mapper.get_current_input_display();
-        if display.is_empty() {
-            None
-        } else {
-            Some(display)
-        }
+        view_state.with(|state| {
+            let display = state.vim_mapper().get_current_input_display();
+            if display.is_empty() {
+                None
+            } else {
+                Some(display)
+            }
+        })
     });
 
     // Cache location reads to avoid repeated reactive access during rapid navigation
@@ -99,9 +99,20 @@ pub fn KeyboardNavigationHandler(
             }
         }
 
-        // Get instruction from vim-style keyboard mapper
-        let mut mapper = vim_mapper.get();
-        let instruction_result = mapper.map_to_instruction(&e);
+        // Get instruction from vim-style keyboard mapper in ViewState
+        let instruction_result = view_state.with_untracked(|state| {
+            // We need to get mutable access to the mapper
+            // Since we can't get mutable access in with(), we'll clone, update, and store back
+            let mut mapper = state.vim_mapper().clone();
+            let result = mapper.map_to_instruction(&e);
+            
+            // Store the updated mapper back - we need to do this with update
+            view_state.update_untracked(|s| {
+                *s.vim_mapper_mut() = mapper;
+            });
+            
+            result
+        });
 
         // Handle palette navigation priority when palette is open
         if view_state.with(|state| state.is_command_palette_open) {
@@ -140,132 +151,151 @@ pub fn KeyboardNavigationHandler(
             }
         }
 
-        // Update the mapper state if needed
-        // This prevents unnecessary reactive updates during rapid navigation
-        if mapper.has_pending_sequence() || instruction_result.is_some() {
-            set_vim_mapper.set(mapper);
-        }
+        // Note: VimKeyboardMapper state is now automatically managed in ViewState
 
         // Handle instruction if we got one
         if let Some((instruction, multiplier)) = instruction_result {
-            // Handle UI-specific instructions that need direct component access
+            e.prevent_default();
+            
+            // First try to apply instruction to ViewState
+            let mut instruction_result = crate::view_state::InstructionResult::NotHandled;
+            view_state.update(|state| {
+                instruction_result = if multiplier > 1 {
+                    state.apply_instruction_with_multiplier(instruction.clone(), multiplier)
+                } else {
+                    state.apply_instruction(instruction.clone())
+                };
+            });
+            
+            // Handle the result
+            match instruction_result {
+                crate::view_state::InstructionResult::Handled => {
+                    // Instruction was handled by ViewState, we're done
+                    return;
+                }
+                crate::view_state::InstructionResult::Navigate(path) => {
+                    // ViewState wants us to navigate to a path
+                    navigate(&path, leptos_router::NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    });
+                    return;
+                }
+                crate::view_state::InstructionResult::Failed(error) => {
+                    // Instruction failed, log and continue to external handlers
+                    #[cfg(target_arch = "wasm32")]
+                    leptos::web_sys::console::log_1(&format!("Instruction failed: {}", error).into());
+                    // Fall through to external handlers
+                }
+                crate::view_state::InstructionResult::NotHandled => {
+                    // Instruction not handled by ViewState, try external handlers
+                    // Fall through to external handlers
+                }
+            }
+            
+            // Handle instructions that need external processing
             match instruction {
                 Instruction::ToggleBiblePallate => {
-                    e.prevent_default();
                     handle_toggle_bible_palette(view_state);
                     return;
                 }
-                Instruction::ToggleCommandPallate => {
-                    e.prevent_default();
-                    handle_toggle_command_palette(view_state);
-                    return;
-                }
                 Instruction::ToggleVersePallate => {
-                    e.prevent_default();
                     handle_toggle_verse_palette(view_state);
                     return;
                 }
                 Instruction::OpenGithubRepository => {
-                    e.prevent_default();
                     handle_open_github_repository();
                     return;
                 }
-                Instruction::ToggleSidebar => {
-                    e.prevent_default();
-                    handle_toggle_sidebar(view_state);
-                    return;
-                }
-                Instruction::ToggleCrossReferences => {
-                    e.prevent_default();
-                    handle_toggle_cross_references(view_state);
-                    return;
-                }
-                Instruction::ToggleThemeSidebar => {
-                    e.prevent_default();
-                    handle_toggle_theme_sidebar(view_state);
-                    return;
-                }
-                Instruction::ToggleTranslationComparison => {
-                    e.prevent_default();
-                    handle_toggle_translation_comparison(view_state);
-                    return;
-                }
-                Instruction::ToggleVerseVisibility => {
-                    e.prevent_default();
-                    handle_toggle_verse_visibility(view_state);
-                    return;
-                }
                 Instruction::ExportToPDF => {
-                    e.prevent_default();
-                    handle_export_to_pdf(set_is_pdf_exporting, set_pdf_progress, set_pdf_status);
+                    // Create temporary signals for export handlers
+                    let (is_exporting, set_is_exporting) = signal(false);
+                    let (export_progress, set_export_progress) = signal(0.0f32);
+                    let (export_status, set_export_status) = signal("Preparing export...".to_string());
+                    
+                    // Sync with ViewState
+                    Effect::new(move |_| {
+                        view_state.update(|state| {
+                            state.set_exporting(is_exporting.get());
+                            state.set_export_progress(export_progress.get(), export_status.get());
+                        });
+                    });
+                    
+                    handle_export_to_pdf(set_is_exporting, set_export_progress, set_export_status);
                     return;
                 }
                 Instruction::ExportToMarkdown => {
-                    e.prevent_default();
-                    handle_export_to_markdown(
-                        set_is_pdf_exporting,
-                        set_pdf_progress,
-                        set_pdf_status,
-                    );
+                    // Create temporary signals for export handlers
+                    let (is_exporting, set_is_exporting) = signal(false);
+                    let (export_progress, set_export_progress) = signal(0.0f32);
+                    let (export_status, set_export_status) = signal("Preparing export...".to_string());
+                    
+                    // Sync with ViewState
+                    Effect::new(move |_| {
+                        view_state.update(|state| {
+                            state.set_exporting(is_exporting.get());
+                            state.set_export_progress(export_progress.get(), export_status.get());
+                        });
+                    });
+                    
+                    handle_export_to_markdown(set_is_exporting, set_export_progress, set_export_status);
                     return;
                 }
                 Instruction::ExportLinkedMarkdown => {
-                    e.prevent_default();
-                    handle_export_linked_markdown(
-                        set_is_pdf_exporting,
-                        set_pdf_progress,
-                        set_pdf_status,
-                    );
+                    // Create temporary signals for export handlers
+                    let (is_exporting, set_is_exporting) = signal(false);
+                    let (export_progress, set_export_progress) = signal(0.0f32);
+                    let (export_status, set_export_status) = signal("Preparing export...".to_string());
+                    
+                    // Sync with ViewState
+                    Effect::new(move |_| {
+                        view_state.update(|state| {
+                            state.set_exporting(is_exporting.get());
+                            state.set_export_progress(export_progress.get(), export_status.get());
+                        });
+                    });
+                    
+                    handle_export_linked_markdown(set_is_exporting, set_export_progress, set_export_status);
                     return;
                 }
                 Instruction::NextReference => {
-                    e.prevent_default();
                     // Cross-references will handle this via keyboard events
                     // This should only be reached when palette is NOT open
                     return;
                 }
                 Instruction::PreviousReference => {
-                    e.prevent_default();
                     // Cross-references will handle this via keyboard events
                     // This should only be reached when palette is NOT open
                     return;
                 }
-                Instruction::NextPaletteResult => {
-                    e.prevent_default();
-                    handle_next_palette_result(view_state);
+                // Handle copy instructions that need the processor
+                Instruction::CopyRawVerse | Instruction::CopyVerseWithReference => {
+                    view_state.with(|state| {
+                        processor.process_with_multiplier(instruction, state, multiplier);
+                    });
                     return;
                 }
-                Instruction::PreviousPaletteResult => {
-                    e.prevent_default();
-                    handle_previous_palette_result(view_state);
+                
+                // Handle random instructions that need the processor
+                Instruction::RandomVerse | Instruction::RandomChapter => {
+                    view_state.with(|state| {
+                        processor.process_with_multiplier(instruction, state, multiplier);
+                    });
                     return;
                 }
-                Instruction::SwitchToPreviousChapter => {
-                    e.prevent_default();
-                    handle_switch_to_previous_chapter(
-                        previous_chapter_path,
-                        set_previous_chapter_path,
-                        location.clone(),
-                        navigate.clone(),
-                    );
+                
+                // Handle page navigation instructions
+                Instruction::OpenAboutPage | Instruction::ShowTranslations => {
+                    view_state.with(|state| {
+                        processor.process_with_multiplier(instruction, state, multiplier);
+                    });
                     return;
                 }
-                Instruction::GoToVerse(verse_num) => {
-                    e.prevent_default();
-                    handle_go_to_verse(verse_num, view_state, &processor);
-                    return;
-                }
+                
                 _ => {
-                    // For all other instructions, update view state and process
-                    let pathname = cached_pathname.get();
-                    let search = cached_search.get();
-
-                    if update_view_state_from_url(view_state, &pathname, &search) {
-                        e.prevent_default();
-                        view_state.with(|state| {
-                            processor.process_with_multiplier(instruction, state, multiplier);
-                        });
-                    }
+                    // All other instructions should have been handled by ViewState
+                    #[cfg(target_arch = "wasm32")]
+                    leptos::web_sys::console::log_1(&format!("Unhandled instruction: {:?}", instruction).into());
                 }
             }
         }
@@ -274,8 +304,7 @@ pub fn KeyboardNavigationHandler(
     // Add global keydown listener - this runs only once when the App mounts
     window_event_listener(ev::keydown, handle_keydown);
 
-    // Set up export event listeners
-    setup_export_event_listeners(set_is_pdf_exporting, set_pdf_progress, set_pdf_status);
+    // Note: Export event listeners would need to be set up with ViewState signals
 
     view! {
         // Visual feedback for vim command buffer
@@ -285,11 +314,29 @@ pub fn KeyboardNavigationHandler(
             </div>
         </Show>
 
-        // PDF export progress component
-        <crate::components::PdfLoadingProgress
-            progress=pdf_progress
-            status_message=pdf_status
-            is_visible=is_pdf_exporting
-        />
+        // PDF export progress component from ViewState  
+        {
+            // Create reactive signals from ViewState
+            let (export_progress, set_export_progress) = signal(0.0f32);
+            let (export_status, set_export_status) = signal(String::new());
+            let (is_exporting, set_is_exporting) = signal(false);
+            
+            // Keep them in sync with ViewState
+            Effect::new(move |_| {
+                view_state.with(|state| {
+                    set_export_progress.set(state.export_progress);
+                    set_export_status.set(state.export_status.clone());
+                    set_is_exporting.set(state.is_exporting);
+                });
+            });
+            
+            view! {
+                <crate::components::PdfLoadingProgress
+                    progress=export_progress
+                    status_message=export_status
+                    is_visible=is_exporting
+                />
+            }
+        }
     }
 }

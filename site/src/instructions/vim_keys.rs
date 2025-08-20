@@ -177,7 +177,7 @@ impl KeyboardMappings {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct VimKeyboardMapper {
     mappings: KeyboardMappings,
     sequence_buffer: String,
