@@ -1,12 +1,12 @@
 /*!
  * Bible Application Main Module
- * 
+ *
  * This is the main entry point for the Bible web application. It contains:
  * - Main app component with global state management
  * - Keyboard navigation handler for shortcuts
  * - UI layout with sidebars, navigation, and content areas
  * - Helper components for auto-hide functionality
- * 
+ *
  * The app uses Leptos for reactive UI and follows a component-based architecture
  * with clear separation between state management, UI, and business logic.
  */
@@ -14,7 +14,7 @@
 // === External Dependencies ===
 use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
-use leptos_router::hooks::{use_location};
+use leptos_router::hooks::use_location;
 use leptos_router::path;
 use leptos_router::NavigateOptions;
 use urlencoding::encode;
@@ -23,22 +23,17 @@ use wasm_bindgen_futures::spawn_local;
 // === Internal Dependencies ===
 use crate::api::init_bible;
 use crate::components::{
-    CommandPalette, CrossReferencesSidebar, 
-    Sidebar, ThemeSidebar, TranslationComparison
+    CommandPalette, CrossReferencesSidebar, Sidebar, ThemeSidebar, TranslationComparison,
 };
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::keyboard_navigation::KeyboardNavigationHandler;
 use crate::storage::{
-    get_references_sidebar_open, get_sidebar_open, save_references_sidebar_open, save_sidebar_open,
-    get_verse_visibility, get_selected_theme,
-    add_recent_chapter,
+    add_recent_chapter, get_references_sidebar_open, get_selected_theme, get_sidebar_open,
+    get_verse_visibility, save_references_sidebar_open, save_sidebar_open,
 };
-use crate::themes::{get_theme_by_id, get_default_theme, theme_to_css_vars, Theme};
+use crate::themes::{get_default_theme, get_theme_by_id, theme_to_css_vars, Theme};
 use crate::utils::{is_mobile_screen, parse_book_chapter_from_url};
 use crate::views::{About, ChapterDetail, HomeTranslationPicker};
-
-
-
 
 mod api;
 mod components;
@@ -54,7 +49,7 @@ mod views;
 // === Application Entry Point ===
 
 /// Main application entry point
-/// 
+///
 /// Initializes the Bible data, mounts the app component to the DOM,
 /// and starts the Leptos reactive system.
 fn main() {
@@ -65,7 +60,7 @@ fn main() {
 // === Main App Components ===
 
 /// Root application component
-/// 
+///
 /// Sets up routing and global context for the entire application.
 #[component]
 fn App() -> impl IntoView {
@@ -114,27 +109,30 @@ fn App() -> impl IntoView {
 #[component]
 fn BibleApp() -> impl IntoView {
     // Theme state - initialize from localStorage at app level
-    let (current_theme, set_current_theme) = signal(get_theme_by_id(&get_selected_theme()).unwrap_or_else(get_default_theme));
+    let (current_theme, set_current_theme) =
+        signal(get_theme_by_id(&get_selected_theme()).unwrap_or_else(get_default_theme));
 
     // Apply theme CSS variables to document at app level
     Effect::new(move |_| {
         let theme = current_theme.get();
         let css_vars = theme_to_css_vars(&theme);
-        
+
         if let Some(window) = web_sys::window() {
             if let Some(document) = window.document() {
                 // Apply to root element
                 if let Some(root) = document.document_element() {
                     let _ = root.set_attribute("style", &css_vars);
                 }
-                
+
                 // Also apply background to body element
                 if let Some(body) = document.body() {
-                    let _ = body.style().set_property("background-color", &format!("var(--theme-background)"));
+                    let _ = body
+                        .style()
+                        .set_property("background-color", &format!("var(--theme-background)"));
                     let _ = body.style().set_property("margin", "0");
                     let _ = body.style().set_property("padding", "0");
                 }
-                
+
                 // Inject text selection CSS with direct color values
                 let selection_css = format!(
                     "::selection {{ background-color: {} !important; color: {} !important; }} ::-moz-selection {{ background-color: {} !important; color: {} !important; }}",
@@ -143,14 +141,16 @@ fn BibleApp() -> impl IntoView {
                     theme.colors.verses.selected_background,
                     theme.colors.verses.selected
                 );
-                
+
                 // Remove existing selection style if present
-                if let Ok(Some(existing_style)) = document.query_selector("style[data-selection-theme]") {
+                if let Ok(Some(existing_style)) =
+                    document.query_selector("style[data-selection-theme]")
+                {
                     if let Some(parent) = existing_style.parent_node() {
                         let _ = parent.remove_child(&existing_style);
                     }
                 }
-                
+
                 // Create and inject new selection style
                 if let Ok(style_element) = document.create_element("style") {
                     style_element.set_text_content(Some(&selection_css));
@@ -220,7 +220,7 @@ fn BibleApp() -> impl IntoView {
 }
 
 /// Main Bible application component with sidebar layout
-/// 
+///
 /// Manages global state for sidebars, keyboard navigation, and UI panels.
 /// Handles theming, cross-references, and translation comparison functionality.
 #[component]
@@ -235,7 +235,7 @@ fn BibleWithSidebar(
     let previous_palette_result = RwSignal::new(false);
     // Command palette initial search query signal
     let (initial_search_query, set_initial_search_query) = signal::<Option<String>>(None);
-    
+
     // Clear initial search query after palette opens
     Effect::new(move |_| {
         if is_palette_open.get() && initial_search_query.get().is_some() {
@@ -285,7 +285,7 @@ fn BibleWithSidebar(
     // Track recent chapters when URL changes
     Effect::new(move |_| {
         let pathname = location.pathname.get();
-        
+
         if let Some((book_name, chapter_num)) = parse_book_chapter_from_url(&pathname) {
             if let Ok(_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
                 let chapter_display = format!("{} {}", book_name, chapter_num);
@@ -617,7 +617,7 @@ fn BibleWithSidebar(
                     if let Some((book_name, chapter_num)) = current_book_chapter.get() {
                         let (current_book_signal, _) = signal(book_name.clone());
                         let (current_chapter_signal, _) = signal(chapter_num);
-                        
+
                         view! {
                             <TranslationComparison
                                 is_open=is_translation_comparison_open.into()
@@ -658,12 +658,8 @@ fn SidebarAutoHide(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
     }
 }
 
-
 #[component]
-fn Home(
-    current_theme: ReadSignal<Theme>,
-    set_current_theme: WriteSignal<Theme>,
-) -> impl IntoView {
+fn Home(current_theme: ReadSignal<Theme>, set_current_theme: WriteSignal<Theme>) -> impl IntoView {
     use crate::storage::{get_selected_translation, is_translation_downloaded};
     use leptos_router::hooks::{use_location, use_navigate};
 
@@ -680,7 +676,7 @@ fn Home(
 
         // Also don't auto-redirect if there's a return_url (let the translation picker handle it)
         if search_params.contains("return_url=") {
-            return; 
+            return;
         }
 
         if let Some(selected_translation) = get_selected_translation() {
@@ -705,9 +701,7 @@ fn Home(
 }
 
 #[component]
-fn ChapterWrapper(
-    verse_visibility_enabled: ReadSignal<bool>,
-) -> impl IntoView {
+fn ChapterWrapper(verse_visibility_enabled: ReadSignal<bool>) -> impl IntoView {
     use crate::storage::{get_selected_translation, is_translation_downloaded};
     use leptos_router::hooks::{use_location, use_navigate};
 
@@ -737,7 +731,7 @@ fn ChapterWrapper(
         let current_path = format!("{}{}", location.pathname.get(), location.search.get());
         let encoded_return_url = encode(&current_path);
         let redirect_url = format!("/?choose=true&return_url={}", encoded_return_url);
-        
+
         navigate(
             &redirect_url,
             NavigateOptions {
@@ -772,8 +766,8 @@ fn ChapterWrapper(
             {move || {
                 match Chapter::from_url() {
                     Ok(chapter) => view! {
-                        <ChapterDetail 
-                            chapter=chapter 
+                        <ChapterDetail
+                            chapter=chapter
                             verse_visibility_enabled=verse_visibility_enabled
                         />
                     }.into_any(),

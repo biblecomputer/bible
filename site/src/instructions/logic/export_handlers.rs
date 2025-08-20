@@ -38,7 +38,7 @@ pub fn handle_export_to_pdf(
         };
 
         web_sys::console::log_1(&"🔄 Starting PDF generation...".into());
-        match crate::utils::export_bible_to_pdf(&bible, Some(progress_callback)) {
+        match crate::instructions::logic::export_bible_to_pdf(&bible, Some(progress_callback)) {
             Ok(pdf_bytes) => {
                 web_sys::console::log_1(
                     &format!("✅ PDF generation successful! {} bytes", pdf_bytes.len()).into(),
@@ -62,7 +62,7 @@ pub fn handle_export_to_pdf(
                 web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
 
                 web_sys::console::log_1(&"🔽 Triggering PDF download...".into());
-                crate::utils::trigger_pdf_download(pdf_bytes, &filename);
+                crate::instructions::logic::trigger_pdf_download(pdf_bytes, &filename);
             }
             Err(e) => {
                 web_sys::console::log_1(&format!("❌ Failed to generate PDF: {:?}", e).into());
@@ -110,7 +110,7 @@ pub fn handle_export_to_markdown(
         };
 
         web_sys::console::log_1(&"🔄 Starting Markdown generation...".into());
-        match crate::utils::export_bible_to_markdown(&bible, Some(progress_callback)) {
+        match crate::instructions::logic::export_bible_to_markdown(&bible, Some(progress_callback)) {
             Ok(markdown_content) => {
                 web_sys::console::log_1(
                     &format!(
@@ -138,7 +138,7 @@ pub fn handle_export_to_markdown(
                 web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
 
                 web_sys::console::log_1(&"🔽 Triggering Markdown download...".into());
-                crate::utils::trigger_markdown_download(markdown_content, &filename);
+                crate::instructions::logic::trigger_markdown_download(markdown_content, &filename);
             }
             Err(e) => {
                 web_sys::console::log_1(&format!("❌ Failed to generate Markdown: {:?}", e).into());
@@ -186,7 +186,7 @@ pub fn handle_export_linked_markdown(
         };
 
         web_sys::console::log_1(&"🔄 Starting Linked Markdown generation...".into());
-        match crate::utils::export_bible_to_linked_markdown(&bible, Some(progress_callback)) {
+        match crate::instructions::logic::export_bible_to_linked_markdown(&bible, Some(progress_callback)) {
             Ok(linked_export) => {
                 web_sys::console::log_1(
                     &format!(
@@ -217,7 +217,7 @@ pub fn handle_export_linked_markdown(
                 web_sys::console::log_1(&format!("📁 Generated filename: {}", filename).into());
 
                 web_sys::console::log_1(&"🔽 Triggering Linked Markdown download...".into());
-                crate::utils::trigger_linked_markdown_download(linked_export, &filename);
+                crate::instructions::logic::trigger_linked_markdown_download(linked_export, &filename);
             }
             Err(e) => {
                 web_sys::console::log_1(
