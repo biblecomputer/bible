@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use crate::storage::{get_sidebar_open, save_sidebar_open, get_references_sidebar_open, save_references_sidebar_open, get_verse_visibility, save_verse_visibility};
 use crate::core::{Chapter, VerseRange, get_bible};
-use crate::instructions::{Instruction, VimKeyboardMapper};
+use crate::instructions::Instruction;
 
 /// Central state management for all UI view states
 /// This replaces multiple individual signals with a single, cohesive state structure
@@ -36,8 +36,6 @@ pub struct ViewState {
     pub export_status: String,
     pub is_exporting: bool,
     
-    // Vim keyboard state
-    pub vim_mapper: VimKeyboardMapper,
 }
 
 impl Default for ViewState {
@@ -59,7 +57,6 @@ impl Default for ViewState {
             export_progress: 0.0,
             export_status: String::new(),
             is_exporting: false,
-            vim_mapper: VimKeyboardMapper::new(),
         }
     }
 }
@@ -149,17 +146,43 @@ impl ViewState {
                 InstructionResult::Handled
             }
             
-            // Instructions that need external handling
+            // Instructions that involve external actions but can be handled here
+            Instruction::OpenGithubRepository => {
+                #[cfg(target_arch = "wasm32")]
+                {
+                    if let Some(window) = leptos::web_sys::window() {
+                        let _ = window.location().set_href("https://github.com/sempruijs/bible");
+                    }
+                }
+                InstructionResult::Handled
+            }
+            Instruction::OpenAboutPage => {
+                InstructionResult::Navigate("/about".to_string())
+            }
+            Instruction::ShowTranslations => {
+                InstructionResult::Navigate("/?choose=true".to_string())
+            }
+            Instruction::RandomVerse => {
+                if let Some(path) = self.get_random_verse_path() {
+                    InstructionResult::Navigate(path)
+                } else {
+                    InstructionResult::Failed("No verses available".to_string())
+                }
+            }
+            Instruction::RandomChapter => {
+                if let Some(path) = self.get_random_chapter_path() {
+                    InstructionResult::Navigate(path)
+                } else {
+                    InstructionResult::Failed("No chapters available".to_string())
+                }
+            }
+            
+            // Instructions that still need external handling (exports, copy operations, palette toggles)
             Instruction::CopyRawVerse | 
             Instruction::CopyVerseWithReference |
             Instruction::ExportToPDF |
             Instruction::ExportToMarkdown |
             Instruction::ExportLinkedMarkdown |
-            Instruction::OpenGithubRepository |
-            Instruction::RandomVerse |
-            Instruction::RandomChapter |
-            Instruction::OpenAboutPage |
-            Instruction::ShowTranslations |
             Instruction::ToggleBiblePallate |
             Instruction::ToggleVersePallate |
             Instruction::NextReference |
@@ -701,15 +724,74 @@ impl ViewState {
         }
     }
     
-    /// Get mutable access to vim mapper
-    pub fn vim_mapper_mut(&mut self) -> &mut VimKeyboardMapper {
-        &mut self.vim_mapper
+    /// Get a random verse path
+    fn get_random_verse_path(&self) -> Option<String> {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static RANDOM_COUNTER: AtomicUsize = AtomicUsize::new(1);
+        
+        let bible = get_bible();
+        let mut total_verses = 0;
+        let mut verse_locations = Vec::new();
+
+        for book in &bible.books {
+            for chapter in &book.chapters {
+                for verse in &chapter.verses {
+                    verse_locations.push((chapter.clone(), verse.verse));
+                    total_verses += 1;
+                }
+            }
+        }
+
+        if total_verses == 0 {
+            return None;
+        }
+
+        let counter = RANDOM_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let mut rng_state = counter.wrapping_mul(1103515245).wrapping_add(12345);
+        rng_state = rng_state.wrapping_mul(1664525).wrapping_add(1013904223);
+        let random_index = rng_state % total_verses;
+        let safe_index = random_index.min(total_verses - 1);
+
+        if let Some((chapter, verse_num)) = verse_locations.get(safe_index) {
+            let verse_range = VerseRange {
+                start: *verse_num,
+                end: *verse_num,
+            };
+            Some(chapter.to_path_with_verses(&[verse_range]))
+        } else {
+            None
+        }
     }
     
-    /// Get vim mapper
-    pub fn vim_mapper(&self) -> &VimKeyboardMapper {
-        &self.vim_mapper
+    /// Get a random chapter path
+    fn get_random_chapter_path(&self) -> Option<String> {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static RANDOM_COUNTER: AtomicUsize = AtomicUsize::new(1);
+        
+        let bible = get_bible();
+        let mut total_chapters = 0;
+        let mut chapter_locations = Vec::new();
+
+        for book in &bible.books {
+            for chapter in &book.chapters {
+                chapter_locations.push(chapter.clone());
+                total_chapters += 1;
+            }
+        }
+
+        if total_chapters == 0 {
+            return None;
+        }
+
+        let counter = RANDOM_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let mut rng_state = counter.wrapping_mul(1103515245).wrapping_add(12345);
+        rng_state = rng_state.wrapping_mul(1664525).wrapping_add(1013904223);
+        let random_index = rng_state % total_chapters;
+        let safe_index = random_index.min(total_chapters - 1);
+
+        chapter_locations.get(safe_index).map(|chapter| chapter.to_path())
     }
+    
 }
 
 /// Leptos signal wrapper for ViewState
