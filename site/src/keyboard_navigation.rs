@@ -14,24 +14,11 @@ use crate::instructions::{
     handle_next_palette_result, handle_previous_palette_result, setup_export_event_listeners,
     create_instruction_context,
 };
+use crate::view_state::ViewStateSignal;
 
 #[component]
 pub fn KeyboardNavigationHandler(
-    palette_open: ReadSignal<bool>,
-    set_palette_open: WriteSignal<bool>,
-    _left_sidebar_open: ReadSignal<bool>,
-    set_left_sidebar_open: WriteSignal<bool>,
-    _right_sidebar_open: ReadSignal<bool>,
-    set_right_sidebar_open: WriteSignal<bool>,
-    _theme_sidebar_open: ReadSignal<bool>,
-    set_theme_sidebar_open: WriteSignal<bool>,
-    _translation_comparison_open: ReadSignal<bool>,
-    set_translation_comparison_open: WriteSignal<bool>,
-    _verse_visibility_enabled: ReadSignal<bool>,
-    set_verse_visibility_enabled: WriteSignal<bool>,
-    next_palette_result: RwSignal<bool>,
-    previous_palette_result: RwSignal<bool>,
-    set_initial_search_query: WriteSignal<Option<String>>,
+    view_state: ViewStateSignal,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -97,7 +84,7 @@ pub fn KeyboardNavigationHandler(
         };
 
         // If user is typing in input and palette is open, only intercept specific control keys
-        if palette_open.get() && is_typing_in_input {
+        if view_state.with(|state| state.is_command_palette_open) && is_typing_in_input {
             // Only process Ctrl+J, Ctrl+K, Ctrl+O, Escape, Enter for palette navigation
             let key = e.key();
             let is_control_sequence = e.ctrl_key() && (key == "j" || key == "k" || key == "o")
@@ -117,7 +104,7 @@ pub fn KeyboardNavigationHandler(
         let instruction_result = mapper.map_to_instruction(&e);
 
         // Handle palette navigation priority when palette is open
-        if palette_open.get() {
+        if view_state.with(|state| state.is_command_palette_open) {
             if let Some((ref instruction, _)) = instruction_result {
                 match instruction {
                     Instruction::NextPaletteResult | Instruction::PreviousPaletteResult => {
@@ -165,29 +152,17 @@ pub fn KeyboardNavigationHandler(
             match instruction {
                 Instruction::ToggleBiblePallate => {
                     e.prevent_default();
-                    handle_toggle_bible_palette(
-                        palette_open,
-                        set_palette_open,
-                        set_left_sidebar_open,
-                    );
+                    handle_toggle_bible_palette(view_state);
                     return;
                 }
                 Instruction::ToggleCommandPallate => {
                     e.prevent_default();
-                    handle_toggle_command_palette(
-                        set_palette_open,
-                        set_initial_search_query,
-                        set_left_sidebar_open,
-                    );
+                    handle_toggle_command_palette(view_state);
                     return;
                 }
                 Instruction::ToggleVersePallate => {
                     e.prevent_default();
-                    handle_toggle_verse_palette(
-                        set_palette_open,
-                        set_initial_search_query,
-                        set_left_sidebar_open,
-                    );
+                    handle_toggle_verse_palette(view_state);
                     return;
                 }
                 Instruction::OpenGithubRepository => {
@@ -197,31 +172,27 @@ pub fn KeyboardNavigationHandler(
                 }
                 Instruction::ToggleSidebar => {
                     e.prevent_default();
-                    handle_toggle_sidebar(set_left_sidebar_open);
+                    handle_toggle_sidebar(view_state);
                     return;
                 }
                 Instruction::ToggleCrossReferences => {
                     e.prevent_default();
-                    handle_toggle_cross_references(set_right_sidebar_open, set_theme_sidebar_open);
+                    handle_toggle_cross_references(view_state);
                     return;
                 }
                 Instruction::ToggleThemeSidebar => {
                     e.prevent_default();
-                    handle_toggle_theme_sidebar(set_theme_sidebar_open, set_right_sidebar_open);
+                    handle_toggle_theme_sidebar(view_state);
                     return;
                 }
                 Instruction::ToggleTranslationComparison => {
                     e.prevent_default();
-                    handle_toggle_translation_comparison(
-                        set_translation_comparison_open,
-                        set_right_sidebar_open,
-                        set_theme_sidebar_open,
-                    );
+                    handle_toggle_translation_comparison(view_state);
                     return;
                 }
                 Instruction::ToggleVerseVisibility => {
                     e.prevent_default();
-                    handle_toggle_verse_visibility(set_verse_visibility_enabled);
+                    handle_toggle_verse_visibility(view_state);
                     return;
                 }
                 Instruction::ExportToPDF => {
@@ -261,12 +232,12 @@ pub fn KeyboardNavigationHandler(
                 }
                 Instruction::NextPaletteResult => {
                     e.prevent_default();
-                    handle_next_palette_result(palette_open, next_palette_result);
+                    handle_next_palette_result(view_state);
                     return;
                 }
                 Instruction::PreviousPaletteResult => {
                     e.prevent_default();
-                    handle_previous_palette_result(palette_open, previous_palette_result);
+                    handle_previous_palette_result(view_state);
                     return;
                 }
                 Instruction::SwitchToPreviousChapter => {

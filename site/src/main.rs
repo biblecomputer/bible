@@ -33,6 +33,7 @@ use crate::storage::{
 };
 use crate::themes::{get_default_theme, get_theme_by_id, theme_to_css_vars, Theme};
 use crate::utils::{is_mobile_screen, parse_book_chapter_from_url};
+use crate::view_state::{create_view_state, ViewState, ViewStateSignal};
 use crate::views::{About, ChapterDetail, HomeTranslationPicker};
 
 mod api;
@@ -44,6 +45,7 @@ mod storage;
 mod themes;
 mod translation_map;
 mod utils;
+mod view_state;
 mod views;
 
 // === Application Entry Point ===
@@ -182,31 +184,17 @@ fn BibleWithSidebar(
     current_theme: ReadSignal<Theme>,
     set_current_theme: WriteSignal<Theme>,
 ) -> impl IntoView {
-    // Command palette state - ensure it starts closed
-    let (is_palette_open, set_is_palette_open) = signal(false);
-    // Command palette navigation signals
-    let next_palette_result = RwSignal::new(false);
-    let previous_palette_result = RwSignal::new(false);
-    // Command palette initial search query signal
-    let (initial_search_query, set_initial_search_query) = signal::<Option<String>>(None);
+    // Centralized view state management
+    let view_state = create_view_state();
 
     // Clear initial search query after palette opens
     Effect::new(move |_| {
-        if is_palette_open.get() && initial_search_query.get().is_some() {
+        if view_state.with(|state| state.is_command_palette_open) && 
+           view_state.with(|state| state.initial_search_query.is_some()) {
             // Clear the initial search query after a short delay to allow it to be processed
-            set_initial_search_query.set(None);
+            view_state.update(|state| state.clear_initial_search_query());
         }
     });
-    // Left sidebar (books/chapters) visibility state - initialize from localStorage
-    let (is_left_sidebar_open, set_is_left_sidebar_open) = signal(get_sidebar_open());
-    // Right sidebar (cross-references) visibility state - load from storage
-    let (is_right_sidebar_open, set_is_right_sidebar_open) = signal(get_references_sidebar_open());
-    // Theme sidebar visibility state
-    let (is_theme_sidebar_open, set_is_theme_sidebar_open) = signal(false);
-    // Translation comparison panel visibility state
-    let (is_translation_comparison_open, set_is_translation_comparison_open) = signal(false);
-    // Verse visibility state - initialize from localStorage
-    let (verse_visibility_enabled, set_verse_visibility_enabled) = signal(get_verse_visibility());
     let location = use_location();
 
     // Detect if we have cross-references data to show
@@ -249,44 +237,19 @@ fn BibleWithSidebar(
     });
 
     view! {
-        <KeyboardNavigationHandler
-            palette_open=is_palette_open
-            set_palette_open=set_is_palette_open
-            _left_sidebar_open=is_left_sidebar_open
-            set_left_sidebar_open=set_is_left_sidebar_open
-            _right_sidebar_open=is_right_sidebar_open
-            set_right_sidebar_open=set_is_right_sidebar_open
-            _theme_sidebar_open=is_theme_sidebar_open
-            set_theme_sidebar_open=set_is_theme_sidebar_open
-            _translation_comparison_open=is_translation_comparison_open
-            set_translation_comparison_open=set_is_translation_comparison_open
-            _verse_visibility_enabled=verse_visibility_enabled
-            set_verse_visibility_enabled=set_verse_visibility_enabled
-            next_palette_result=next_palette_result
-            previous_palette_result=previous_palette_result
-            set_initial_search_query=set_initial_search_query
-        />
-        <SidebarAutoHide set_sidebar_open=set_is_left_sidebar_open />
-        <CommandPalette
-            is_open=is_palette_open
-            set_is_open=set_is_palette_open
-            next_palette_result=next_palette_result
-            previous_palette_result=previous_palette_result
-            initial_search_query=initial_search_query
-        />
+        <KeyboardNavigationHandler view_state=view_state />
+        <SidebarAutoHide view_state=view_state />
+        <CommandPalette view_state=view_state />
         <nav class="border-b px-4 py-2" style="background-color: var(--theme-header-background); border-color: var(--theme-header-border)">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-2">
                     <button
                         class="p-2 rounded transition-colors header-button"
                         on:click=move |_| {
-                            set_is_left_sidebar_open.update(|open| {
-                                *open = !*open;
-                                save_sidebar_open(*open);
-                            });
+                            view_state.update(|state| state.toggle_left_sidebar());
                         }
-                        aria-label=move || if is_left_sidebar_open.get() { "Hide books sidebar" } else { "Show books sidebar" }
-                        title=move || if is_left_sidebar_open.get() { "Hide books sidebar" } else { "Show books sidebar" }
+                        aria-label=move || if view_state.with(|state| state.is_left_sidebar_open) { "Hide books sidebar" } else { "Show books sidebar" }
+                        title=move || if view_state.with(|state| state.is_left_sidebar_open) { "Hide books sidebar" } else { "Show books sidebar" }
                     >
                             <svg
                                 width="24"
@@ -326,21 +289,13 @@ fn BibleWithSidebar(
                                 }
                             }
                             on:click=move |_| {
-                                // Always toggle like the "r" key does
-                                set_is_right_sidebar_open.update(|open| {
-                                    *open = !*open;
-                                    save_references_sidebar_open(*open);
-                                    // Close theme sidebar if opening references sidebar
-                                    if *open {
-                                        set_is_theme_sidebar_open.set(false);
-                                    }
-                                });
+                                view_state.update(|state| state.toggle_right_sidebar());
                             }
                             aria-label=move || {
-                                if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
+                                if view_state.with(|state| state.is_right_sidebar_open) { "Hide cross-references" } else { "Show cross-references" }
                             }
                             title=move || {
-                                if is_right_sidebar_open.get() { "Hide cross-references" } else { "Show cross-references" }
+                                if view_state.with(|state| state.is_right_sidebar_open) { "Hide cross-references" } else { "Show cross-references" }
                             }
                         >
                             <svg
@@ -362,14 +317,7 @@ fn BibleWithSidebar(
                         <button
                             class="p-2 rounded transition-colors header-button"
                             on:click=move |_| {
-                                set_is_theme_sidebar_open.update(|open| {
-                                    *open = !*open;
-                                    // Close references sidebar if opening theme sidebar
-                                    if *open {
-                                        set_is_right_sidebar_open.set(false);
-                                        save_references_sidebar_open(false);
-                                    }
-                                });
+                                view_state.update(|state| state.toggle_theme_sidebar());
                             }
                             aria-label="Theme options"
                             title="Theme options"
@@ -416,26 +364,25 @@ fn BibleWithSidebar(
         <div class="flex h-screen relative" style="background-color: var(--theme-background)">
             // Left sidebar (books/chapters)
             <Show
-                    when=move || is_left_sidebar_open.get()
+                    when=move || view_state.with(|state| state.is_left_sidebar_open)
                     fallback=|| view! { <></> }
                 >
                     <aside class="w-64 border-r p-3 overflow-y-auto md:relative absolute inset-y-0 left-0 z-50 md:z-auto" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border)">
-                        <Sidebar set_sidebar_open=set_is_left_sidebar_open />
+                        <Sidebar view_state=view_state />
                     </aside>
                 </Show>
 
                 // Left sidebar mobile overlay
                 <Show
                     when=move || {
-                        is_left_sidebar_open.get() && is_mobile_screen()
+                        view_state.with(|state| state.is_left_sidebar_open) && is_mobile_screen()
                     }
                     fallback=|| view! { <></> }
                 >
                     <div
                         class="fixed inset-0 bg-black bg-opacity-50 z-30"
                         on:click=move |_| {
-                            set_is_left_sidebar_open.set(false);
-                            save_sidebar_open(false);
+                            view_state.update(|state| state.set_left_sidebar(false));
                         }
                     />
                 </Show>
@@ -448,7 +395,7 @@ fn BibleWithSidebar(
                             path=path!("/:book/:chapter")
                             view=move || {
                                 view! {
-                                    <ChapterWrapper verse_visibility_enabled=verse_visibility_enabled />
+                                    <ChapterWrapper view_state=view_state />
                                 }
                             }
                         />
@@ -457,7 +404,7 @@ fn BibleWithSidebar(
 
                 // Right sidebar (cross-references)
                 <Show
-                    when=move || is_right_sidebar_open.get()
+                    when=move || view_state.with(|state| state.is_right_sidebar_open)
                     fallback=|| view! { <></> }
                 >
                     <aside class="w-64 border-l p-3 overflow-y-auto md:relative absolute inset-y-0 right-0 z-40 md:z-auto" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border)">
@@ -468,8 +415,7 @@ fn BibleWithSidebar(
                                         book_name=book_name
                                         chapter=chapter
                                         verse=verse
-                                        set_sidebar_open=set_is_right_sidebar_open
-                                        palette_open=is_palette_open
+                                        view_state=view_state
                                     />
                                 }.into_any()
                             } else {
@@ -503,8 +449,7 @@ fn BibleWithSidebar(
                                             class="mt-4 px-3 py-1.5 text-sm rounded transition-colors hover:opacity-80"
                                             style="color: var(--theme-text-muted)"
                                             on:click=move |_| {
-                                                set_is_right_sidebar_open.set(false);
-                                                save_references_sidebar_open(false);
+                                                view_state.update(|state| state.set_right_sidebar(false));
                                             }
                                         >
                                             Close
@@ -519,30 +464,28 @@ fn BibleWithSidebar(
                 // Right sidebar mobile overlay
                 <Show
                     when=move || {
-                        is_right_sidebar_open.get() && is_mobile_screen()
+                        view_state.with(|state| state.is_right_sidebar_open) && is_mobile_screen()
                     }
                     fallback=|| view! { <></> }
                 >
                     <div
                         class="fixed inset-0 bg-black bg-opacity-50 z-35"
                         on:click=move |_| {
-                            set_is_right_sidebar_open.set(false);
-                            save_references_sidebar_open(false);
+                            view_state.update(|state| state.set_right_sidebar(false));
                         }
                     />
                 </Show>
 
                 // Theme sidebar
                 <Show
-                    when=move || is_theme_sidebar_open.get()
+                    when=move || view_state.with(|state| state.is_theme_sidebar_open)
                     fallback=|| view! { <></> }
                 >
                     <aside class="w-64 border-r p-3 overflow-y-auto md:relative absolute inset-y-0 right-0 z-45 md:z-auto" style="background-color: var(--theme-sidebar-background); border-color: var(--theme-sidebar-border)">
                         <ThemeSidebar
                             current_theme=current_theme
                             set_current_theme=set_current_theme
-                            set_sidebar_open=set_is_theme_sidebar_open
-                            palette_open=is_palette_open
+                            view_state=view_state
                         />
                     </aside>
                 </Show>
@@ -550,14 +493,14 @@ fn BibleWithSidebar(
                 // Theme sidebar mobile overlay
                 <Show
                     when=move || {
-                        is_theme_sidebar_open.get() && is_mobile_screen()
+                        view_state.with(|state| state.is_theme_sidebar_open) && is_mobile_screen()
                     }
                     fallback=|| view! { <></> }
                 >
                     <div
                         class="fixed inset-0 bg-black bg-opacity-50 z-44"
                         on:click=move |_| {
-                            set_is_theme_sidebar_open.set(false);
+                            view_state.update(|state| state.set_theme_sidebar(false));
                         }
                     />
                 </Show>
@@ -570,10 +513,9 @@ fn BibleWithSidebar(
 
                         view! {
                             <TranslationComparison
-                                is_open=is_translation_comparison_open.into()
-                                set_is_open=set_is_translation_comparison_open
                                 current_book=current_book_signal
                                 current_chapter=current_chapter_signal
+                                view_state=view_state
                             />
                         }.into_any()
                     } else {
@@ -585,7 +527,7 @@ fn BibleWithSidebar(
 }
 
 #[component]
-fn SidebarAutoHide(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
+fn SidebarAutoHide(view_state: ViewStateSignal) -> impl IntoView {
     let location = use_location();
 
     // Auto-hide sidebar on mobile when navigating to a chapter
@@ -596,8 +538,7 @@ fn SidebarAutoHide(set_sidebar_open: WriteSignal<bool>) -> impl IntoView {
         // If we're on a chapter page and screen is mobile-sized, hide sidebar
         if path_parts.len() == 2 && !path_parts[0].is_empty() && !path_parts[1].is_empty() {
             if is_mobile_screen() {
-                set_sidebar_open.set(false);
-                save_sidebar_open(false);
+                view_state.update(|state| state.set_left_sidebar(false));
             }
         }
     });
