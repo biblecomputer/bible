@@ -46,35 +46,35 @@ fn TranslationItem(
     web_sys::console::log_1(&format!("TranslationItem rendered for: {}", translation_short_name).into());
     
     view! {
-        <div class="border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow" style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)">
-            <div class="flex items-center justify-between">
-                <div class="flex-1">
-                    <h3 class="text-xl font-semibold mb-1" style="color: var(--theme-text-primary)">
-                        {translation_name.clone()}
-                    </h3>
-                    <p class="text-sm" style="color: var(--theme-text-secondary)">
-                        "Uitgegeven in " {translation_release_year.to_string()}
-                    </p>
-                </div>
-                <div class="ml-6">
-                    {
-                        let translation_short_name_clone = translation_short_name.clone();
-                        move || {
-                        let translation_short_name_ref = translation_short_name_clone.clone();
-                        let is_downloading = downloading_translation.get().as_ref() == Some(&translation_short_name_ref);
-                        let is_uninstalling = uninstalling_translation.get().as_ref() == Some(&translation_short_name_ref);
-                        // Watch the refresh trigger and check download status
-                        let _ = ui_refresh_trigger.get();
-                        let is_downloaded = is_translation_downloaded(&translation_short_name_ref);
-                        
-                        #[cfg(target_arch = "wasm32")]
-                        web_sys::console::log_1(&format!("Translation {} - downloading: {}, downloaded: {}, uninstalling: {}", 
-                            translation_short_name_ref, is_downloading, is_downloaded, is_uninstalling).into());
-                        
-                        
-                        if is_downloading {
-                            view! {
-                                <div class="flex items-center">
+        <div class="relative">
+            {
+                let translation_short_name_clone = translation_short_name.clone();
+                move || {
+                let translation_short_name_ref = translation_short_name_clone.clone();
+                let is_downloading = downloading_translation.get().as_ref() == Some(&translation_short_name_ref);
+                let is_uninstalling = uninstalling_translation.get().as_ref() == Some(&translation_short_name_ref);
+                // Watch the refresh trigger and check download status
+                let _ = ui_refresh_trigger.get();
+                let is_downloaded = is_translation_downloaded(&translation_short_name_ref);
+                
+                #[cfg(target_arch = "wasm32")]
+                web_sys::console::log_1(&format!("Translation {} - downloading: {}, downloaded: {}, uninstalling: {}", 
+                    translation_short_name_ref, is_downloading, is_downloaded, is_uninstalling).into());
+                
+                
+                if is_downloading {
+                    view! {
+                        <div class="border rounded-lg p-6 shadow-sm" style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <h3 class="text-xl font-semibold mb-1" style="color: var(--theme-text-primary)">
+                                        {translation_name.clone()}
+                                    </h3>
+                                    <p class="text-sm" style="color: var(--theme-text-secondary)">
+                                        "Uitgegeven in " {translation_release_year.to_string()}
+                                    </p>
+                                </div>
+                                <div class="ml-6 flex items-center">
                                     <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="m12 2a10 10 0 0 1 10 10h-2a8 8 0 0 0-8-8v-2z"></path>
@@ -89,48 +89,58 @@ fn TranslationItem(
                                         </div>
                                     </div>
                                 </div>
-                            }.into_any()
-                        } else if is_downloaded {
-                            view! {
-                                <div class="flex gap-2">
-                                    <button
-                                        class="px-6 py-2 rounded-md transition-colors font-medium translation-button-primary"
-                                        disabled=move || is_switching.get() || is_uninstalling
-                                        on:click={
-                                            let translation_short_name_clone3 = translation_short_name_ref.clone();
-                                            let navigate_clone = navigate_to_first_chapter.clone();
-                                            move |_| {
-                                                if !is_switching.get_untracked() && !is_uninstalling {
-                                                    set_is_switching.set(true);
-                                                    let _ = set_selected_translation(&translation_short_name_clone3);
-                                                    set_selected_translation_signal.set(translation_short_name_clone3.clone());
-                                                    
-                                                    let translation_short_name_clone2 = translation_short_name_clone3.clone();
-                                                    let navigate_clone2 = navigate_clone.clone();
-                                                    spawn_local(async move {
-                                                        if let Err(e) = switch_bible_translation(&translation_short_name_clone2).await {
-                                                            leptos::logging::error!("Failed to switch translation: {}", e);
-                                                        }
-                                                        set_is_switching.set(false);
-                                                        navigate_clone2();
-                                                    });
-                                                }
+                            </div>
+                        </div>
+                    }.into_any()
+                } else if is_downloaded {
+                    view! {
+                        <button 
+                            class="w-full border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow text-left cursor-pointer"
+                            style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)"
+                            disabled=move || is_switching.get() || is_uninstalling
+                            on:click={
+                                let translation_short_name_clone3 = translation_short_name_ref.clone();
+                                let navigate_clone = navigate_to_first_chapter.clone();
+                                move |_| {
+                                    if !is_switching.get_untracked() && !is_uninstalling {
+                                        set_is_switching.set(true);
+                                        let _ = set_selected_translation(&translation_short_name_clone3);
+                                        set_selected_translation_signal.set(translation_short_name_clone3.clone());
+                                        
+                                        let translation_short_name_clone2 = translation_short_name_clone3.clone();
+                                        let navigate_clone2 = navigate_clone.clone();
+                                        spawn_local(async move {
+                                            if let Err(e) = switch_bible_translation(&translation_short_name_clone2).await {
+                                                leptos::logging::error!("Failed to switch translation: {}", e);
                                             }
-                                        }
-                                    >
+                                            set_is_switching.set(false);
+                                            navigate_clone2();
+                                        });
+                                    }
+                                }
+                            }
+                        >
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <h3 class="text-xl font-semibold mb-1" style="color: var(--theme-text-primary)">
+                                        {translation_name.clone()}
                                         {
                                             let translation_short_name_clone2 = translation_short_name_ref.clone();
                                             move || {
                                             if is_switching.get() && selected_translation.get() == translation_short_name_clone2 {
-                                                "Laden..."
+                                                " (laden...)"
                                             } else {
-                                                "Lezen"
+                                                ""
                                             }
                                         }}
-                                    </button>
-                                    
+                                    </h3>
+                                    <p class="text-sm" style="color: var(--theme-text-secondary)">
+                                        "Uitgegeven in " {translation_release_year.to_string()}
+                                    </p>
+                                </div>
+                                <div class="ml-6">
                                     {
-                                        // Don't show uninstall button for Staten vertaling (sv) - it's the default
+                                        // Don't show delete button for Staten vertaling (sv) - it's the default
                                         if translation_short_name_ref != "sv" {
                                             view! {
                                                 <button
@@ -138,7 +148,8 @@ fn TranslationItem(
                                                     disabled=move || is_switching.get() || is_uninstalling
                                                     on:click={
                                                         let translation_short_name_clone4 = translation_short_name_ref.clone();
-                                                        move |_| {
+                                                        move |ev| {
+                                                            ev.stop_propagation(); // Prevent triggering the parent button click
                                                             if !is_switching.get_untracked() && !is_uninstalling {
                                                                 #[cfg(target_arch = "wasm32")]
                                                                 web_sys::console::log_1(&format!("Delete clicked for: {}", translation_short_name_clone4).into());
@@ -167,9 +178,24 @@ fn TranslationItem(
                                                 >
                                                     {move || {
                                                         if is_uninstalling {
-                                                            "Verwijderen..."
+                                                            view! {
+                                                                <div class="flex items-center gap-1">
+                                                                    <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                        <path class="opacity-75" fill="currentColor" d="m12 2a10 10 0 0 1 10 10h-2a8 8 0 0 0-8-8v-2z"></path>
+                                                                    </svg>
+                                                                    <span>"Verwijderen..."</span>
+                                                                </div>
+                                                            }
                                                         } else {
-                                                            "Verwijderen"
+                                                            view! {
+                                                                <div class="flex items-center gap-1">
+                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                                    </svg>
+                                                                    <span>"Verwijderen"</span>
+                                                                </div>
+                                                            }
                                                         }
                                                     }}
                                                 </button>
@@ -179,70 +205,83 @@ fn TranslationItem(
                                         }
                                     }
                                 </div>
-                            }.into_any()
-                        } else {
-                            view! {
-                                <div class="flex gap-2">
-                                    <button
-                                        class="px-6 py-2 rounded-md transition-colors font-medium translation-button-success"
-                                        on:click={
-                                            let translation_clone = translation_clone_for_download.clone();
-                                            let translation_short_name_clone = translation_short_name_ref.clone();
-                                            let navigate_clone = navigate_to_first_chapter.clone();
-                                            move |_| {
-                                                #[cfg(target_arch = "wasm32")]
-                                                web_sys::console::log_1(&format!("Download clicked for: {}", translation_short_name_clone).into());
-                                                set_downloading_translation.set(Some(translation_short_name_clone.clone()));
-                                                set_download_error.set(None);
+                            </div>
+                        </button>
+                    }.into_any()
+                } else {
+                    view! {
+                        <button 
+                            class="w-full border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow text-left cursor-pointer"
+                            style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)"
+                            on:click={
+                                let translation_clone = translation_clone_for_download.clone();
+                                let translation_short_name_clone = translation_short_name_ref.clone();
+                                let navigate_clone = navigate_to_first_chapter.clone();
+                                move |_| {
+                                    #[cfg(target_arch = "wasm32")]
+                                    web_sys::console::log_1(&format!("Download clicked for: {}", translation_short_name_clone).into());
+                                    set_downloading_translation.set(Some(translation_short_name_clone.clone()));
+                                    set_download_error.set(None);
+                                    set_download_progress.set(0.0);
+                                    set_download_status.set("Preparing download...".to_string());
+                                    
+                                    let translation_clone2 = translation_clone.clone();
+                                    let translation_short_name_clone2 = translation_short_name_clone.clone();
+                                    let navigate_clone2 = navigate_clone.clone();
+                                    
+                                    // Create progress callback
+                                    let progress_callback = {
+                                        move |progress: f32, status: String| {
+                                            set_download_progress.set(progress);
+                                            set_download_status.set(status);
+                                        }
+                                    };
+                                    
+                                    spawn_local(async move {
+                                        match download_translation_with_progress(&translation_clone2, progress_callback).await {
+                                            Ok(_) => {
+                                                let _ = set_selected_translation(&translation_short_name_clone2);
+                                                set_selected_translation_signal.set(translation_short_name_clone2.clone());
+                                                
+                                                if let Err(e) = switch_bible_translation(&translation_short_name_clone2).await {
+                                                    leptos::logging::error!("Failed to switch translation: {}", e);
+                                                }
+                                                
+                                                set_downloading_translation.set(None);
                                                 set_download_progress.set(0.0);
-                                                set_download_status.set("Preparing download...".to_string());
-                                                
-                                                let translation_clone2 = translation_clone.clone();
-                                                let translation_short_name_clone2 = translation_short_name_clone.clone();
-                                                let navigate_clone2 = navigate_clone.clone();
-                                                
-                                                // Create progress callback
-                                                let progress_callback = {
-                                                    move |progress: f32, status: String| {
-                                                        set_download_progress.set(progress);
-                                                        set_download_status.set(status);
-                                                    }
-                                                };
-                                                
-                                                spawn_local(async move {
-                                                    match download_translation_with_progress(&translation_clone2, progress_callback).await {
-                                                        Ok(_) => {
-                                                            let _ = set_selected_translation(&translation_short_name_clone2);
-                                                            set_selected_translation_signal.set(translation_short_name_clone2.clone());
-                                                            
-                                                            if let Err(e) = switch_bible_translation(&translation_short_name_clone2).await {
-                                                                leptos::logging::error!("Failed to switch translation: {}", e);
-                                                            }
-                                                            
-                                                            set_downloading_translation.set(None);
-                                                            set_download_progress.set(0.0);
-                                                            // Trigger UI refresh to update download status
-                                                            set_ui_refresh_trigger.update(|n| *n += 1);
-                                                            navigate_clone2();
-                                                        }
-                                                        Err(e) => {
-                                                            set_download_error.set(Some(format!("Download mislukt: {}", e)));
-                                                            set_downloading_translation.set(None);
-                                                            set_download_progress.set(0.0);
-                                                        }
-                                                    }
-                                                });
+                                                // Trigger UI refresh to update download status
+                                                set_ui_refresh_trigger.update(|n| *n += 1);
+                                                navigate_clone2();
+                                            }
+                                            Err(e) => {
+                                                set_download_error.set(Some(format!("Download mislukt: {}", e)));
+                                                set_downloading_translation.set(None);
+                                                set_download_progress.set(0.0);
                                             }
                                         }
-                                    >
-                                        "Download"
-                                    </button>
+                                    });
+                                }
+                            }
+                        >
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <h3 class="text-xl font-semibold mb-1" style="color: var(--theme-text-primary)">
+                                        {translation_name.clone()}
+                                    </h3>
+                                    <p class="text-sm" style="color: var(--theme-text-secondary)">
+                                        "Uitgegeven in " {translation_release_year.to_string()}
+                                    </p>
                                 </div>
-                            }.into_any()
-                        }
-                    }}
-                </div>
-            </div>
+                                <div class="ml-6">
+                                    <div class="px-3 py-1 rounded text-sm font-medium translation-button-success">
+                                        "Download"
+                                    </div>
+                                </div>
+                            </div>
+                        </button>
+                    }.into_any()
+                }
+            }}
             
             <div class="mt-4">
                 <a
