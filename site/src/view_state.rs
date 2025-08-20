@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 use crate::storage::{get_sidebar_open, save_sidebar_open, get_references_sidebar_open, save_references_sidebar_open, get_verse_visibility, save_verse_visibility};
+use crate::core::{Chapter, VerseRange};
 
 /// Central state management for all UI view states
 /// This replaces multiple individual signals with a single, cohesive state structure
@@ -21,6 +22,10 @@ pub struct ViewState {
     pub next_palette_result_trigger: bool,
     pub previous_palette_result_trigger: bool,
     pub initial_search_query: Option<String>,
+    
+    // Navigation context (formerly InstructionContext)
+    pub current_chapter: Option<Chapter>,
+    pub search_params: String,
 }
 
 impl Default for ViewState {
@@ -36,6 +41,8 @@ impl Default for ViewState {
             next_palette_result_trigger: false,
             previous_palette_result_trigger: false,
             initial_search_query: None,
+            current_chapter: None,
+            search_params: String::new(),
         }
     }
 }
@@ -161,6 +168,66 @@ impl ViewState {
     pub fn close_all_overlays(&mut self) {
         self.set_command_palette(false);
         self.close_all_sidebars();
+    }
+    
+    /// Set the current chapter
+    pub fn set_current_chapter(&mut self, chapter: Option<Chapter>) {
+        self.current_chapter = chapter;
+    }
+    
+    /// Set the search parameters
+    pub fn set_search_params(&mut self, search_params: String) {
+        self.search_params = search_params;
+    }
+    
+    /// Get current verse from search params (formerly from InstructionContext)
+    pub fn get_current_verse(&self) -> u32 {
+        if self.search_params.contains("verses=") {
+            let verse_param = self
+                .search_params
+                .split("verses=")
+                .nth(1)
+                .unwrap_or("1")
+                .split('&')
+                .next()
+                .unwrap_or("1");
+            verse_param
+                .split(',')
+                .next()
+                .unwrap_or("1")
+                .split('-')
+                .next()
+                .unwrap_or("1")
+                .parse()
+                .unwrap_or(1)
+        } else {
+            0 // No verse selected = chapter heading is selected
+        }
+    }
+    
+    /// Get verse ranges from search params (formerly from InstructionContext)
+    pub fn get_verse_ranges(&self) -> Vec<VerseRange> {
+        if self.search_params.contains("verses=") {
+            self.search_params
+                .split('&')
+                .find_map(|param| {
+                    let mut parts = param.split('=');
+                    if parts.next()? == "verses" {
+                        parts.next()
+                    } else {
+                        None
+                    }
+                })
+                .map(|verses_param| {
+                    verses_param
+                        .split(',')
+                        .filter_map(|range_str| VerseRange::from_string(range_str))
+                        .collect()
+                })
+                .unwrap_or_else(Vec::new)
+        } else {
+            Vec::new()
+        }
     }
 }
 
