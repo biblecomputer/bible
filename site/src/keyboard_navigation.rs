@@ -100,19 +100,18 @@ pub fn KeyboardNavigationHandler(
         }
 
         // Get instruction from vim-style keyboard mapper in ViewState
-        let instruction_result = view_state.with_untracked(|state| {
-            // We need to get mutable access to the mapper
-            // Since we can't get mutable access in with(), we'll clone, update, and store back
-            let mut mapper = state.vim_mapper().clone();
+        let instruction_result = {
+            // First get the current mapper and process the instruction
+            let mut mapper = view_state.with_untracked(|state| state.vim_mapper().clone());
             let result = mapper.map_to_instruction(&e);
             
-            // Store the updated mapper back - we need to do this with update
-            view_state.update_untracked(|s| {
-                *s.vim_mapper_mut() = mapper;
+            // Store the updated mapper back - use try_update for safety
+            let _ = view_state.try_update_untracked(|state| {
+                *state.vim_mapper_mut() = mapper;
             });
             
             result
-        });
+        };
 
         // Handle palette navigation priority when palette is open
         if view_state.with(|state| state.is_command_palette_open) {
@@ -155,17 +154,19 @@ pub fn KeyboardNavigationHandler(
 
         // Handle instruction if we got one
         if let Some((instruction, multiplier)) = instruction_result {
+            #[cfg(target_arch = "wasm32")]
+            leptos::web_sys::console::log_1(&format!("⌨️  Got instruction: {:?} with multiplier: {}", instruction, multiplier).into());
+            
             e.prevent_default();
             
-            // First try to apply instruction to ViewState
-            let mut instruction_result = crate::view_state::InstructionResult::NotHandled;
-            view_state.update(|state| {
-                instruction_result = if multiplier > 1 {
-                    state.apply_instruction_with_multiplier(instruction.clone(), multiplier)
+            // First try to execute instruction in ViewState
+            let instruction_result = view_state.try_update(|state| {
+                if multiplier > 1 {
+                    state.execute_with_multiplier(&instruction, multiplier)
                 } else {
-                    state.apply_instruction(instruction.clone())
-                };
-            });
+                    state.execute(&instruction)
+                }
+            }).unwrap_or(crate::view_state::InstructionResult::Failed("Update failed".to_string()));
             
             // Handle the result
             match instruction_result {
