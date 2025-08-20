@@ -15,7 +15,7 @@ pub use ui_toggles::{
 };
 pub use navigation_handlers::{
     handle_open_github_repository, handle_switch_to_previous_chapter, handle_go_to_verse,
-    handle_next_palette_result, handle_previous_palette_result, create_instruction_context,
+    handle_next_palette_result, handle_previous_palette_result, update_view_state_from_url,
 };
 pub use event_handlers::setup_export_event_listeners;
 

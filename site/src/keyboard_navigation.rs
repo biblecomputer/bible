@@ -12,7 +12,7 @@ use crate::instructions::{
     handle_toggle_translation_comparison, handle_toggle_verse_visibility,
     handle_open_github_repository, handle_switch_to_previous_chapter, handle_go_to_verse,
     handle_next_palette_result, handle_previous_palette_result, setup_export_event_listeners,
-    create_instruction_context,
+    update_view_state_from_url,
 };
 use crate::view_state::ViewStateSignal;
 
@@ -252,17 +252,19 @@ pub fn KeyboardNavigationHandler(
                 }
                 Instruction::GoToVerse(verse_num) => {
                     e.prevent_default();
-                    handle_go_to_verse(verse_num, location.clone(), &processor);
+                    handle_go_to_verse(verse_num, view_state, &processor);
                     return;
                 }
                 _ => {
-                    // For all other instructions, create context and process
+                    // For all other instructions, update view state and process
                     let pathname = cached_pathname.get();
                     let search = cached_search.get();
 
-                    if let Some(context) = create_instruction_context(&pathname, &search) {
+                    if update_view_state_from_url(view_state, &pathname, &search) {
                         e.prevent_default();
-                        processor.process_with_multiplier(instruction, &context, multiplier);
+                        view_state.with(|state| {
+                            processor.process_with_multiplier(instruction, state, multiplier);
+                        });
                     }
                 }
             }

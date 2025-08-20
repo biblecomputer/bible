@@ -3,8 +3,9 @@ use crate::storage::translations::get_current_translation;
 use crate::storage::recent_chapters::get_recent_chapters;
 use crate::translation_map::translation::Translation;
 use crate::instructions::types::Instruction;
-use crate::instructions::processor::{InstructionContext, InstructionProcessor};
+use crate::instructions::processor::InstructionProcessor;
 use crate::instructions::vim_keys::KeyboardMappings;
+use crate::view_state::ViewStateSignal;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_navigate, use_location};
 use leptos_router::NavigateOptions;
@@ -303,20 +304,21 @@ fn get_current_chapter(location_pathname: &str) -> Option<Chapter> {
     None
 }
 
-fn create_instruction_context(pathname: &str, search: &str) -> Option<InstructionContext> {
+fn update_view_state_from_url(view_state: ViewStateSignal, pathname: &str, search: &str) -> bool {
     let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
     if path_parts.len() == 2 {
         let book_name = path_parts[0].replace('_', " ");
         if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
             if let Ok(current_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
-                return Some(InstructionContext::new(
-                    current_chapter,
-                    search.to_string(),
-                ));
+                view_state.update(|state| {
+                    state.set_current_chapter(Some(current_chapter));
+                    state.set_search_params(search.to_string());
+                });
+                return true;
             }
         }
     }
-    None
+    false
 }
 
 fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
@@ -396,10 +398,11 @@ pub fn CommandPalette(
         if let Some(instruction) = execute_instruction.get() {
             let pathname = location.pathname.get();
             let search = location.search.get();
-            if let Some(context) = create_instruction_context(&pathname, &search) {
-                let handled = processor.process(instruction.clone(), &context);
+            if update_view_state_from_url(view_state, &pathname, &search) {
+                let handled = view_state.with(|state| {
+                    processor.process(instruction.clone(), state)
+                });
                 
-                // If the processor didn't handle the instruction, create a custom event
                 if !handled {
                     use web_sys::CustomEvent;
                     

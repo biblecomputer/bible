@@ -1,8 +1,8 @@
 use super::types::Instruction;
-use crate::core::types::Language;
-use crate::core::{get_bible, Chapter, VerseRange};
+use crate::core::{get_bible, VerseRange};
 use crate::storage::translations::get_current_translation;
 use crate::translation_map::translation::Translation;
+use crate::view_state::ViewState;
 use leptos_router::NavigateOptions;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use wasm_bindgen_futures::{spawn_local, JsFuture};
@@ -46,67 +46,6 @@ pub fn get_random_chapter_path() -> Option<String> {
         .map(|chapter| chapter.to_path())
 }
 
-pub struct InstructionContext {
-    pub current_chapter: Chapter,
-    pub search_params: String,
-}
-
-impl InstructionContext {
-    pub fn new(current_chapter: Chapter, search_params: String) -> Self {
-        Self {
-            current_chapter,
-            search_params,
-        }
-    }
-
-    pub fn get_current_verse(&self) -> u32 {
-        if self.search_params.contains("verses=") {
-            let verse_param = self
-                .search_params
-                .split("verses=")
-                .nth(1)
-                .unwrap_or("1")
-                .split('&')
-                .next()
-                .unwrap_or("1");
-            verse_param
-                .split(',')
-                .next()
-                .unwrap_or("1")
-                .split('-')
-                .next()
-                .unwrap_or("1")
-                .parse()
-                .unwrap_or(1)
-        } else {
-            0 // No verse selected = chapter heading is selected
-        }
-    }
-
-    pub fn get_verse_ranges(&self) -> Vec<VerseRange> {
-        if self.search_params.contains("verses=") {
-            self.search_params
-                .split('&')
-                .find_map(|param| {
-                    let mut parts = param.split('=');
-                    if parts.next()? == "verses" {
-                        parts.next()
-                    } else {
-                        None
-                    }
-                })
-                .map(|verses_param| {
-                    verses_param
-                        .split(',')
-                        .filter_map(|range_str| VerseRange::from_string(range_str))
-                        .collect()
-                })
-                .unwrap_or_else(Vec::new)
-        } else {
-            Vec::new()
-        }
-    }
-}
 
 pub struct InstructionProcessor<F>
 where
@@ -123,14 +62,14 @@ where
         Self { navigate }
     }
 
-    pub fn process(&self, instruction: Instruction, context: &InstructionContext) -> bool {
+    pub fn process(&self, instruction: Instruction, context: &ViewState) -> bool {
         self.process_with_multiplier(instruction, context, 1)
     }
 
     pub fn process_with_multiplier(
         &self,
         instruction: Instruction,
-        context: &InstructionContext,
+        context: &ViewState,
         multiplier: u32,
     ) -> bool {
         match instruction {
@@ -172,26 +111,9 @@ where
         }
     }
 
-    fn handle_beginning_of_chapter(&self, context: &InstructionContext) -> bool {
-        let new_path = context.current_chapter.to_path();
-        (self.navigate)(
-            &new_path,
-            NavigateOptions {
-                scroll: false,
-                ..Default::default()
-            },
-        );
-        true
-    }
-
-    fn handle_end_of_chapter(&self, context: &InstructionContext) -> bool {
-        let last_verse = context.current_chapter.verses.len() as u32;
-        if last_verse > 0 {
-            let verse_range = VerseRange {
-                start: last_verse,
-                end: last_verse,
-            };
-            let new_path = context.current_chapter.to_path_with_verses(&[verse_range]);
+    fn handle_beginning_of_chapter(&self, context: &ViewState) -> bool {
+        if let Some(ref current_chapter) = context.current_chapter {
+            let new_path = current_chapter.to_path();
             (self.navigate)(
                 &new_path,
                 NavigateOptions {
@@ -205,27 +127,56 @@ where
         }
     }
 
-    fn handle_go_to_verse(&self, context: &InstructionContext, verse_num: u32) -> bool {
-        if verse_num > 0 && verse_num <= context.current_chapter.verses.len() as u32 {
-            let verse_range = VerseRange {
-                start: verse_num,
-                end: verse_num,
-            };
-            let new_path = context.current_chapter.to_path_with_verses(&[verse_range]);
-            (self.navigate)(
-                &new_path,
-                NavigateOptions {
-                    scroll: false,
-                    ..Default::default()
-                },
-            );
-            true
+    fn handle_end_of_chapter(&self, context: &ViewState) -> bool {
+        if let Some(ref current_chapter) = context.current_chapter {
+            let last_verse = current_chapter.verses.len() as u32;
+            if last_verse > 0 {
+                let verse_range = VerseRange {
+                    start: last_verse,
+                    end: last_verse,
+                };
+                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                (self.navigate)(
+                    &new_path,
+                    NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    },
+                );
+                true
+            } else {
+                false
+            }
         } else {
             false
         }
     }
 
-    fn handle_copy_raw_verse(&self, context: &InstructionContext) -> bool {
+    fn handle_go_to_verse(&self, context: &ViewState, verse_num: u32) -> bool {
+        if let Some(ref current_chapter) = context.current_chapter {
+            if verse_num > 0 && verse_num <= current_chapter.verses.len() as u32 {
+                let verse_range = VerseRange {
+                    start: verse_num,
+                    end: verse_num,
+                };
+                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                (self.navigate)(
+                    &new_path,
+                    NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    },
+                );
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    fn handle_copy_raw_verse(&self, context: &ViewState) -> bool {
         use leptos::web_sys::console;
 
         let verse_ranges = context.get_verse_ranges();
@@ -237,56 +188,61 @@ where
             .into(),
         );
 
-        let copy_text = if !verse_ranges.is_empty() {
-            let mut verses_to_copy = Vec::new();
+        let copy_text = if let Some(ref current_chapter) = context.current_chapter {
+            if !verse_ranges.is_empty() {
+                let mut verses_to_copy = Vec::new();
 
-            // Collect verses in selected ranges
-            for verse in &context.current_chapter.verses {
-                for range in &verse_ranges {
-                    if range.contains(verse.verse) {
-                        console::log_1(
-                            &format!(
-                                "📝 Including verse {}: {}",
-                                verse.verse,
-                                &verse.text[..verse.text.len().min(50)]
-                            )
-                            .into(),
-                        );
-                        verses_to_copy.push(verse);
-                        break;
+                // Collect verses in selected ranges
+                for verse in &current_chapter.verses {
+                    for range in &verse_ranges {
+                        if range.contains(verse.verse) {
+                            console::log_1(
+                                &format!(
+                                    "📝 Including verse {}: {}",
+                                    verse.verse,
+                                    &verse.text[..verse.text.len().min(50)]
+                                )
+                                .into(),
+                            );
+                            verses_to_copy.push(verse);
+                            break;
+                        }
                     }
                 }
-            }
 
-            if !verses_to_copy.is_empty() {
-                let text = verses_to_copy
-                    .iter()
-                    .map(|verse| verse.text.clone())
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                console::log_1(
-                    &format!(
-                        "📝 Raw copy: {} verses, {} chars",
-                        verses_to_copy.len(),
-                        text.len()
-                    )
-                    .into(),
-                );
-                text
+                if !verses_to_copy.is_empty() {
+                    let text = verses_to_copy
+                        .iter()
+                        .map(|verse| verse.text.clone())
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    console::log_1(
+                        &format!(
+                            "📝 Raw copy: {} verses, {} chars",
+                            verses_to_copy.len(),
+                            text.len()
+                        )
+                        .into(),
+                    );
+                    text
+                } else {
+                    console::log_1(&"📖 No verses in ranges, copying chapter name".into());
+                    current_chapter.name.clone()
+                }
             } else {
-                console::log_1(&"📖 No verses in ranges, copying chapter name".into());
-                context.current_chapter.name.clone()
+                console::log_1(&"📖 No verse ranges selected, copying chapter name".into());
+                current_chapter.name.clone()
             }
         } else {
-            console::log_1(&"📖 No verse ranges selected, copying chapter name".into());
-            context.current_chapter.name.clone()
+            console::log_1(&"❌ No current chapter available for copy".into());
+            return false;
         };
 
         self.copy_to_clipboard(copy_text);
         true
     }
 
-    fn handle_copy_verse_with_reference(&self, context: &InstructionContext) -> bool {
+    fn handle_copy_verse_with_reference(&self, context: &ViewState) -> bool {
         use leptos::web_sys::console;
 
         let verse_ranges = context.get_verse_ranges();
@@ -300,44 +256,45 @@ where
 
         let mut copy_text = String::new();
 
-        if !verse_ranges.is_empty() {
-            let mut verses_to_copy = Vec::new();
+        if let Some(ref current_chapter) = context.current_chapter {
+            if !verse_ranges.is_empty() {
+                let mut verses_to_copy = Vec::new();
 
-            // Collect verses in selected ranges
-            for verse in &context.current_chapter.verses {
-                for range in &verse_ranges {
-                    if range.contains(verse.verse) {
-                        console::log_1(
-                            &format!("📝 Including verse {} for reference copy", verse.verse)
-                                .into(),
-                        );
-                        verses_to_copy.push(verse);
-                        break;
+                // Collect verses in selected ranges
+                for verse in &current_chapter.verses {
+                    for range in &verse_ranges {
+                        if range.contains(verse.verse) {
+                            console::log_1(
+                                &format!("📝 Including verse {} for reference copy", verse.verse)
+                                    .into(),
+                            );
+                            verses_to_copy.push(verse);
+                            break;
+                        }
                     }
                 }
-            }
 
-            if !verses_to_copy.is_empty() {
-                // Add verse text
-                copy_text = verses_to_copy
-                    .iter()
-                    .map(|verse| verse.text.clone())
-                    .collect::<Vec<_>>()
-                    .join("\n");
+                if !verses_to_copy.is_empty() {
+                    // Add verse text
+                    copy_text = verses_to_copy
+                        .iter()
+                        .map(|verse| verse.text.clone())
+                        .collect::<Vec<_>>()
+                        .join("\n");
 
-                // Add reference and link
-                copy_text.push_str("\n\n");
+                    // Add reference and link
+                    copy_text.push_str("\n\n");
 
-                // Extract book name from chapter name (everything except the last word which is the chapter number)
-                let name_parts: Vec<&str> =
-                    context.current_chapter.name.split_whitespace().collect();
-                let book_name = if name_parts.len() > 1 {
-                    name_parts[..name_parts.len() - 1].join(" ")
-                } else {
-                    context.current_chapter.name.clone()
-                };
-                let translated_book_name = self.get_translated_book_name(&book_name);
-                let chapter_num = context.current_chapter.chapter.to_string();
+                    // Extract book name from chapter name (everything except the last word which is the chapter number)
+                    let name_parts: Vec<&str> =
+                        current_chapter.name.split_whitespace().collect();
+                    let book_name = if name_parts.len() > 1 {
+                        name_parts[..name_parts.len() - 1].join(" ")
+                    } else {
+                        current_chapter.name.clone()
+                    };
+                    let translated_book_name = self.get_translated_book_name(&book_name);
+                    let chapter_num = current_chapter.chapter.to_string();
 
                 console::log_1(
                     &format!(
@@ -394,11 +351,15 @@ where
                     .into(),
                 );
             }
+            } else {
+                console::log_1(
+                    &"📖 No verse ranges selected, copying chapter name for reference".into(),
+                );
+                copy_text = current_chapter.name.clone();
+            }
         } else {
-            console::log_1(
-                &"📖 No verse ranges selected, copying chapter name for reference".into(),
-            );
-            copy_text = context.current_chapter.name.clone();
+            console::log_1(&"❌ No current chapter available for copy with reference".into());
+            return false;
         }
 
         self.copy_to_clipboard(copy_text);
@@ -441,18 +402,9 @@ where
     }
 
     fn get_translated_book_name(&self, book_name: &str) -> String {
-        fn convert_language(
-            storage_lang: &crate::storage::translation_storage::Language,
-        ) -> Language {
-            match storage_lang {
-                crate::storage::translation_storage::Language::Dutch => Language::Dutch,
-                crate::storage::translation_storage::Language::English => Language::English,
-            }
-        }
-
         if let Some(current_translation) = get_current_translation() {
             if let Some(first_language) = current_translation.languages.first() {
-                let translation = Translation::from_language(convert_language(first_language));
+                let translation = Translation::from_language(*first_language);
                 if let Some(translated_name) = translation.get_book(&book_name.to_lowercase()) {
                     return translated_name.to_string();
                 }
@@ -464,11 +416,12 @@ where
     // Multiplier versions of navigation methods
     fn handle_next_verse_with_multiplier(
         &self,
-        context: &InstructionContext,
+        context: &ViewState,
         multiplier: u32,
     ) -> bool {
-        let mut current_verse = context.get_current_verse();
-        let mut current_chapter = context.current_chapter.clone();
+        if let Some(ref chapter) = context.current_chapter {
+            let mut current_verse = context.get_current_verse();
+            let mut current_chapter = chapter.clone();
 
         for _ in 0..multiplier {
             if current_verse == 0 {
@@ -487,39 +440,43 @@ where
             }
         }
 
-        // Navigate to final position
-        if current_verse == 0 {
-            (self.navigate)(
-                &current_chapter.to_path(),
-                NavigateOptions {
-                    scroll: false,
-                    ..Default::default()
-                },
-            );
+            // Navigate to final position
+            if current_verse == 0 {
+                (self.navigate)(
+                    &current_chapter.to_path(),
+                    NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    },
+                );
+            } else {
+                let verse_range = VerseRange {
+                    start: current_verse,
+                    end: current_verse,
+                };
+                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                (self.navigate)(
+                    &new_path,
+                    NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    },
+                );
+            }
+            true
         } else {
-            let verse_range = VerseRange {
-                start: current_verse,
-                end: current_verse,
-            };
-            let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-            (self.navigate)(
-                &new_path,
-                NavigateOptions {
-                    scroll: false,
-                    ..Default::default()
-                },
-            );
+            false
         }
-        true
     }
 
     fn handle_previous_verse_with_multiplier(
         &self,
-        context: &InstructionContext,
+        context: &ViewState,
         multiplier: u32,
     ) -> bool {
-        let mut current_verse = context.get_current_verse();
-        let mut current_chapter = context.current_chapter.clone();
+        if let Some(ref chapter) = context.current_chapter {
+            let mut current_verse = context.get_current_verse();
+            let mut current_chapter = chapter.clone();
 
         for _ in 0..multiplier {
             if current_verse == 0 {
@@ -549,61 +506,65 @@ where
             }
         }
 
-        // Navigate to final position
-        if current_verse == 0 {
-            (self.navigate)(
-                &current_chapter.to_path(),
-                NavigateOptions {
-                    scroll: false,
-                    ..Default::default()
-                },
-            );
+            // Navigate to final position
+            if current_verse == 0 {
+                (self.navigate)(
+                    &current_chapter.to_path(),
+                    NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    },
+                );
+            } else {
+                let verse_range = VerseRange {
+                    start: current_verse,
+                    end: current_verse,
+                };
+                let new_path = current_chapter.to_path_with_verses(&[verse_range]);
+                (self.navigate)(
+                    &new_path,
+                    NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    },
+                );
+            }
+            true
         } else {
-            let verse_range = VerseRange {
-                start: current_verse,
-                end: current_verse,
-            };
-            let new_path = current_chapter.to_path_with_verses(&[verse_range]);
-            (self.navigate)(
-                &new_path,
-                NavigateOptions {
-                    scroll: false,
-                    ..Default::default()
-                },
-            );
+            false
         }
-        true
     }
 
     fn handle_extend_selection_next_verse_with_multiplier(
         &self,
-        context: &InstructionContext,
+        context: &ViewState,
         multiplier: u32,
     ) -> bool {
         let current_ranges = context.get_verse_ranges();
 
-        // Determine the anchor point for the selection
-        let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty() {
-            // No current selection, start from current verse or beginning of chapter
-            let current_verse = context.get_current_verse();
-            if current_verse == 0 {
-                (1, 1, context.current_chapter.clone())
+        if let Some(ref chapter) = context.current_chapter {
+            // Determine the anchor point for the selection
+            let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty() {
+                // No current selection, start from current verse or beginning of chapter
+                let current_verse = context.get_current_verse();
+                if current_verse == 0 {
+                    (1, 1, chapter.clone())
+                } else {
+                    (
+                        current_verse,
+                        current_verse,
+                        chapter.clone(),
+                    )
+                }
             } else {
+                // Find the rightmost (highest) verse in current selection as anchor
+                let last_range = current_ranges.iter().max_by_key(|r| r.end).unwrap();
                 (
-                    current_verse,
-                    current_verse,
-                    context.current_chapter.clone(),
+                    current_ranges.iter().min_by_key(|r| r.start).unwrap().start,
+                    last_range.end,
+                    chapter.clone(),
                 )
-            }
-        } else {
-            // Find the rightmost (highest) verse in current selection as anchor
-            let last_range = current_ranges.iter().max_by_key(|r| r.end).unwrap();
-            (
-                current_ranges.iter().min_by_key(|r| r.start).unwrap().start,
-                last_range.end,
-                context.current_chapter.clone(),
-            )
-        };
+            };
 
         // Move target verse forward by multiplier
         for _ in 0..multiplier {
@@ -619,69 +580,73 @@ where
             }
         }
 
-        // Create new selection range from anchor to target
-        let new_range = if target_chapter.name == context.current_chapter.name {
-            // Same chapter - create single range
-            VerseRange {
-                start: anchor_verse.min(target_verse),
-                end: anchor_verse.max(target_verse),
-            }
-        } else {
-            // Cross-chapter selection not supported for now, just select the target verse
-            target_verse = 1; // Reset to first verse of new chapter
-            VerseRange {
-                start: target_verse,
-                end: target_verse,
-            }
-        };
+            // Create new selection range from anchor to target
+            let new_range = if target_chapter.name == chapter.name {
+                // Same chapter - create single range
+                VerseRange {
+                    start: anchor_verse.min(target_verse),
+                    end: anchor_verse.max(target_verse),
+                }
+            } else {
+                // Cross-chapter selection not supported for now, just select the target verse
+                target_verse = 1; // Reset to first verse of new chapter
+                VerseRange {
+                    start: target_verse,
+                    end: target_verse,
+                }
+            };
 
-        // Navigate to new selection
-        let new_path = if target_chapter.name == context.current_chapter.name {
-            context.current_chapter.to_path_with_verses(&[new_range])
-        } else {
-            target_chapter.to_path_with_verses(&[new_range])
-        };
+            // Navigate to new selection
+            let new_path = if target_chapter.name == chapter.name {
+                chapter.to_path_with_verses(&[new_range])
+            } else {
+                target_chapter.to_path_with_verses(&[new_range])
+            };
 
-        (self.navigate)(
-            &new_path,
-            NavigateOptions {
-                scroll: false,
-                ..Default::default()
-            },
-        );
-        true
+            (self.navigate)(
+                &new_path,
+                NavigateOptions {
+                    scroll: false,
+                    ..Default::default()
+                },
+            );
+            true
+        } else {
+            false
+        }
     }
 
     fn handle_extend_selection_previous_verse_with_multiplier(
         &self,
-        context: &InstructionContext,
+        context: &ViewState,
         multiplier: u32,
     ) -> bool {
         let current_ranges = context.get_verse_ranges();
 
-        // Determine the anchor point for the selection
-        let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty() {
-            // No current selection, start from current verse or end of chapter
-            let current_verse = context.get_current_verse();
-            if current_verse == 0 {
-                let last_verse = context.current_chapter.verses.len() as u32;
-                (last_verse, last_verse, context.current_chapter.clone())
+        if let Some(ref chapter) = context.current_chapter {
+            // Determine the anchor point for the selection
+            let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty() {
+                // No current selection, start from current verse or end of chapter
+                let current_verse = context.get_current_verse();
+                if current_verse == 0 {
+                    let last_verse = chapter.verses.len() as u32;
+                    (last_verse, last_verse, chapter.clone())
+                } else {
+                    (
+                        current_verse,
+                        current_verse,
+                        chapter.clone(),
+                    )
+                }
             } else {
+                // Find the leftmost (lowest) verse in current selection as anchor
+                let first_range = current_ranges.iter().min_by_key(|r| r.start).unwrap();
                 (
-                    current_verse,
-                    current_verse,
-                    context.current_chapter.clone(),
+                    current_ranges.iter().max_by_key(|r| r.end).unwrap().end,
+                    first_range.start,
+                    chapter.clone(),
                 )
-            }
-        } else {
-            // Find the leftmost (lowest) verse in current selection as anchor
-            let first_range = current_ranges.iter().min_by_key(|r| r.start).unwrap();
-            (
-                current_ranges.iter().max_by_key(|r| r.end).unwrap().end,
-                first_range.start,
-                context.current_chapter.clone(),
-            )
-        };
+            };
 
         // Move target verse backward by multiplier
         for _ in 0..multiplier {
@@ -703,82 +668,94 @@ where
             }
         }
 
-        // Create new selection range from target to anchor
-        let new_range = if target_chapter.name == context.current_chapter.name {
-            // Same chapter - create single range
-            VerseRange {
-                start: anchor_verse.min(target_verse),
-                end: anchor_verse.max(target_verse),
-            }
-        } else {
-            // Cross-chapter selection not supported for now, just select the target verse
-            VerseRange {
-                start: target_verse,
-                end: target_verse,
-            }
-        };
+            // Create new selection range from target to anchor
+            let new_range = if target_chapter.name == chapter.name {
+                // Same chapter - create single range
+                VerseRange {
+                    start: anchor_verse.min(target_verse),
+                    end: anchor_verse.max(target_verse),
+                }
+            } else {
+                // Cross-chapter selection not supported for now, just select the target verse
+                VerseRange {
+                    start: target_verse,
+                    end: target_verse,
+                }
+            };
 
-        // Navigate to new selection
-        let new_path = if target_chapter.name == context.current_chapter.name {
-            context.current_chapter.to_path_with_verses(&[new_range])
-        } else {
-            target_chapter.to_path_with_verses(&[new_range])
-        };
+            // Navigate to new selection
+            let new_path = if target_chapter.name == chapter.name {
+                chapter.to_path_with_verses(&[new_range])
+            } else {
+                target_chapter.to_path_with_verses(&[new_range])
+            };
 
-        (self.navigate)(
-            &new_path,
-            NavigateOptions {
-                scroll: false,
-                ..Default::default()
-            },
-        );
-        true
+            (self.navigate)(
+                &new_path,
+                NavigateOptions {
+                    scroll: false,
+                    ..Default::default()
+                },
+            );
+            true
+        } else {
+            false
+        }
     }
 
     fn handle_next_chapter_with_multiplier(
         &self,
-        context: &InstructionContext,
+        context: &ViewState,
         multiplier: u32,
     ) -> bool {
-        if let Some(target_path) =
-            get_bible().get_nth_next_chapter_path(&context.current_chapter, multiplier)
-        {
-            (self.navigate)(
-                &target_path,
-                NavigateOptions {
-                    scroll: false,
-                    ..Default::default()
-                },
-            );
+        if let Some(ref current_chapter) = context.current_chapter {
+            if let Some(target_path) =
+                get_bible().get_nth_next_chapter_path(current_chapter, multiplier)
+            {
+                (self.navigate)(
+                    &target_path,
+                    NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    },
+                );
+            }
+            true
+        } else {
+            false
         }
-        true
     }
 
     fn handle_previous_chapter_with_multiplier(
         &self,
-        context: &InstructionContext,
+        context: &ViewState,
         multiplier: u32,
     ) -> bool {
-        if let Some(target_path) =
-            get_bible().get_nth_previous_chapter_path(&context.current_chapter, multiplier)
-        {
-            (self.navigate)(
-                &target_path,
-                NavigateOptions {
-                    scroll: false,
-                    ..Default::default()
-                },
-            );
+        if let Some(ref current_chapter) = context.current_chapter {
+            if let Some(target_path) =
+                get_bible().get_nth_previous_chapter_path(current_chapter, multiplier)
+            {
+                (self.navigate)(
+                    &target_path,
+                    NavigateOptions {
+                        scroll: false,
+                        ..Default::default()
+                    },
+                );
+            }
+            true
+        } else {
+            false
         }
-        true
     }
 
     fn handle_next_book_with_multiplier(
         &self,
-        context: &InstructionContext,
+        context: &ViewState,
         multiplier: u32,
     ) -> bool {
-        let mut current_chapter = context.current_chapter.clone();
+        if let Some(ref chapter) = context.current_chapter {
+            let mut current_chapter = chapter.clone();
 
         for _ in 0..multiplier {
             if let Some(next_book_chapter) = get_bible().get_next_book(&current_chapter) {
@@ -789,22 +766,26 @@ where
             }
         }
 
-        (self.navigate)(
-            &current_chapter.to_path(),
-            NavigateOptions {
-                scroll: false,
-                ..Default::default()
-            },
-        );
-        true
+            (self.navigate)(
+                &current_chapter.to_path(),
+                NavigateOptions {
+                    scroll: false,
+                    ..Default::default()
+                },
+            );
+            true
+        } else {
+            false
+        }
     }
 
     fn handle_previous_book_with_multiplier(
         &self,
-        context: &InstructionContext,
+        context: &ViewState,
         multiplier: u32,
     ) -> bool {
-        let mut current_chapter = context.current_chapter.clone();
+        if let Some(ref chapter) = context.current_chapter {
+            let mut current_chapter = chapter.clone();
 
         for _ in 0..multiplier {
             if let Some(prev_book_chapter) = get_bible().get_previous_book(&current_chapter) {
@@ -815,14 +796,17 @@ where
             }
         }
 
-        (self.navigate)(
-            &current_chapter.to_path(),
-            NavigateOptions {
-                scroll: false,
-                ..Default::default()
-            },
-        );
-        true
+            (self.navigate)(
+                &current_chapter.to_path(),
+                NavigateOptions {
+                    scroll: false,
+                    ..Default::default()
+                },
+            );
+            true
+        } else {
+            false
+        }
     }
 
     fn handle_open_github_repository(&self) -> bool {
