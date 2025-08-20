@@ -19,6 +19,15 @@ pub fn get_builtin_translations() -> Vec<BibleTranslation> {
             iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/Njg5MjEyOTM0NzVmZTAwZjg3Y2VjN2Iy:MjhiNDNiOTMyNDllYTAwMzRmYWM4ZTdmOTdlZDU3NGExNzQxNjA4MzBiNzU3MThmNjE5ZGEzODZiNjVlOWE2MA"),
         },
         BibleTranslation {
+            name: String::from("Petrus Canicius vertaling"),
+            short_name: String::from("pcv"),
+            description: String::from("De Petrus Canisiusvertaling is een katholieke Nederlandse bijbelvertaling uit de 20e eeuw, genoemd naar jezuïet Petrus Canisius. Ze bood een begrijpelijker alternatief voor de Statenvertaling en werd veel gebruikt in gezinnen, kerken en scholen, tot de Willibrordvertaling haar opvolgde."),
+            wikipedia: String::from("https://nl.wikipedia.org/wiki/Petrus_Canisiusvertaling"),
+            release_year: 1939,
+            languages: vec![Language::Dutch],
+            iagon: String::from("https://gw.iagon.com/api/v2/storage/shareable/link/NjhhNWE4M2NlZDM0YjkxMmFjZjBlZWUx:OGI2ODYxMDRmMWNlMTNmNDBhOWQ0M2U5NjAwZjA1OGY2ZWI4MGQwNDE0MThkYWQwYTc3NDc2YWI4OWJhMTViYQ"),
+        },
+        BibleTranslation {
             name: String::from("King james version"),
             short_name: String::from("en_kjv"),
             description: String::from("The King James Version is an English translation of the Bible published in 1611, commissioned by King James I of England. It was created by 47 scholars and is known for its literary excellence and enduring influence on English literature and Protestant Christianity. The KJV uses formal equivalence translation and features majestic, archaic English that has shaped religious language for centuries."),
