@@ -158,6 +158,7 @@ impl KeyboardMappings {
             "ToggleThemeSidebar" => Some(Instruction::ToggleThemeSidebar),
             "ToggleBiblePallate" => Some(Instruction::ToggleBiblePallate),
             "ToggleCommandPallate" => Some(Instruction::ToggleCommandPallate),
+            "ToggleTranslationComparison" => Some(Instruction::ToggleTranslationComparison),
             "NextReference" => Some(Instruction::NextReference),
             "PreviousReference" => Some(Instruction::PreviousReference),
             "NextPaletteResult" => Some(Instruction::NextPaletteResult),

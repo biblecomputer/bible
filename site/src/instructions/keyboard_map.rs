@@ -127,6 +127,7 @@ impl KeyboardMapper {
             ("b", false, true, false, false) => Some(Instruction::ToggleSidebar),
             ("r", false, false, false, false) => Some(Instruction::ToggleCrossReferences),
             ("R", true, true, false, false) => Some(Instruction::ToggleCrossReferences),
+            ("c", false, false, false, false) => Some(Instruction::ToggleTranslationComparison),
             
             // Command palette (Cmd/Ctrl+K)
             ("k", false, true, false, false) | ("k", false, false, true, false) => {
