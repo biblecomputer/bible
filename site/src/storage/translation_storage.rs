@@ -1,5 +1,6 @@
 use crate::api::{try_fetch_bible, try_fetch_bible_with_progress};
 use crate::core::{Bible, init_bible_signal};
+use crate::components::custom_translation_import::_remove_custom_translation;
 use leptos::prelude::Set;
 use gloo_storage::{LocalStorage, Storage};
 use rexie::{ObjectStore, Rexie, TransactionMode};
@@ -81,6 +82,11 @@ pub async fn uninstall_translation(
     translation_short_name: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     remove_downloaded_translation(translation_short_name)?;
+
+    // Also remove from custom translations if it's a custom translation
+    if translation_short_name.starts_with("custom_") {
+        _remove_custom_translation(translation_short_name)?;
+    }
 
     let translation_cache_key = format!("translation_{}", translation_short_name);
     remove_translation_from_cache(&translation_cache_key).await?;
