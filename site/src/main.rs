@@ -1,14 +1,6 @@
 /*!
  * Bible Application Main Module
  *
- * This is the main entry point for the Bible web application. It contains:
- * - Main app component with global state management
- * - Keyboard navigation handler for shortcuts
- * - UI layout with sidebars, navigation, and content areas
- * - Helper components for auto-hide functionality
- *
- * The app uses Leptos for reactive UI and follows a component-based architecture
- * with clear separation between state management, UI, and business logic.
  */
 
 // === External Dependencies ===
@@ -27,9 +19,7 @@ use crate::components::{
 };
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::keyboard_navigation::KeyboardNavigationHandler;
-use crate::storage::{
-    add_recent_chapter, get_selected_theme,
-};
+use crate::storage::{add_recent_chapter, get_selected_theme};
 use crate::themes::{get_default_theme, get_theme_by_id, theme_to_css_vars, Theme};
 use crate::utils::{is_mobile_screen, parse_book_chapter_from_url};
 use crate::view_state::{create_view_state, ViewStateSignal};
@@ -188,8 +178,9 @@ fn BibleWithSidebar(
 
     // Clear initial search query after palette opens
     Effect::new(move |_| {
-        if view_state.with(|state| state.is_command_palette_open) && 
-           view_state.with(|state| state.initial_search_query.is_some()) {
+        if view_state.with(|state| state.is_command_palette_open)
+            && view_state.with(|state| state.initial_search_query.is_some())
+        {
             // Clear the initial search query after a short delay to allow it to be processed
             view_state.update(|state| state.clear_initial_search_query());
         }
