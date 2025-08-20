@@ -198,23 +198,27 @@ pub fn CustomTranslationImport(
     view! {
         <div>
             <button
-                class="w-full border-2 border-dashed rounded-lg p-6 hover:border-blue-400 transition-colors"
-                style="border-color: var(--theme-sidebar-border); background-color: var(--theme-background)"
+                class="w-full border border-dashed rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+                style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)"
                 on:click=move |_| {
                     reset_form();
                     set_show_import_modal.set(true);
                 }
             >
-                <div class="flex flex-col items-center">
-                    <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--theme-text-muted)">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
-                    <h3 class="text-lg font-semibold mb-1" style="color: var(--theme-text-primary)">
-                        "Importeer je eigen vertaling"
-                    </h3>
-                    <p class="text-sm" style="color: var(--theme-text-secondary)">
-                        "Upload een JSON bestand met je Bijbelvertaling"
-                    </p>
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold mb-1" style="color: var(--theme-text-primary)">
+                            "Importeer je eigen vertaling"
+                        </h3>
+                        <p class="text-sm" style="color: var(--theme-text-secondary)">
+                            "Upload een JSON bestand met je Bijbelvertaling"
+                        </p>
+                    </div>
+                    <div class="ml-6">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--theme-text-muted)">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
                 </div>
             </button>
 
