@@ -39,7 +39,6 @@ fn TranslationItem(
     let translation_short_name = translation.short_name.clone();
     let translation_name = translation.name.clone();
     let translation_release_year = translation.release_year;
-    let translation_wikipedia = translation.wikipedia.clone();
     let translation_clone_for_download = translation.clone();
     
     #[cfg(target_arch = "wasm32")]
@@ -283,16 +282,6 @@ fn TranslationItem(
                 }
             }}
             
-            <div class="mt-4">
-                <a
-                    href=translation_wikipedia.clone()
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-sm hover:underline translation-link"
-                >
-                    "Meer informatie →"
-                </a>
-            </div>
         </div>
     }
 }

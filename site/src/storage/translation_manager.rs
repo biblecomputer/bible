@@ -186,17 +186,9 @@ pub fn TranslationManager() -> impl IntoView {
                                             </span>
                                         </div>
                                         <p class="text-sm text-gray-600 mb-2 ml-6">
-                                            {translation.description.clone()}
+                                            "Uitgegeven in " {translation.release_year.to_string()}
                                         </p>
                                         <div class="ml-6 flex items-center space-x-4">
-                                            <a
-                                                href=translation.wikipedia.clone()
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                class="text-sm text-blue-600 hover:text-blue-800"
-                                            >
-                                                "Learn more"
-                                            </a>
                                             <Show
                                                 when=move || is_downloaded
                                                 fallback=|| view! { <></> }

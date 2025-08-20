@@ -60,8 +60,6 @@ where
         crate::storage::translation_storage::BibleTranslation {
             name: "Unknown Bible".to_string(),
             short_name: "unknown".to_string(), 
-            description: "".to_string(),
-            wikipedia: "".to_string(),
             release_year: 2024,
             languages: vec![],
             iagon: "".to_string(),

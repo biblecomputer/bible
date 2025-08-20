@@ -10,11 +10,9 @@ use serde::{Deserialize, Serialize};
 pub struct BibleTranslation {
     pub name: String,
     pub short_name: String,
-    pub description: String,
     pub release_year: u16,
     pub iagon: String,
     pub languages: Vec<Language>,
-    pub wikipedia: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
