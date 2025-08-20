@@ -3,15 +3,15 @@ use leptos::ev;
 use leptos::web_sys::KeyboardEvent;
 use leptos::wasm_bindgen::JsCast;
 use crate::themes::{get_themes, Theme};
-use crate::storage::{save_selected_theme, save_references_sidebar_open};
+use crate::storage::save_selected_theme;
 use crate::utils::is_mobile_screen;
+use crate::view_state::ViewStateSignal;
 
 #[component]
 pub fn ThemeSidebar(
     current_theme: ReadSignal<Theme>,
     set_current_theme: WriteSignal<Theme>,
-    set_sidebar_open: WriteSignal<bool>,
-    palette_open: ReadSignal<bool>,
+    view_state: ViewStateSignal,
 ) -> impl IntoView {
     let themes = get_themes();
     let themes_len = themes.len();
@@ -36,7 +36,7 @@ pub fn ThemeSidebar(
         }
         
         // Don't handle navigation when command palette is open (let palette handle it)
-        if palette_open.get() {
+        if view_state.with(|state| state.is_command_palette_open) {
             return;
         }
         
@@ -112,10 +112,7 @@ pub fn ThemeSidebar(
                     class="p-2 hover:bg-gray-100 rounded transition-colors"
                     style="color: var(--theme-text-secondary)"
                     on:click=move |_| {
-                        set_sidebar_open.set(false);
-                        if is_mobile_screen() {
-                            save_references_sidebar_open(false);
-                        }
+                        view_state.update(|state| state.is_theme_sidebar_open = false);
                     }
                     aria-label="Close themes"
                     title="Close themes"
@@ -175,8 +172,7 @@ pub fn ThemeSidebar(
                                 
                                 // Close sidebar on mobile after selection
                                 if is_mobile_screen() {
-                                    set_sidebar_open.set(false);
-                                    save_references_sidebar_open(false);
+                                    view_state.update(|state| state.is_theme_sidebar_open = false);
                                 }
                             }
                         >

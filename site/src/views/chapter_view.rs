@@ -9,17 +9,10 @@ use leptos_router::components::A;
 use wasm_bindgen_futures::spawn_local;
 use leptos::wasm_bindgen::JsCast;
 
-fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
-    match storage_lang {
-        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
-        crate::storage::translation_storage::Language::English => Language::English,
-    }
-}
-
 fn get_translated_chapter_name(chapter_name: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(convert_language(first_language));
+            let translation = Translation::from_language(*first_language);
             
             // Use the Translation.get() method which handles both book names and chapter references
             if let Some(translated_name) = translation.get(chapter_name) {
@@ -36,10 +29,10 @@ fn get_navigation_text(key: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
             match (key, first_language) {
-                ("previous_chapter", crate::storage::translation_storage::Language::Dutch) => "Vorig Hoofdstuk".to_string(),
-                ("next_chapter", crate::storage::translation_storage::Language::Dutch) => "Volgend Hoofdstuk".to_string(),
-                ("previous_chapter", crate::storage::translation_storage::Language::English) => "Previous Chapter".to_string(),
-                ("next_chapter", crate::storage::translation_storage::Language::English) => "Next Chapter".to_string(),
+                ("previous_chapter", Language::Dutch) => "Vorig Hoofdstuk".to_string(),
+                ("next_chapter", Language::Dutch) => "Volgend Hoofdstuk".to_string(),
+                ("previous_chapter", Language::English) => "Previous Chapter".to_string(),
+                ("next_chapter", Language::English) => "Next Chapter".to_string(),
                 _ => key.to_string(),
             }
         } else {

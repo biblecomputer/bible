@@ -22,6 +22,7 @@ use wasm_bindgen_futures::spawn_local;
 use crate::core::{VerseRange, parse_verse_ranges_from_url, Verse};
 use crate::storage::{get_downloaded_translations, load_downloaded_translation};
 use crate::storage::translations::get_translations;
+use crate::view_state::ViewStateSignal;
 
 
 /// Internal state for tracking comparison data
@@ -45,14 +46,12 @@ struct ComparisonData {
  */
 #[component]
 pub fn TranslationComparison(
-    /// Whether the comparison panel is currently open
-    is_open: ReadSignal<bool>,
-    /// Signal to control panel visibility
-    set_is_open: WriteSignal<bool>,
     /// The current book name being viewed
     current_book: ReadSignal<String>,
     /// The current chapter number being viewed
     current_chapter: ReadSignal<u32>,
+    /// View state containing panel open/close state
+    view_state: ViewStateSignal,
 ) -> impl IntoView {
     // === State Management ===
     
@@ -81,7 +80,7 @@ pub fn TranslationComparison(
     // This effect runs whenever the panel is opened and populates
     // the list of available translations for comparison.
     Effect::new(move |_| {
-        if is_open.get() {
+        if view_state.with(|state| state.is_translation_comparison_open) {
             let translations = get_downloaded_translations();
             set_downloaded_translations.set(translations);
         }
@@ -93,7 +92,7 @@ pub fn TranslationComparison(
     Effect::new(move |_| {
         let selected = selected_translations.get();
         
-        if !selected.is_empty() && is_open.get() {
+        if !selected.is_empty() && view_state.with(|state| state.is_translation_comparison_open) {
             let book = current_book.get();
             let chapter = current_chapter.get();
             let verse_ranges = current_verse_ranges.get();
@@ -146,16 +145,16 @@ pub fn TranslationComparison(
     // Global keyboard listener that closes the comparison panel
     // when the user presses the Escape key.
     window_event_listener(ev::keydown, move |evt: KeyboardEvent| {
-        if evt.key() == "Escape" && is_open.get() {
+        if evt.key() == "Escape" && view_state.with(|state| state.is_translation_comparison_open) {
             evt.prevent_default();
-            set_is_open.set(false);
+            view_state.update(|state| state.is_translation_comparison_open = false);
         }
     });
 
     // === Render Component ===
     
     view! {
-        <Show when=move || is_open.get() fallback=|| view! { <></> }>
+        <Show when=move || view_state.with(|state| state.is_translation_comparison_open) fallback=|| view! { <></> }>
             {/* Main Panel Container */}
             <div class="fixed inset-y-0 right-0 w-96 bg-white shadow-lg z-30 flex flex-col border-l border-gray-200">
                 
@@ -164,7 +163,7 @@ pub fn TranslationComparison(
                     <h2 class="text-lg font-semibold text-gray-800">Translation Comparison</h2>
                     <button
                         class="text-gray-500 hover:text-gray-700 transition-colors"
-                        on:click=move |_| set_is_open.set(false)
+                        on:click=move |_| view_state.update(|state| state.is_translation_comparison_open = false)
                         aria-label="Close translation comparison panel"
                     >
                         {/* Close Icon */}

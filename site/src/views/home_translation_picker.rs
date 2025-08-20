@@ -4,8 +4,9 @@ use leptos_router::NavigateOptions;
 use crate::storage::{
     get_selected_translation, set_selected_translation, 
     is_translation_downloaded, download_translation_with_progress, switch_bible_translation, uninstall_translation,
-    get_available_languages, get_translations_by_language, BibleTranslation, Language
+    get_available_languages, get_translations_by_language, BibleTranslation
 };
+use crate::core::types::Language;
 use crate::components::{theme_switcher::ThemeSwitcher, CustomTranslationImport};
 use wasm_bindgen_futures::spawn_local;
 

@@ -1,7 +1,6 @@
 use crate::core::{get_bible, Chapter, VerseRange};
 use crate::storage::translations::get_current_translation;
 use crate::storage::recent_chapters::get_recent_chapters;
-use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
 use crate::instructions::types::Instruction;
 use crate::instructions::processor::{InstructionContext, InstructionProcessor};
@@ -167,12 +166,6 @@ fn score_verse_number_match(verse_number: u32, search_number: u32) -> usize {
     0
 }
 
-fn convert_language(storage_lang: &crate::storage::translation_storage::Language) -> Language {
-    match storage_lang {
-        crate::storage::translation_storage::Language::Dutch => Language::Dutch,
-        crate::storage::translation_storage::Language::English => Language::English,
-    }
-}
 
 // Convert vim key notation to user-friendly display
 fn vim_key_to_display(vim_key: &str) -> String {
@@ -284,7 +277,7 @@ fn get_all_instructions() -> Vec<SearchResult> {
 fn get_translated_chapter_name(chapter_name: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
         if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(convert_language(first_language));
+            let translation = Translation::from_language(*first_language);
             
             // Use the Translation.get() method which handles both book names and chapter references
             if let Some(translated_name) = translation.get(chapter_name) {
@@ -363,11 +356,7 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
 
 #[component]
 pub fn CommandPalette(
-    is_open: ReadSignal<bool>,
-    set_is_open: WriteSignal<bool>,
-    next_palette_result: RwSignal<bool>,
-    previous_palette_result: RwSignal<bool>,
-    initial_search_query: ReadSignal<Option<String>>,
+    view_state: crate::view_state::ViewStateSignal,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
@@ -443,9 +432,8 @@ pub fn CommandPalette(
 
     // Handle initial search query when palette opens
     Effect::new(move |_| {
-        if let Some(query) = initial_search_query.get() {
+        if let Some(query) = view_state.with(|state| state.initial_search_query.clone()) {
             set_input_value.set(query); // Set input_value to show in field, debouncing will handle search_query
-            // Note: We can't clear the signal here because this is a ReadSignal
             // The signal will be cleared by the parent component
         }
     });
@@ -573,7 +561,7 @@ pub fn CommandPalette(
             // Try to find the verse(s)
             if let Some(translation) = get_current_translation() {
                 if let Some(first_language) = translation.languages.first() {
-                    let translation_obj = Translation::from_language(convert_language(first_language));
+                    let translation_obj = Translation::from_language(*first_language);
                     
                     // Try to translate the book name
                     let book_name_to_search = if let Some(translated) = translation_obj.get(&verse_ref.book_name) {
@@ -739,8 +727,8 @@ pub fn CommandPalette(
 
     // Handle NextPaletteResult navigation signal
     Effect::new(move |_| {
-        if next_palette_result.get() {
-            next_palette_result.set(false); // Reset signal
+        if view_state.with(|state| state.next_palette_result_trigger) {
+            view_state.update(|state| state.next_palette_result_trigger = false); // Reset signal
             let results = filtered_results.get();
             if !results.is_empty() {
                 let current = selected_index.get();
@@ -759,8 +747,8 @@ pub fn CommandPalette(
 
     // Handle PreviousPaletteResult navigation signal
     Effect::new(move |_| {
-        if previous_palette_result.get() {
-            previous_palette_result.set(false); // Reset signal
+        if view_state.with(|state| state.previous_palette_result_trigger) {
+            view_state.update(|state| state.previous_palette_result_trigger = false); // Reset signal
             let results = filtered_results.get();
             if !results.is_empty() {
                 let current = selected_index.get();
@@ -783,7 +771,7 @@ pub fn CommandPalette(
         let results = filtered_results.get();
         
         // Only scroll if we have results and palette is open
-        if !results.is_empty() && is_open.get() {
+        if !results.is_empty() && view_state.with(|state| state.is_command_palette_open) {
             // Use a timeout to ensure the DOM has been updated
             spawn_local(async move {
                 gloo_timers::future::TimeoutFuture::new(10).await;
@@ -803,18 +791,18 @@ pub fn CommandPalette(
     // Set up global keyboard handling when palette is open with proper cleanup
     let nav = navigate.clone();
     Effect::new(move |_| {
-        if is_open.get() {
+        if view_state.with(|state| state.is_command_palette_open) {
             let _nav = nav.clone();
             let handle_keydown = move |e: KeyboardEvent| {
                 match e.key().as_str() {
                     "Escape" => {
-                        set_is_open.set(false);
+                        view_state.update(|state| state.is_command_palette_open = false);
                         set_search_query.set(String::new());
                         set_selected_index.set(0);
                     }
                     "Enter" => {
                         // Double-check that palette is still open before processing
-                        if !is_open.get() {
+                        if !view_state.with(|state| state.is_command_palette_open) {
                             return; // Palette closed, don't process Enter
                         }
                         e.prevent_default();
@@ -830,7 +818,7 @@ pub fn CommandPalette(
                                             set_execute_instruction.set(Some(instruction));
                                         }
                                         // Close the palette
-                                        set_is_open.set(false);
+                                        view_state.update(|state| state.is_command_palette_open = false);
                                         set_search_query.set(String::new());
                                         set_selected_index.set(0);
                                     }
@@ -839,7 +827,7 @@ pub fn CommandPalette(
                                         set_navigate_to.set(Some(result.to_path()));
                                         
                                         // Close palette immediately
-                                        set_is_open.set(false);
+                                        view_state.update(|state| state.is_command_palette_open = false);
                                         
                                         // Reset search state after a small delay to avoid race conditions
                                         spawn_local(async move {
@@ -872,7 +860,7 @@ pub fn CommandPalette(
     
     // Reset selected index when palette opens
     Effect::new(move |_| {
-        if is_open.get() {
+        if view_state.with(|state| state.is_command_palette_open) {
             set_selected_index.set(0);
         }
     });
@@ -898,7 +886,7 @@ pub fn CommandPalette(
     // Set mounted state and focus input when palette opens
     Effect::new(move |_| {
         set_is_mounted.set(true);
-        if is_open.get() {
+        if view_state.with(|state| state.is_command_palette_open) {
             if let Some(input) = input_ref.get() {
                 let _ = input.focus();
             }
@@ -908,11 +896,11 @@ pub fn CommandPalette(
 
 
     view! {
-        <Show when=move || is_mounted.get() && is_open.get() fallback=|| ()>
+        <Show when=move || is_mounted.get() && view_state.with(|state| state.is_command_palette_open) fallback=|| ()>
             // Backdrop
             <div 
                 class="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-start justify-center pt-20"
-                on:click=move |_| set_is_open.set(false)
+                on:click=move |_| view_state.update(|state| state.is_command_palette_open = false)
             >
                 // Command Palette Modal
                 <div 
@@ -1030,7 +1018,7 @@ pub fn CommandPalette(
                                                                         set_execute_instruction.set(Some(instruction));
                                                                     }
                                                                     // Close the palette
-                                                                    set_is_open.set(false);
+                                                                    view_state.update(|state| state.is_command_palette_open = false);
                                                                     set_search_query.set(String::new());
                                                                     set_selected_index.set(0);
                                                                 }
@@ -1039,7 +1027,7 @@ pub fn CommandPalette(
                                                                     set_navigate_to.set(Some(path.clone()));
                                                                     
                                                                     // Close palette and reset state immediately  
-                                                                    set_is_open.set(false);
+                                                                    view_state.update(|state| state.is_command_palette_open = false);
                                                                     
                                                                     // Reset search state after a small delay to avoid race conditions
                                                                     spawn_local(async move {

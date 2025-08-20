@@ -28,12 +28,11 @@ use crate::components::{
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
 use crate::keyboard_navigation::KeyboardNavigationHandler;
 use crate::storage::{
-    add_recent_chapter, get_references_sidebar_open, get_selected_theme, get_sidebar_open,
-    get_verse_visibility, save_references_sidebar_open, save_sidebar_open,
+    add_recent_chapter, get_selected_theme,
 };
 use crate::themes::{get_default_theme, get_theme_by_id, theme_to_css_vars, Theme};
 use crate::utils::{is_mobile_screen, parse_book_chapter_from_url};
-use crate::view_state::{create_view_state, ViewState, ViewStateSignal};
+use crate::view_state::{create_view_state, ViewStateSignal};
 use crate::views::{About, ChapterDetail, HomeTranslationPicker};
 
 mod api;
@@ -592,7 +591,7 @@ fn Home(current_theme: ReadSignal<Theme>, set_current_theme: WriteSignal<Theme>)
 }
 
 #[component]
-fn ChapterWrapper(verse_visibility_enabled: ReadSignal<bool>) -> impl IntoView {
+fn ChapterWrapper(view_state: ViewStateSignal) -> impl IntoView {
     use crate::storage::{get_selected_translation, is_translation_downloaded};
     use leptos_router::hooks::{use_location, use_navigate};
 
@@ -656,11 +655,17 @@ fn ChapterWrapper(verse_visibility_enabled: ReadSignal<bool>) -> impl IntoView {
         >
             {move || {
                 match Chapter::from_url() {
-                    Ok(chapter) => view! {
-                        <ChapterDetail
-                            chapter=chapter
-                            verse_visibility_enabled=verse_visibility_enabled
-                        />
+                    Ok(chapter) => {
+                        let (verse_visibility_read, verse_visibility_write) = signal(false);
+                        Effect::new(move |_| {
+                            verse_visibility_write.set(view_state.with(|state| state.verse_visibility_enabled));
+                        });
+                        view! {
+                            <ChapterDetail
+                                chapter=chapter
+                                verse_visibility_enabled=verse_visibility_read
+                            />
+                        }
                     }.into_any(),
                     Err(_) => view! {
                         <div class="text-center p-8">

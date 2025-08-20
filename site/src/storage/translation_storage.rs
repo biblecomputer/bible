@@ -1,5 +1,6 @@
 use crate::api::{try_fetch_bible, try_fetch_bible_with_progress};
 use crate::core::{Bible, init_bible_signal};
+use crate::core::types::Language;
 use crate::components::custom_translation_import::_remove_custom_translation;
 use leptos::prelude::Set;
 use gloo_storage::{LocalStorage, Storage};
@@ -15,11 +16,6 @@ pub struct BibleTranslation {
     pub languages: Vec<Language>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub enum Language {
-    Dutch,
-    English,
-}
 
 const SELECTED_TRANSLATION_KEY: &str = "selected_translation";
 const DOWNLOADED_TRANSLATIONS_KEY: &str = "downloaded_translations";
