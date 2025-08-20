@@ -393,7 +393,23 @@ pub fn HomeTranslationPicker(
     
     view! {
         <div class="max-w-2xl mx-auto py-8">
-            <div class="flex justify-end mb-4">
+            <div class="flex justify-between mb-4">
+                {move || match view_state.get() {
+                    ViewState::LanguageSelection => view! { <div></div> }.into_any(),
+                    ViewState::TranslationSelection(_) => view! {
+                        <button
+                            class="p-3 rounded-full border transition-colors translation-button-secondary"
+                            style="border-color: var(--theme-sidebar-border); background-color: var(--theme-background)"
+                            on:click=move |_| {
+                                set_view_state.set(ViewState::LanguageSelection);
+                            }
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--theme-text-primary)">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </button>
+                    }.into_any()
+                }}
                 <ThemeSwitcher current_theme=current_theme set_current_theme=set_current_theme />
             </div>
             <div class="text-center mb-8">
@@ -443,19 +459,8 @@ pub fn HomeTranslationPicker(
                     ViewState::TranslationSelection(selected_language) => {
                         let selected_language_name = selected_language.display_name().to_string();
                         view! {
-                            <div class="mb-4">
-                                <button
-                                    class="flex items-center transition-colors translation-link"
-                                    on:click=move |_| {
-                                        set_view_state.set(ViewState::LanguageSelection);
-                                    }
-                                >
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                    </svg>
-                                    "Terug naar talen"
-                                </button>
-                                <h2 class="text-2xl font-semibold mt-2" style="color: var(--theme-text-primary)">
+                            <div class="mb-6">
+                                <h2 class="text-2xl font-semibold" style="color: var(--theme-text-primary)">
                                     {selected_language_name} " vertalingen"
                                 </h2>
                             </div>
