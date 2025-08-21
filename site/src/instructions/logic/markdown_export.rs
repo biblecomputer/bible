@@ -124,10 +124,7 @@ where
 }
 
 /// Convenience function for exporting Markdown without progress tracking
-#[allow(dead_code)]
-pub fn export_bible_to_markdown_simple(bible: &Bible) -> Result<String, Box<dyn std::error::Error>> {
-    export_bible_to_markdown(bible, None::<fn(f32, String)>)
-}
+// Removed unused export_bible_to_markdown_simple function
 
 /// Trigger Markdown download in the browser
 pub fn trigger_markdown_download(markdown_content: String, filename: &str) {

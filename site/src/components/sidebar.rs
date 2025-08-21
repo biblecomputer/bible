@@ -14,15 +14,7 @@ use leptos_router::location::Location;
 use urlencoding::decode;
 
 
-// Translation is now handled at the Bible data level, so names are already translated
-fn get_translated_name(input: &str) -> String {
-    input.to_string()
-}
-
-fn is_name_translated(_input: &str) -> bool {
-    // All names are now pre-translated, so we can treat them as always translated
-    true
-}
+// Removed redundant translation functions - names are already translated at Bible data level
 
 fn get_ui_text(key: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
@@ -120,15 +112,8 @@ fn BookView(
                     }
                 }
             >
-                <span class={
-                    let book_name = book.name.clone();
-                    let is_translated = is_name_translated(&book_name);
-                    if is_translated { "" } else { "font-bold" }
-                }>
-                    {
-                        let book_name = book.name.clone();
-                        get_translated_name(&book_name)
-                    }
+                <span>
+                    {book.name.clone()}
                 </span>
             </button>
             <Show

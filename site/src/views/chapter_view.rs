@@ -8,10 +8,7 @@ use leptos_router::components::A;
 use wasm_bindgen_futures::spawn_local;
 use leptos::wasm_bindgen::JsCast;
 
-fn get_translated_chapter_name(chapter_name: &str) -> String {
-    // Translation is now handled at the Bible data level, so chapter names are already translated
-    chapter_name.to_string()
-}
+// Removed redundant get_translated_chapter_name function - names are already translated
 
 fn get_navigation_text(key: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
@@ -201,7 +198,7 @@ pub fn ChapterDetail(chapter: Chapter, verse_visibility_enabled: ReadSignal<bool
     view! {
         <article class="chapter-detail max-w-2xl mx-auto px-4 pb-32">
             <header class="mb-8">
-                <h1 id="chapter-heading" class="text-3xl font-bold" style="color: var(--theme-text-primary)" tabindex="-1">{move || get_translated_chapter_name(&stable_chapter_data.get().name)}</h1>
+                <h1 id="chapter-heading" class="text-3xl font-bold" style="color: var(--theme-text-primary)" tabindex="-1">{move || stable_chapter_data.get().name.clone()}</h1>
             </header>
             
             <div class="verses text-lg leading-8" style="color: var(--theme-text-primary)" role="main" aria-label="Chapter text">

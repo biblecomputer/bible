@@ -193,10 +193,7 @@ where
 }
 
 /// Convenience function for exporting linked markdown without progress tracking
-#[allow(dead_code)]
-pub fn export_bible_to_linked_markdown_simple(bible: &Bible) -> Result<LinkedMarkdownExport, Box<dyn std::error::Error>> {
-    export_bible_to_linked_markdown(bible, None::<fn(f32, String)>)
-}
+// Removed unused export_bible_to_linked_markdown_simple function
 
 /// Trigger Linked Markdown ZIP download in the browser
 pub fn trigger_linked_markdown_download(export: LinkedMarkdownExport, filename: &str) {
