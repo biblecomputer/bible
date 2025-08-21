@@ -1,7 +1,6 @@
 use crate::core::{get_bible, init_bible_signal, Chapter, VerseRange};
 use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
-use crate::translation_map::translation::Translation;
 use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
@@ -10,18 +9,7 @@ use wasm_bindgen_futures::spawn_local;
 use leptos::wasm_bindgen::JsCast;
 
 fn get_translated_chapter_name(chapter_name: &str) -> String {
-    if let Some(current_translation) = get_current_translation() {
-        if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(*first_language);
-            
-            // Use the Translation.get() method which handles both book names and chapter references
-            if let Some(translated_name) = translation.get(chapter_name) {
-                return translated_name;
-            }
-        }
-    }
-    
-    // Return original name if no translation found
+    // Translation is now handled at the Bible data level, so chapter names are already translated
     chapter_name.to_string()
 }
 

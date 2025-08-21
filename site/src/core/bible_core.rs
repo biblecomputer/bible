@@ -1,8 +1,10 @@
 use leptos::prelude::*;
-use leptos_router::hooks::{use_params_map, use_location};
+use leptos_router::hooks::{use_location, use_params_map};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use urlencoding::{decode, encode};
+use crate::core::types::Language;
+use crate::translation_map::translation::Translation;
 
 pub static BIBLE: OnceLock<Bible> = OnceLock::new();
 static CURRENT_BIBLE_SIGNAL: OnceLock<RwSignal<Option<Bible>>> = OnceLock::new();
@@ -48,6 +50,36 @@ pub struct Verse {
     pub text: String,
 }
 
+impl Bible {
+    /// Apply name translations to all books and chapters based on the specified language
+    pub fn translate_names(mut self, language: Language) -> Self {
+        let translation = Translation::from_language(language);
+        
+        for book in &mut self.books {
+            // Translate book names by trying the lowercase underscore version first
+            let lookup_key = book.name.to_lowercase().replace(' ', "_");
+            if let Some(translated_book_name) = translation.get_book(&lookup_key) {
+                book.name = translated_book_name.to_string();
+            }
+            
+            // Update chapter names to match the new book names
+            for chapter in &mut book.chapters {
+                // Extract the chapter number from the current name
+                let chapter_number = chapter.chapter;
+                // Update the chapter name to use the translated book name
+                chapter.name = format!("{} {}", book.name, chapter_number);
+                
+                // Also update verse names to match
+                for verse in &mut chapter.verses {
+                    verse.name = chapter.name.clone();
+                }
+            }
+        }
+        
+        self
+    }
+}
+
 #[derive(Debug)]
 pub enum ParamParseError {
     ChapterNotFound,
@@ -64,16 +96,22 @@ impl VerseRange {
     pub fn contains(&self, verse_number: u32) -> bool {
         verse_number >= self.start && verse_number <= self.end
     }
-    
+
     pub fn from_string(s: &str) -> Option<Self> {
         if let Some((start_str, end_str)) = s.split_once('-') {
-            if let (Ok(start), Ok(end)) = (start_str.trim().parse::<u32>(), end_str.trim().parse::<u32>()) {
+            if let (Ok(start), Ok(end)) = (
+                start_str.trim().parse::<u32>(),
+                end_str.trim().parse::<u32>(),
+            ) {
                 if start <= end {
                     return Some(VerseRange { start, end });
                 }
             }
         } else if let Ok(single_verse) = s.trim().parse::<u32>() {
-            return Some(VerseRange { start: single_verse, end: single_verse });
+            return Some(VerseRange {
+                start: single_verse,
+                end: single_verse,
+            });
         }
         None
     }
@@ -82,18 +120,15 @@ impl VerseRange {
 pub fn parse_verse_ranges_from_url() -> Vec<VerseRange> {
     let location = use_location();
     let search_params = location.search.get();
-    
-    if let Some(verses_param) = search_params
-        .split('&')
-        .find_map(|param| {
-            let mut parts = param.split('=');
-            if parts.next()? == "verses" {
-                parts.next()
-            } else {
-                None
-            }
-        })
-    {
+
+    if let Some(verses_param) = search_params.split('&').find_map(|param| {
+        let mut parts = param.split('=');
+        if parts.next()? == "verses" {
+            parts.next()
+        } else {
+            None
+        }
+    }) {
         verses_param
             .split(',')
             .filter_map(|range_str| VerseRange::from_string(range_str))
@@ -116,13 +151,13 @@ impl Chapter {
         let encoded_book = encode(&book_name);
         format!("/{}/{}", encoded_book, self.chapter)
     }
-    
+
     pub fn to_path_with_verses(&self, verse_ranges: &[VerseRange]) -> String {
         let base_path = self.to_path();
         if verse_ranges.is_empty() {
             return base_path;
         }
-        
+
         let verse_param = verse_ranges
             .iter()
             .map(|range| {
@@ -134,7 +169,7 @@ impl Chapter {
             })
             .collect::<Vec<_>>()
             .join(",");
-            
+
         format!("{}?verses={}", base_path, verse_param)
     }
 
@@ -275,12 +310,11 @@ impl Bible {
         None
     }
 
-
     /// Fast navigation method for multiple chapters ahead without cloning
     pub fn get_nth_next_chapter_path(&self, current: &Chapter, n: u32) -> Option<String> {
         let mut current_book_idx = None;
         let mut current_chapter_idx = None;
-        
+
         // Find current position
         for (book_idx, book) in self.books.iter().enumerate() {
             if let Some(chapter_idx) = book
@@ -293,12 +327,12 @@ impl Bible {
                 break;
             }
         }
-        
+
         let (mut book_idx, mut chapter_idx) = match (current_book_idx, current_chapter_idx) {
             (Some(b), Some(c)) => (b, c),
             _ => return None,
         };
-        
+
         // Navigate n chapters forward without cloning
         for _ in 0..n {
             if let Some(book) = self.books.get(book_idx) {
@@ -316,16 +350,20 @@ impl Bible {
                 return None;
             }
         }
-        
+
         // Get the final path
-        self.books.get(book_idx)?.chapters.get(chapter_idx).map(|c| c.to_path())
+        self.books
+            .get(book_idx)?
+            .chapters
+            .get(chapter_idx)
+            .map(|c| c.to_path())
     }
 
     /// Fast navigation method for multiple chapters back without cloning
     pub fn get_nth_previous_chapter_path(&self, current: &Chapter, n: u32) -> Option<String> {
         let mut current_book_idx = None;
         let mut current_chapter_idx = None;
-        
+
         // Find current position
         for (book_idx, book) in self.books.iter().enumerate() {
             if let Some(chapter_idx) = book
@@ -338,12 +376,12 @@ impl Bible {
                 break;
             }
         }
-        
+
         let (mut book_idx, mut chapter_idx) = match (current_book_idx, current_chapter_idx) {
             (Some(b), Some(c)) => (b, c),
             _ => return None,
         };
-        
+
         // Navigate n chapters backward without cloning
         for _ in 0..n {
             if chapter_idx > 0 {
@@ -362,18 +400,22 @@ impl Bible {
                 }
             }
         }
-        
+
         // Get the final path
-        self.books.get(book_idx)?.chapters.get(chapter_idx).map(|c| c.to_path())
+        self.books
+            .get(book_idx)?
+            .chapters
+            .get(chapter_idx)
+            .map(|c| c.to_path())
     }
-    
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use proptest::prelude::*;
-    
+    use crate::core::types::Language;
+
     #[test]
     fn test_verse_range_from_string() {
         // Test single verse
@@ -383,7 +425,7 @@ mod tests {
         assert!(range.contains(5));
         assert!(!range.contains(4));
         assert!(!range.contains(6));
-        
+
         // Test verse range
         let range = VerseRange::from_string("1-3").unwrap();
         assert_eq!(range.start, 1);
@@ -392,23 +434,38 @@ mod tests {
         assert!(range.contains(2));
         assert!(range.contains(3));
         assert!(!range.contains(4));
-        
+
         // Test invalid ranges
         assert!(VerseRange::from_string("3-1").is_none()); // end < start
         assert!(VerseRange::from_string("abc").is_none()); // invalid number
         assert!(VerseRange::from_string("1-abc").is_none()); // invalid range
     }
-    
+
     #[test]
     fn test_verse_navigation() {
         let chapter = Chapter {
             chapter: 1,
             name: "Genesis".to_string(),
             verses: vec![
-                Verse { verse: 1, chapter: 1, name: "Genesis".to_string(), text: "In the beginning...".to_string() },
-                Verse { verse: 2, chapter: 1, name: "Genesis".to_string(), text: "And the earth...".to_string() },
-                Verse { verse: 3, chapter: 1, name: "Genesis".to_string(), text: "And God said...".to_string() },
-            ]
+                Verse {
+                    verse: 1,
+                    chapter: 1,
+                    name: "Genesis".to_string(),
+                    text: "In the beginning...".to_string(),
+                },
+                Verse {
+                    verse: 2,
+                    chapter: 1,
+                    name: "Genesis".to_string(),
+                    text: "And the earth...".to_string(),
+                },
+                Verse {
+                    verse: 3,
+                    chapter: 1,
+                    name: "Genesis".to_string(),
+                    text: "And God said...".to_string(),
+                },
+            ],
         };
 
         // Test next verse navigation
@@ -420,7 +477,7 @@ mod tests {
         assert_eq!(chapter.get_previous_verse(1), None); // First verse
         assert_eq!(chapter.get_previous_verse(2), Some(1));
         assert_eq!(chapter.get_previous_verse(3), Some(2));
-        
+
         // Test edge cases
         assert_eq!(chapter.get_next_verse(0), Some(1)); // Invalid verse number should still work
         assert_eq!(chapter.get_previous_verse(0), None); // Can't go before first verse
@@ -433,33 +490,59 @@ mod tests {
             chapter: 1,
             name: "Genesis 1".to_string(),
             verses: vec![
-                Verse { verse: 1, chapter: 1, name: "Genesis 1".to_string(), text: "First verse".to_string() },
-                Verse { verse: 2, chapter: 1, name: "Genesis 1".to_string(), text: "Second verse".to_string() },
-            ]
+                Verse {
+                    verse: 1,
+                    chapter: 1,
+                    name: "Genesis 1".to_string(),
+                    text: "First verse".to_string(),
+                },
+                Verse {
+                    verse: 2,
+                    chapter: 1,
+                    name: "Genesis 1".to_string(),
+                    text: "Second verse".to_string(),
+                },
+            ],
         };
 
         let genesis_2 = Chapter {
             chapter: 2,
             name: "Genesis 2".to_string(),
             verses: vec![
-                Verse { verse: 1, chapter: 2, name: "Genesis 2".to_string(), text: "First verse chapter 2".to_string() },
-                Verse { verse: 2, chapter: 2, name: "Genesis 2".to_string(), text: "Second verse chapter 2".to_string() },
-                Verse { verse: 3, chapter: 2, name: "Genesis 2".to_string(), text: "Third verse chapter 2".to_string() },
-            ]
+                Verse {
+                    verse: 1,
+                    chapter: 2,
+                    name: "Genesis 2".to_string(),
+                    text: "First verse chapter 2".to_string(),
+                },
+                Verse {
+                    verse: 2,
+                    chapter: 2,
+                    name: "Genesis 2".to_string(),
+                    text: "Second verse chapter 2".to_string(),
+                },
+                Verse {
+                    verse: 3,
+                    chapter: 2,
+                    name: "Genesis 2".to_string(),
+                    text: "Third verse chapter 2".to_string(),
+                },
+            ],
         };
 
         // Test verse navigation within chapters
         assert_eq!(genesis_1.get_next_verse(1), Some(2));
         assert_eq!(genesis_1.get_next_verse(2), None); // End of chapter - cross-chapter navigation handled in main.rs
-        
+
         assert_eq!(genesis_2.get_previous_verse(1), None); // Beginning of chapter - cross-chapter navigation handled in main.rs
         assert_eq!(genesis_2.get_previous_verse(2), Some(1));
-        
+
         // Test that we can identify when we're at chapter boundaries
-        assert!(genesis_1.get_next_verse(genesis_1.verses.len() as u32).is_none()); // Last verse of chapter
+        assert!(genesis_1
+            .get_next_verse(genesis_1.verses.len() as u32)
+            .is_none()); // Last verse of chapter
         assert!(genesis_2.get_previous_verse(1).is_none()); // First verse of chapter
     }
-
 
     #[test]
     fn test_chapter_to_path_with_verses() {
@@ -468,21 +551,21 @@ mod tests {
             name: "Genesis 1".to_string(),
             verses: vec![],
         };
-        
+
         // Test without verses
         let path = chapter.to_path_with_verses(&[]);
         assert_eq!(path, "/Genesis/1");
-        
+
         // Test with single verse
         let ranges = vec![VerseRange { start: 5, end: 5 }];
         let path = chapter.to_path_with_verses(&ranges);
         assert_eq!(path, "/Genesis/1?verses=5");
-        
+
         // Test with verse range
         let ranges = vec![VerseRange { start: 1, end: 3 }];
         let path = chapter.to_path_with_verses(&ranges);
         assert_eq!(path, "/Genesis/1?verses=1-3");
-        
+
         // Test with multiple ranges
         let ranges = vec![
             VerseRange { start: 1, end: 3 },
@@ -693,6 +776,67 @@ mod tests {
                 prop_assert_eq!(prev_chapter.name, last_chapter_book1.name.clone());
             }
         }
+    }
 
+    #[test]
+    fn test_bible_translate_names() {
+        let bible = Bible {
+            books: vec![
+                Book {
+                    name: "Genesis".to_string(),
+                    chapters: vec![
+                        Chapter {
+                            chapter: 1,
+                            name: "Genesis 1".to_string(),
+                            verses: vec![
+                                Verse {
+                                    verse: 1,
+                                    chapter: 1,
+                                    name: "Genesis 1".to_string(),
+                                    text: "In the beginning...".to_string(),
+                                }
+                            ]
+                        }
+                    ]
+                },
+                Book {
+                    name: "Matthew".to_string(),
+                    chapters: vec![
+                        Chapter {
+                            chapter: 1,
+                            name: "Matthew 1".to_string(),
+                            verses: vec![
+                                Verse {
+                                    verse: 1,
+                                    chapter: 1,
+                                    name: "Matthew 1".to_string(),
+                                    text: "The book of the generation...".to_string(),
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        // Test Dutch translation
+        let dutch_bible = bible.clone().translate_names(Language::Dutch);
+        
+        // Genesis should become "Genesis" (already matches Dutch)
+        assert_eq!(dutch_bible.books[0].name, "Genesis");
+        assert_eq!(dutch_bible.books[0].chapters[0].name, "Genesis 1");
+        assert_eq!(dutch_bible.books[0].chapters[0].verses[0].name, "Genesis 1");
+        
+        // Matthew should become "Matteüs"
+        assert_eq!(dutch_bible.books[1].name, "Matteüs");
+        assert_eq!(dutch_bible.books[1].chapters[0].name, "Matteüs 1");
+        assert_eq!(dutch_bible.books[1].chapters[0].verses[0].name, "Matteüs 1");
+
+        // Test English translation
+        let english_bible = bible.translate_names(Language::English);
+        
+        // Names should remain the same for English
+        assert_eq!(english_bible.books[0].name, "Genesis");
+        assert_eq!(english_bible.books[1].name, "Matthew");
     }
 }
