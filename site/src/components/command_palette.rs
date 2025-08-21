@@ -12,18 +12,8 @@ use leptos_router::NavigateOptions;
 use wasm_bindgen_futures::spawn_local;
 use leptos::web_sys::KeyboardEvent;
 use std::collections::HashMap;
-use std::sync::OnceLock;
 
-// Cache for normalized verse text to improve search performance
-static NORMALIZED_VERSE_CACHE: OnceLock<HashMap<String, String>> = OnceLock::new();
-
-// Initialize the verse cache - will be populated when needed
-fn get_normalized_verse_cache() -> &'static HashMap<String, String> {
-    NORMALIZED_VERSE_CACHE.get_or_init(|| {
-        // Return empty cache initially - will be handled in search logic
-        HashMap::new()
-    })
-}
+// Removed unused cache - translation is now handled at Bible data level
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SearchResult {
