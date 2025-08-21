@@ -2,7 +2,7 @@ use super::types::Instruction;
 use crate::core::{get_bible, VerseRange};
 use crate::storage::translations::get_current_translation;
 use crate::translation_map::translation::Translation;
-use crate::view_state::ViewState;
+use crate::view_state::AppState;
 use leptos_router::NavigateOptions;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use wasm_bindgen_futures::{spawn_local, JsFuture};
@@ -46,7 +46,6 @@ pub fn get_random_chapter_path() -> Option<String> {
         .map(|chapter| chapter.to_path())
 }
 
-
 pub struct InstructionProcessor<F>
 where
     F: Fn(&str, NavigateOptions),
@@ -62,14 +61,14 @@ where
         Self { navigate }
     }
 
-    pub fn process(&self, instruction: Instruction, context: &ViewState) -> bool {
+    pub fn process(&self, instruction: Instruction, context: &AppState) -> bool {
         self.process_with_multiplier(instruction, context, 1)
     }
 
     pub fn process_with_multiplier(
         &self,
         instruction: Instruction,
-        context: &ViewState,
+        context: &AppState,
         multiplier: u32,
     ) -> bool {
         match instruction {
@@ -111,7 +110,7 @@ where
         }
     }
 
-    fn handle_beginning_of_chapter(&self, context: &ViewState) -> bool {
+    fn handle_beginning_of_chapter(&self, context: &AppState) -> bool {
         if let Some(ref current_chapter) = context.current_chapter {
             let new_path = current_chapter.to_path();
             (self.navigate)(
@@ -127,7 +126,7 @@ where
         }
     }
 
-    fn handle_end_of_chapter(&self, context: &ViewState) -> bool {
+    fn handle_end_of_chapter(&self, context: &AppState) -> bool {
         if let Some(ref current_chapter) = context.current_chapter {
             let last_verse = current_chapter.verses.len() as u32;
             if last_verse > 0 {
@@ -152,7 +151,7 @@ where
         }
     }
 
-    fn handle_go_to_verse(&self, context: &ViewState, verse_num: u32) -> bool {
+    fn handle_go_to_verse(&self, context: &AppState, verse_num: u32) -> bool {
         if let Some(ref current_chapter) = context.current_chapter {
             if verse_num > 0 && verse_num <= current_chapter.verses.len() as u32 {
                 let verse_range = VerseRange {
@@ -176,7 +175,7 @@ where
         }
     }
 
-    fn handle_copy_raw_verse(&self, context: &ViewState) -> bool {
+    fn handle_copy_raw_verse(&self, context: &AppState) -> bool {
         use leptos::web_sys::console;
 
         let verse_ranges = context.get_verse_ranges();
@@ -242,7 +241,7 @@ where
         true
     }
 
-    fn handle_copy_verse_with_reference(&self, context: &ViewState) -> bool {
+    fn handle_copy_verse_with_reference(&self, context: &AppState) -> bool {
         use leptos::web_sys::console;
 
         let verse_ranges = context.get_verse_ranges();
@@ -286,8 +285,7 @@ where
                     copy_text.push_str("\n\n");
 
                     // Extract book name from chapter name (everything except the last word which is the chapter number)
-                    let name_parts: Vec<&str> =
-                        current_chapter.name.split_whitespace().collect();
+                    let name_parts: Vec<&str> = current_chapter.name.split_whitespace().collect();
                     let book_name = if name_parts.len() > 1 {
                         name_parts[..name_parts.len() - 1].join(" ")
                     } else {
@@ -296,61 +294,61 @@ where
                     let translated_book_name = self.get_translated_book_name(&book_name);
                     let chapter_num = current_chapter.chapter.to_string();
 
-                console::log_1(
-                    &format!(
-                        "📚 Book: {}, Chapter: {}",
-                        translated_book_name, chapter_num
-                    )
-                    .into(),
-                );
+                    console::log_1(
+                        &format!(
+                            "📚 Book: {}, Chapter: {}",
+                            translated_book_name, chapter_num
+                        )
+                        .into(),
+                    );
 
-                // Format reference
-                if verse_ranges.len() == 1 && verse_ranges[0].start == verse_ranges[0].end {
-                    copy_text.push_str(&format!(
-                        "{} {}:{}",
-                        translated_book_name, chapter_num, verse_ranges[0].start
-                    ));
-                } else {
-                    let mut range_strs = Vec::new();
-                    for range in &verse_ranges {
-                        if range.start == range.end {
-                            range_strs.push(range.start.to_string());
-                        } else {
-                            range_strs.push(format!("{}-{}", range.start, range.end));
+                    // Format reference
+                    if verse_ranges.len() == 1 && verse_ranges[0].start == verse_ranges[0].end {
+                        copy_text.push_str(&format!(
+                            "{} {}:{}",
+                            translated_book_name, chapter_num, verse_ranges[0].start
+                        ));
+                    } else {
+                        let mut range_strs = Vec::new();
+                        for range in &verse_ranges {
+                            if range.start == range.end {
+                                range_strs.push(range.start.to_string());
+                            } else {
+                                range_strs.push(format!("{}-{}", range.start, range.end));
+                            }
                         }
+                        copy_text.push_str(&format!(
+                            "{} {}:{}",
+                            translated_book_name,
+                            chapter_num,
+                            range_strs.join(",")
+                        ));
                     }
+
+                    // Add link
+                    copy_text.push('\n');
+                    let book_name_url = urlencoding::encode(&book_name);
+                    let verses_param = context
+                        .search_params
+                        .split("verses=")
+                        .nth(1)
+                        .unwrap_or("")
+                        .split('&')
+                        .next()
+                        .unwrap_or("");
                     copy_text.push_str(&format!(
-                        "{} {}:{}",
-                        translated_book_name,
-                        chapter_num,
-                        range_strs.join(",")
+                        "https://bible.pruijs.net/{}/{}?verses={}",
+                        book_name_url, chapter_num, verses_param
                     ));
+
+                    console::log_1(
+                        &format!(
+                            "📝 Reference copy: {} verses, complete with reference and link",
+                            verses_to_copy.len()
+                        )
+                        .into(),
+                    );
                 }
-
-                // Add link
-                copy_text.push('\n');
-                let book_name_url = urlencoding::encode(&book_name);
-                let verses_param = context
-                    .search_params
-                    .split("verses=")
-                    .nth(1)
-                    .unwrap_or("")
-                    .split('&')
-                    .next()
-                    .unwrap_or("");
-                copy_text.push_str(&format!(
-                    "https://bible.pruijs.net/{}/{}?verses={}",
-                    book_name_url, chapter_num, verses_param
-                ));
-
-                console::log_1(
-                    &format!(
-                        "📝 Reference copy: {} verses, complete with reference and link",
-                        verses_to_copy.len()
-                    )
-                    .into(),
-                );
-            }
             } else {
                 console::log_1(
                     &"📖 No verse ranges selected, copying chapter name for reference".into(),
@@ -414,31 +412,27 @@ where
     }
 
     // Multiplier versions of navigation methods
-    fn handle_next_verse_with_multiplier(
-        &self,
-        context: &ViewState,
-        multiplier: u32,
-    ) -> bool {
+    fn handle_next_verse_with_multiplier(&self, context: &AppState, multiplier: u32) -> bool {
         if let Some(ref chapter) = context.current_chapter {
             let mut current_verse = context.get_current_verse();
             let mut current_chapter = chapter.clone();
 
-        for _ in 0..multiplier {
-            if current_verse == 0 {
-                // Currently on chapter heading, navigate to first verse
-                current_verse = 1;
-            } else if let Some(next_verse) = current_chapter.get_next_verse(current_verse) {
-                // Move to next verse in current chapter
-                current_verse = next_verse;
-            } else if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
-                // Reached end of chapter, move to first verse of next chapter
-                current_chapter = next_chapter;
-                current_verse = 1;
-            } else {
-                // Reached the end of the Bible
-                break;
+            for _ in 0..multiplier {
+                if current_verse == 0 {
+                    // Currently on chapter heading, navigate to first verse
+                    current_verse = 1;
+                } else if let Some(next_verse) = current_chapter.get_next_verse(current_verse) {
+                    // Move to next verse in current chapter
+                    current_verse = next_verse;
+                } else if let Some(next_chapter) = get_bible().get_next_chapter(&current_chapter) {
+                    // Reached end of chapter, move to first verse of next chapter
+                    current_chapter = next_chapter;
+                    current_verse = 1;
+                } else {
+                    // Reached the end of the Bible
+                    break;
+                }
             }
-        }
 
             // Navigate to final position
             if current_verse == 0 {
@@ -469,42 +463,38 @@ where
         }
     }
 
-    fn handle_previous_verse_with_multiplier(
-        &self,
-        context: &ViewState,
-        multiplier: u32,
-    ) -> bool {
+    fn handle_previous_verse_with_multiplier(&self, context: &AppState, multiplier: u32) -> bool {
         if let Some(ref chapter) = context.current_chapter {
             let mut current_verse = context.get_current_verse();
             let mut current_chapter = chapter.clone();
 
-        for _ in 0..multiplier {
-            if current_verse == 0 {
-                // Currently on chapter heading, navigate to last verse of previous chapter
-                if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
-                    current_chapter = prev_chapter;
-                    current_verse = current_chapter.verses.len() as u32;
+            for _ in 0..multiplier {
+                if current_verse == 0 {
+                    // Currently on chapter heading, navigate to last verse of previous chapter
+                    if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
+                        current_chapter = prev_chapter;
+                        current_verse = current_chapter.verses.len() as u32;
+                    } else {
+                        // Reached the beginning of the Bible
+                        break;
+                    }
+                } else if current_verse == 1 {
+                    // Currently on first verse, navigate to last verse of previous chapter
+                    if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
+                        current_chapter = prev_chapter;
+                        current_verse = current_chapter.verses.len() as u32;
+                    } else {
+                        // No previous chapter, go to chapter heading
+                        current_verse = 0;
+                    }
+                } else if let Some(prev_verse) = current_chapter.get_previous_verse(current_verse) {
+                    // Move to previous verse in current chapter
+                    current_verse = prev_verse;
                 } else {
-                    // Reached the beginning of the Bible
+                    // This shouldn't happen, but handle it gracefully
                     break;
                 }
-            } else if current_verse == 1 {
-                // Currently on first verse, navigate to last verse of previous chapter
-                if let Some(prev_chapter) = get_bible().get_previous_chapter(&current_chapter) {
-                    current_chapter = prev_chapter;
-                    current_verse = current_chapter.verses.len() as u32;
-                } else {
-                    // No previous chapter, go to chapter heading
-                    current_verse = 0;
-                }
-            } else if let Some(prev_verse) = current_chapter.get_previous_verse(current_verse) {
-                // Move to previous verse in current chapter
-                current_verse = prev_verse;
-            } else {
-                // This shouldn't happen, but handle it gracefully
-                break;
             }
-        }
 
             // Navigate to final position
             if current_verse == 0 {
@@ -537,24 +527,21 @@ where
 
     fn handle_extend_selection_next_verse_with_multiplier(
         &self,
-        context: &ViewState,
+        context: &AppState,
         multiplier: u32,
     ) -> bool {
         let current_ranges = context.get_verse_ranges();
 
         if let Some(ref chapter) = context.current_chapter {
             // Determine the anchor point for the selection
-            let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty() {
+            let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty()
+            {
                 // No current selection, start from current verse or beginning of chapter
                 let current_verse = context.get_current_verse();
                 if current_verse == 0 {
                     (1, 1, chapter.clone())
                 } else {
-                    (
-                        current_verse,
-                        current_verse,
-                        chapter.clone(),
-                    )
+                    (current_verse, current_verse, chapter.clone())
                 }
             } else {
                 // Find the rightmost (highest) verse in current selection as anchor
@@ -566,19 +553,19 @@ where
                 )
             };
 
-        // Move target verse forward by multiplier
-        for _ in 0..multiplier {
-            if let Some(next_verse) = target_chapter.get_next_verse(target_verse) {
-                target_verse = next_verse;
-            } else if let Some(next_chapter) = get_bible().get_next_chapter(&target_chapter) {
-                // Cross chapter boundary
-                target_chapter = next_chapter;
-                target_verse = 1;
-            } else {
-                // Reached end of Bible
-                break;
+            // Move target verse forward by multiplier
+            for _ in 0..multiplier {
+                if let Some(next_verse) = target_chapter.get_next_verse(target_verse) {
+                    target_verse = next_verse;
+                } else if let Some(next_chapter) = get_bible().get_next_chapter(&target_chapter) {
+                    // Cross chapter boundary
+                    target_chapter = next_chapter;
+                    target_verse = 1;
+                } else {
+                    // Reached end of Bible
+                    break;
+                }
             }
-        }
 
             // Create new selection range from anchor to target
             let new_range = if target_chapter.name == chapter.name {
@@ -618,25 +605,22 @@ where
 
     fn handle_extend_selection_previous_verse_with_multiplier(
         &self,
-        context: &ViewState,
+        context: &AppState,
         multiplier: u32,
     ) -> bool {
         let current_ranges = context.get_verse_ranges();
 
         if let Some(ref chapter) = context.current_chapter {
             // Determine the anchor point for the selection
-            let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty() {
+            let (anchor_verse, mut target_verse, mut target_chapter) = if current_ranges.is_empty()
+            {
                 // No current selection, start from current verse or end of chapter
                 let current_verse = context.get_current_verse();
                 if current_verse == 0 {
                     let last_verse = chapter.verses.len() as u32;
                     (last_verse, last_verse, chapter.clone())
                 } else {
-                    (
-                        current_verse,
-                        current_verse,
-                        chapter.clone(),
-                    )
+                    (current_verse, current_verse, chapter.clone())
                 }
             } else {
                 // Find the leftmost (lowest) verse in current selection as anchor
@@ -648,25 +632,25 @@ where
                 )
             };
 
-        // Move target verse backward by multiplier
-        for _ in 0..multiplier {
-            if target_verse == 1 {
-                // At first verse, try to go to previous chapter
-                if let Some(prev_chapter) = get_bible().get_previous_chapter(&target_chapter) {
-                    target_chapter = prev_chapter;
-                    target_verse = target_chapter.verses.len() as u32;
+            // Move target verse backward by multiplier
+            for _ in 0..multiplier {
+                if target_verse == 1 {
+                    // At first verse, try to go to previous chapter
+                    if let Some(prev_chapter) = get_bible().get_previous_chapter(&target_chapter) {
+                        target_chapter = prev_chapter;
+                        target_verse = target_chapter.verses.len() as u32;
+                    } else {
+                        // Reached beginning of Bible
+                        target_verse = 1;
+                        break;
+                    }
+                } else if let Some(prev_verse) = target_chapter.get_previous_verse(target_verse) {
+                    target_verse = prev_verse;
                 } else {
-                    // Reached beginning of Bible
-                    target_verse = 1;
+                    // Shouldn't happen, but break to be safe
                     break;
                 }
-            } else if let Some(prev_verse) = target_chapter.get_previous_verse(target_verse) {
-                target_verse = prev_verse;
-            } else {
-                // Shouldn't happen, but break to be safe
-                break;
             }
-        }
 
             // Create new selection range from target to anchor
             let new_range = if target_chapter.name == chapter.name {
@@ -703,11 +687,7 @@ where
         }
     }
 
-    fn handle_next_chapter_with_multiplier(
-        &self,
-        context: &ViewState,
-        multiplier: u32,
-    ) -> bool {
+    fn handle_next_chapter_with_multiplier(&self, context: &AppState, multiplier: u32) -> bool {
         if let Some(ref current_chapter) = context.current_chapter {
             if let Some(target_path) =
                 get_bible().get_nth_next_chapter_path(current_chapter, multiplier)
@@ -726,11 +706,7 @@ where
         }
     }
 
-    fn handle_previous_chapter_with_multiplier(
-        &self,
-        context: &ViewState,
-        multiplier: u32,
-    ) -> bool {
+    fn handle_previous_chapter_with_multiplier(&self, context: &AppState, multiplier: u32) -> bool {
         if let Some(ref current_chapter) = context.current_chapter {
             if let Some(target_path) =
                 get_bible().get_nth_previous_chapter_path(current_chapter, multiplier)
@@ -749,22 +725,18 @@ where
         }
     }
 
-    fn handle_next_book_with_multiplier(
-        &self,
-        context: &ViewState,
-        multiplier: u32,
-    ) -> bool {
+    fn handle_next_book_with_multiplier(&self, context: &AppState, multiplier: u32) -> bool {
         if let Some(ref chapter) = context.current_chapter {
             let mut current_chapter = chapter.clone();
 
-        for _ in 0..multiplier {
-            if let Some(next_book_chapter) = get_bible().get_next_book(&current_chapter) {
-                current_chapter = next_book_chapter;
-            } else {
-                // Reached the end
-                break;
+            for _ in 0..multiplier {
+                if let Some(next_book_chapter) = get_bible().get_next_book(&current_chapter) {
+                    current_chapter = next_book_chapter;
+                } else {
+                    // Reached the end
+                    break;
+                }
             }
-        }
 
             (self.navigate)(
                 &current_chapter.to_path(),
@@ -779,22 +751,18 @@ where
         }
     }
 
-    fn handle_previous_book_with_multiplier(
-        &self,
-        context: &ViewState,
-        multiplier: u32,
-    ) -> bool {
+    fn handle_previous_book_with_multiplier(&self, context: &AppState, multiplier: u32) -> bool {
         if let Some(ref chapter) = context.current_chapter {
             let mut current_chapter = chapter.clone();
 
-        for _ in 0..multiplier {
-            if let Some(prev_book_chapter) = get_bible().get_previous_book(&current_chapter) {
-                current_chapter = prev_book_chapter;
-            } else {
-                // Reached the beginning
-                break;
+            for _ in 0..multiplier {
+                if let Some(prev_book_chapter) = get_bible().get_previous_book(&current_chapter) {
+                    current_chapter = prev_book_chapter;
+                } else {
+                    // Reached the beginning
+                    break;
+                }
             }
-        }
 
             (self.navigate)(
                 &current_chapter.to_path(),
