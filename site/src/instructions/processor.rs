@@ -94,7 +94,7 @@ where
             }
             Instruction::BeginningOfChapter => self.handle_beginning_of_chapter(context),
             Instruction::EndOfChapter => self.handle_end_of_chapter(context),
-            Instruction::GoToVerse(verse_num) => self.handle_go_to_verse(context, verse_num),
+            Instruction::GoToVerse(verse_id) => self.handle_go_to_verse(context, verse_id),
             Instruction::CopyRawVerse => self.handle_copy_raw_verse(context),
             Instruction::CopyVerseWithReference => self.handle_copy_verse_with_reference(context),
             Instruction::OpenGithubRepository => self.handle_open_github_repository(),
@@ -151,8 +151,9 @@ where
         }
     }
 
-    fn handle_go_to_verse(&self, context: &AppState, verse_num: u32) -> bool {
+    fn handle_go_to_verse(&self, context: &AppState, verse_id: crate::core::types::VerseId) -> bool {
         if let Some(ref current_chapter) = context.current_chapter {
+            let verse_num = verse_id.verse();
             if verse_num > 0 && verse_num <= current_chapter.verses.len() as u32 {
                 let verse_range = VerseRange {
                     start: verse_num,

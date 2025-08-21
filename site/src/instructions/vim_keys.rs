@@ -1,4 +1,5 @@
 use super::types::Instruction;
+use crate::core::types::VerseId;
 use leptos::web_sys::KeyboardEvent;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -245,7 +246,9 @@ impl VimKeyboardMapper {
                 // This is a multiplier followed by 'g' (e.g., "33g" -> go to verse 33)
                 let verse_num = multiplier;
                 self.clear_buffers();
-                return Some((Instruction::GoToVerse(verse_num), 1));
+                // Create a VerseId with placeholder values - will be resolved with current context
+                let verse_id = VerseId::new(0, 0, verse_num as u32);
+                return Some((Instruction::GoToVerse(verse_id), 1));
             } else {
                 // This is the first 'g' in potential "gg" sequence
                 self.sequence_buffer.push_str(&e.key());

@@ -1,4 +1,5 @@
 use super::types::Instruction;
+use crate::core::types::VerseId;
 use leptos::web_sys::KeyboardEvent;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -90,7 +91,9 @@ impl KeyboardMapper {
         // Handle numeric input for verse navigation
         if let Ok(verse_num) = combination.key.parse::<u32>() {
             if !combination.shift && !combination.ctrl && !combination.meta && !combination.alt {
-                return Some(Instruction::GoToVerse(verse_num));
+                // Create a VerseId with placeholder values - will be resolved with current context
+                let verse_id = VerseId::new(0, 0, verse_num);
+                return Some(Instruction::GoToVerse(verse_id));
             }
         }
         
