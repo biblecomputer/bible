@@ -70,6 +70,21 @@ impl VerseId {
         Some(Self::new(book_id, chapter, verse))
     }
     
+    /// Extract book_id from packed VerseId
+    pub fn book_id(&self) -> u8 {
+        ((self.0 >> 24) & 0xFF) as u8
+    }
+    
+    /// Extract chapter from packed VerseId
+    pub fn chapter(&self) -> u32 {
+        (self.0 >> 12) & 0xFFF
+    }
+    
+    /// Extract verse from packed VerseId
+    pub fn verse(&self) -> u32 {
+        self.0 & 0xFFF
+    }
+    
 }
 
 /// Convert book name to compact ID for faster lookups

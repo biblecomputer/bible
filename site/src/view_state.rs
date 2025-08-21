@@ -352,7 +352,7 @@ impl AppState {
             Instruction::PreviousBook => self.handle_previous_book(),
             Instruction::BeginningOfChapter => self.handle_beginning_of_chapter(),
             Instruction::EndOfChapter => self.handle_end_of_chapter(),
-            Instruction::GoToVerse(verse_num) => self.handle_go_to_verse(*verse_num),
+            Instruction::GoToVerse(verse_id) => self.handle_go_to_verse(*verse_id),
 
             // Selection instructions
             Instruction::ExtendSelectionNextVerse => self.handle_extend_selection_next_verse(),
@@ -599,8 +599,9 @@ impl AppState {
         }
     }
 
-    fn handle_go_to_verse(&mut self, verse_num: u32) -> InstructionResult {
+    fn handle_go_to_verse(&mut self, verse_id: crate::core::types::VerseId) -> InstructionResult {
         if let Some(ref current_chapter) = self.current_chapter {
+            let verse_num = verse_id.verse();
             if verse_num > 0 && verse_num <= current_chapter.verses.len() as u32 {
                 let verse_range = VerseRange {
                     start: verse_num,

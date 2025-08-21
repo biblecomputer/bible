@@ -55,7 +55,7 @@ pub fn handle_switch_to_previous_chapter<F>(
 
 /// Handle going to a specific verse
 pub fn handle_go_to_verse<F>(
-    verse_num: u32,
+    verse_id: crate::core::types::VerseId,
     view_state: ViewStateSignal,
     processor: &InstructionProcessor<F>,
 ) where
@@ -63,7 +63,7 @@ pub fn handle_go_to_verse<F>(
 {
     // Process the instruction using the view state
     view_state.with(|state| {
-        processor.process(Instruction::GoToVerse(verse_num), state);
+        processor.process(Instruction::GoToVerse(verse_id), state);
     });
 }
 

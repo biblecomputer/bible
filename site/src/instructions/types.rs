@@ -1,13 +1,15 @@
 /*!
  * Instruction Types
- * 
+ *
  * This module defines all user instructions that can be performed
  * in the Bible application. Instructions are triggered by keyboard
  * shortcuts, command palette, or programmatic actions.
  */
 
+use crate::core::types::VerseId;
+
 /// Enum representing all possible user instructions
-/// 
+///
 /// Instructions are organized by category to improve maintainability.
 /// Each instruction should have a corresponding handler in the processor.
 #[derive(Debug, Clone, PartialEq)]
@@ -35,7 +37,7 @@ pub enum Instruction {
     BeginningOfChapter,
     EndOfChapter,
     /// Navigate to a specific verse number
-    GoToVerse(u32),
+    GoToVerse(VerseId),
 
     // === Special Navigation Instructions ===
     // Advanced navigation features
@@ -53,7 +55,7 @@ pub enum Instruction {
     ToggleThemeSidebar,
     ToggleBiblePallate,
     ToggleCommandPallate,
-    ToggleTranslationComparison,  // Added: Toggle translation comparison panel
+    ToggleTranslationComparison, // Added: Toggle translation comparison panel
     ToggleVerseVisibility,
     ToggleVersePallate,
 
