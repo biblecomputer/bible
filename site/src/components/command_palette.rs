@@ -1,4 +1,4 @@
-use crate::core::{get_bible, Chapter, VerseRange};
+use crate::core::{Bible, Chapter, VerseRange};
 use crate::storage::translations::get_current_translation;
 use crate::storage::recent_chapters::get_recent_chapters;
 use crate::translation_map::translation::Translation;
@@ -17,23 +17,11 @@ use std::sync::OnceLock;
 // Cache for normalized verse text to improve search performance
 static NORMALIZED_VERSE_CACHE: OnceLock<HashMap<String, String>> = OnceLock::new();
 
-// Initialize the verse cache
+// Initialize the verse cache - will be populated when needed
 fn get_normalized_verse_cache() -> &'static HashMap<String, String> {
     NORMALIZED_VERSE_CACHE.get_or_init(|| {
-        let mut cache = HashMap::new();
-        let bible = get_bible();
-        
-        for book in &bible.books {
-            for chapter in &book.chapters {
-                for verse in &chapter.verses {
-                    let verse_key = format!("{}:{}:{}", book.name, chapter.chapter, verse.verse);
-                    let normalized_text = normalize_text_for_search(&verse.text);
-                    cache.insert(verse_key, normalized_text);
-                }
-            }
-        }
-        
-        cache
+        // Return empty cache initially - will be handled in search logic
+        HashMap::new()
     })
 }
 
@@ -291,12 +279,12 @@ fn get_translated_chapter_name(chapter_name: &str) -> String {
     chapter_name.to_string()
 }
 
-fn get_current_chapter(location_pathname: &str) -> Option<Chapter> {
+fn get_current_chapter_from_bible(bible: &Bible, location_pathname: &str) -> Option<Chapter> {
     let path_parts: Vec<&str> = location_pathname.trim_start_matches('/').split('/').collect();
     if path_parts.len() == 2 {
         let book_name = path_parts[0].replace('_', " ");
         if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
-            if let Ok(chapter) = get_bible().get_chapter(&book_name, chapter_num) {
+            if let Ok(chapter) = bible.get_chapter(&book_name, chapter_num) {
                 return Some(chapter);
             }
         }
@@ -304,21 +292,35 @@ fn get_current_chapter(location_pathname: &str) -> Option<Chapter> {
     None
 }
 
+fn get_current_chapter(view_state: ViewStateSignal, location_pathname: &str) -> Option<Chapter> {
+    view_state.with(|state| {
+        if let Some(bible) = state.get_bible() {
+            get_current_chapter_from_bible(bible, location_pathname)
+        } else {
+            None
+        }
+    })
+}
+
 fn update_view_state_from_url(view_state: ViewStateSignal, pathname: &str, search: &str) -> bool {
-    let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
-    if path_parts.len() == 2 {
-        let book_name = path_parts[0].replace('_', " ");
-        if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
-            if let Ok(current_chapter) = get_bible().get_chapter(&book_name, chapter_num) {
-                view_state.update(|state| {
-                    state.set_current_chapter(Some(current_chapter));
-                    state.set_search_params(search.to_string());
-                });
-                return true;
+    view_state.with_untracked(|state| {
+        if let Some(bible) = state.get_bible() {
+            let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
+            if path_parts.len() == 2 {
+                let book_name = path_parts[0].replace('_', " ");
+                if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
+                    if let Ok(current_chapter) = bible.get_chapter(&book_name, chapter_num) {
+                        view_state.update(|state| {
+                            state.set_current_chapter(Some(current_chapter));
+                            state.set_search_params(search.to_string());
+                        });
+                        return true;
+                    }
+                }
             }
         }
-    }
-    false
+        false
+    })
 }
 
 fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
@@ -449,12 +451,13 @@ pub fn CommandPalette(
         }
         
         // Check if there would be any chapter results
-        let bible = get_bible();
-        for book in &bible.books {
-            for chapter in book.chapters.iter().take(5) { // Quick check of first few chapters
-                let original_name = chapter.name.to_lowercase();
-                if fuzzy_score(&original_name, &query.to_lowercase()) > 0 {
-                    return false; // Found chapter results, not global search
+        if let Some(bible) = view_state.with(|state| state.get_bible().cloned()) {
+            for book in &bible.books {
+                for chapter in book.chapters.iter().take(5) { // Quick check of first few chapters
+                    let original_name = chapter.name.to_lowercase();
+                    if fuzzy_score(&original_name, &query.to_lowercase()) > 0 {
+                        return false; // Found chapter results, not global search
+                    }
                 }
             }
         }
@@ -515,7 +518,7 @@ pub fn CommandPalette(
         
         // Check if this is a current chapter verse shortcut (e.g., ":5" or ":")
         if let Some(verse_part) = query.strip_prefix(':') {
-            if let Some(current_chapter) = get_current_chapter(&location.pathname.get()) {
+            if let Some(current_chapter) = get_current_chapter(view_state, &location.pathname.get()) {
                 
                 if verse_part.is_empty() {
                     // Just ":" - show all verses from current chapter (limited to first 15)
@@ -574,7 +577,10 @@ pub fn CommandPalette(
                     };
                     
                     // Find the chapter - optimize by searching more efficiently
-                    let bible = get_bible();
+                    let bible = match view_state.with(|state| state.get_bible().cloned()) {
+                        Some(bible) => bible,
+                        None => return Vec::new(), // No Bible data available
+                    };
                     let mut found_chapter = None;
                     
                     // First try exact book name match
@@ -639,8 +645,9 @@ pub fn CommandPalette(
         
         // Only do expensive chapter search if query is at least 2 characters
         if query.len() >= 2 {
-            let mut found_count = 0;
-            'outer: for book in &get_bible().books {
+            if let Some(bible) = view_state.with(|state| state.get_bible().cloned()) {
+                let mut found_count = 0;
+                'outer: for book in &bible.books {
                 for chapter in &book.chapters {
                     // Early exit if we have enough results
                     if found_count >= 20 {
@@ -665,6 +672,7 @@ pub fn CommandPalette(
                 }
             }
         }
+        }
             
         results.extend(chapter_results);
 
@@ -675,9 +683,9 @@ pub fn CommandPalette(
             
             // Normalize query once outside the loop for performance
             let query_normalized = normalize_text_for_search(&query);
-            let verse_cache = get_normalized_verse_cache();
             
-            'global_search: for book in &get_bible().books {
+            if let Some(bible) = view_state.with(|state| state.get_bible().cloned()) {
+                'global_search: for book in &bible.books {
                 for chapter in &book.chapters {
                     for verse in &chapter.verses {
                         // Early exit if we have enough results
@@ -685,34 +693,33 @@ pub fn CommandPalette(
                             break 'global_search;
                         }
                         
-                        // Use cached normalized text for performance
-                        let verse_key = format!("{}:{}:{}", book.name, chapter.chapter, verse.verse);
-                        if let Some(verse_text_normalized) = verse_cache.get(&verse_key) {
-                            if verse_text_normalized.contains(&query_normalized) {
-                                // Score based on how early the match appears in the verse
-                                let match_position = verse_text_normalized.find(&query_normalized).unwrap_or(verse.text.len());
-                                let score = if verse_text_normalized.starts_with(&query_normalized) {
-                                    1000 // Starts with query
-                                } else if match_position < 10 {
-                                    800 // Match near beginning
-                                } else if match_position < 30 {
-                                    600 // Match in first part
-                                } else {
-                                    400 // Match later in verse
-                                };
-                                
-                                verse_matches.push((
-                                    SearchResult::Verse {
-                                        chapter: chapter.clone(),
-                                        verse_number: verse.verse,
-                                        verse_text: verse.text.clone(),
-                                    },
-                                    score
-                                ));
-                                search_count += 1;
-                            }
+                        // Normalize verse text for search (no cache needed for real-time search)
+                        let verse_text_normalized = normalize_text_for_search(&verse.text);
+                        if verse_text_normalized.contains(&query_normalized) {
+                            // Score based on how early the match appears in the verse
+                            let match_position = verse_text_normalized.find(&query_normalized).unwrap_or(verse_text_normalized.len());
+                            let score = if verse_text_normalized.starts_with(&query_normalized) {
+                                1000 // Starts with query
+                            } else if match_position < 10 {
+                                800 // Match near beginning
+                            } else if match_position < 30 {
+                                600 // Match in first part
+                            } else {
+                                400 // Match later in verse
+                            };
+                            
+                            verse_matches.push((
+                                SearchResult::Verse {
+                                    chapter: chapter.clone(),
+                                    verse_number: verse.verse,
+                                    verse_text: verse.text.clone(),
+                                },
+                                score
+                            ));
+                            search_count += 1;
                         }
                     }
+                }
                 }
             }
             
