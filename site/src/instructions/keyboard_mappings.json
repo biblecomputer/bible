@@ -38,10 +38,10 @@
     "m": "ExportToMarkdown",
     "<S-M>": "ExportLinkedMarkdown",
     
-    "<C-o>": "ToggleBiblePallate",
+    "<C-o>": "ToggleCommandPallate",
     "<M-o>": "ToggleBiblePallate",
     
-    "<gt>": "ToggleCommandPallate",
+    "<gt>": "ToggleBiblePallate",
     
     "<C-j>": "NextPaletteResult",
     "<C-k>": "PreviousPaletteResult",
