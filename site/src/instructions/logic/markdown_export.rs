@@ -1,7 +1,6 @@
 use crate::core::bible_core::Bible;
 use crate::storage::translations::get_current_translation;
 use crate::translation_map::translation::Translation;
-use crate::core::types::Language;
 use web_sys::console;
 
 

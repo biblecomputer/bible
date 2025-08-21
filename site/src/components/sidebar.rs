@@ -64,7 +64,7 @@ pub fn Sidebar(view_state: ViewStateSignal) -> impl IntoView {
         String::new() // Return empty string if no valid book found
     });
     
-    let (selected_book, set_selected_book) = signal(String::new());
+    // Removed local selected_book signal - now using ViewState
 
     // Create reactive books list
     let books = Memo::new(move |_| {
@@ -83,8 +83,6 @@ pub fn Sidebar(view_state: ViewStateSignal) -> impl IntoView {
                 <BookView
                     book=b.clone() // Required by component signature
                     current_book=current_book
-                    selected_book=selected_book
-                    set_selected_book=set_selected_book
                     location=location.clone()
                     view_state=view_state
                 />
@@ -98,8 +96,6 @@ pub fn Sidebar(view_state: ViewStateSignal) -> impl IntoView {
 fn BookView(
     book: Book,
     current_book: Memo<String>,
-    selected_book: ReadSignal<String>,
-    set_selected_book: WriteSignal<String>,
     location: Location,
     view_state: ViewStateSignal,
 ) -> impl IntoView {
@@ -113,12 +109,14 @@ fn BookView(
                 on:click={
                     let book_name = book.name.clone();
                     move |_| {
-                        set_selected_book.update(|b| if *b == book_name {
-                            // When you want to collapse the chapters
-                            *b = String::new();
-                        } else {
-                            *b = book_name.clone();
-                        })
+                        view_state.update(|state| {
+                            if state.get_selected_book() == book_name {
+                                // When you want to collapse the chapters
+                                state.set_selected_book(String::new());
+                            } else {
+                                state.set_selected_book(book_name.clone());
+                            }
+                        });
                     }
                 }
             >
@@ -138,7 +136,7 @@ fn BookView(
                     let book_name = book.name.clone();
                     move || {
                         let current = current_book.get();
-                        let selected = selected_book.get();
+                        let selected = view_state.with(|state| state.get_selected_book().to_string());
                         // Show if it's the current book from URL OR manually selected
                         book_name == current || book_name == selected
                     }

@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 use crate::storage::{get_sidebar_open, save_sidebar_open, get_references_sidebar_open, save_references_sidebar_open, get_verse_visibility, save_verse_visibility};
+use crate::storage::{get_selected_translation, get_selected_theme};
 use crate::core::{Bible, Chapter, VerseRange, get_bible};
 use crate::instructions::Instruction;
 
@@ -38,6 +39,24 @@ pub struct ViewState {
     
     // Bible data - single source of truth
     pub current_bible: Option<Bible>,
+    
+    // Component-specific state
+    pub selected_book: String,
+    pub command_palette_input: String,
+    pub command_palette_search_query: String,
+    pub command_palette_selected_index: usize,
+    pub reference_selected_index: Option<usize>,
+    pub is_reference_navigating: bool,
+    pub reference_sidebar_has_focus: bool,
+    pub shortcuts_help_open: bool,
+    pub theme_switcher_open: bool,
+    pub theme_selected_index: Option<usize>,
+    pub translation_switcher_open: bool,
+    pub translation_switching: bool,
+    
+    // Theme and translation management
+    pub current_theme_id: String,
+    pub current_translation_short_name: String,
 }
 
 impl Default for ViewState {
@@ -60,6 +79,24 @@ impl Default for ViewState {
             export_status: String::new(),
             is_exporting: false,
             current_bible: Some(get_bible().clone()),
+            
+            // Component-specific state
+            selected_book: String::new(),
+            command_palette_input: String::new(),
+            command_palette_search_query: String::new(),
+            command_palette_selected_index: 0,
+            reference_selected_index: None,
+            is_reference_navigating: false,
+            reference_sidebar_has_focus: false,
+            shortcuts_help_open: false,
+            theme_switcher_open: false,
+            theme_selected_index: None,
+            translation_switcher_open: false,
+            translation_switching: false,
+            
+            // Theme and translation management - initialize from storage
+            current_theme_id: get_selected_theme(),
+            current_translation_short_name: get_selected_translation().unwrap_or_else(|| "nl_sv".to_string()),
         }
     }
 }
@@ -78,6 +115,167 @@ impl ViewState {
     /// Set the current Bible
     pub fn set_bible(&mut self, bible: Bible) {
         self.current_bible = Some(bible);
+    }
+
+    // Component-specific state management
+    
+    /// Set selected book in sidebar
+    pub fn set_selected_book(&mut self, book: String) {
+        self.selected_book = book;
+    }
+    
+    /// Get selected book
+    pub fn get_selected_book(&self) -> &str {
+        &self.selected_book
+    }
+    
+    /// Update command palette input
+    pub fn set_command_palette_input(&mut self, input: String) {
+        self.command_palette_input = input;
+    }
+    
+    /// Get command palette input
+    pub fn get_command_palette_input(&self) -> &str {
+        &self.command_palette_input
+    }
+    
+    /// Set command palette search query
+    pub fn set_command_palette_search_query(&mut self, query: String) {
+        self.command_palette_search_query = query;
+    }
+    
+    /// Get command palette search query
+    pub fn get_command_palette_search_query(&self) -> &str {
+        &self.command_palette_search_query
+    }
+    
+    /// Set command palette selected index
+    pub fn set_command_palette_selected_index(&mut self, index: usize) {
+        self.command_palette_selected_index = index;
+    }
+    
+    /// Get command palette selected index
+    pub fn get_command_palette_selected_index(&self) -> usize {
+        self.command_palette_selected_index
+    }
+    
+    /// Set reference selected index
+    pub fn set_reference_selected_index(&mut self, index: Option<usize>) {
+        self.reference_selected_index = index;
+    }
+    
+    /// Get reference selected index
+    pub fn get_reference_selected_index(&self) -> Option<usize> {
+        self.reference_selected_index
+    }
+    
+    /// Set reference navigation state
+    pub fn set_reference_navigating(&mut self, navigating: bool) {
+        self.is_reference_navigating = navigating;
+    }
+    
+    /// Get reference navigation state
+    pub fn is_reference_navigating(&self) -> bool {
+        self.is_reference_navigating
+    }
+    
+    /// Set reference sidebar focus state
+    pub fn set_reference_sidebar_focus(&mut self, focused: bool) {
+        self.reference_sidebar_has_focus = focused;
+    }
+    
+    /// Get reference sidebar focus state
+    pub fn has_reference_sidebar_focus(&self) -> bool {
+        self.reference_sidebar_has_focus
+    }
+    
+    /// Toggle shortcuts help visibility
+    pub fn toggle_shortcuts_help(&mut self) {
+        self.shortcuts_help_open = !self.shortcuts_help_open;
+    }
+    
+    /// Set shortcuts help visibility
+    pub fn set_shortcuts_help_open(&mut self, open: bool) {
+        self.shortcuts_help_open = open;
+    }
+    
+    /// Get shortcuts help visibility
+    pub fn is_shortcuts_help_open(&self) -> bool {
+        self.shortcuts_help_open
+    }
+    
+    /// Toggle theme switcher dropdown
+    pub fn toggle_theme_switcher(&mut self) {
+        self.theme_switcher_open = !self.theme_switcher_open;
+    }
+    
+    /// Set theme switcher dropdown state
+    pub fn set_theme_switcher_open(&mut self, open: bool) {
+        self.theme_switcher_open = open;
+    }
+    
+    /// Get theme switcher dropdown state
+    pub fn is_theme_switcher_open(&self) -> bool {
+        self.theme_switcher_open
+    }
+    
+    /// Set theme selected index
+    pub fn set_theme_selected_index(&mut self, index: Option<usize>) {
+        self.theme_selected_index = index;
+    }
+    
+    /// Get theme selected index
+    pub fn get_theme_selected_index(&self) -> Option<usize> {
+        self.theme_selected_index
+    }
+    
+    /// Toggle translation switcher dropdown
+    pub fn toggle_translation_switcher(&mut self) {
+        self.translation_switcher_open = !self.translation_switcher_open;
+    }
+    
+    /// Set translation switcher dropdown state
+    pub fn set_translation_switcher_open(&mut self, open: bool) {
+        self.translation_switcher_open = open;
+    }
+    
+    /// Get translation switcher dropdown state
+    pub fn is_translation_switcher_open(&self) -> bool {
+        self.translation_switcher_open
+    }
+    
+    /// Set translation switching state
+    pub fn set_translation_switching(&mut self, switching: bool) {
+        self.translation_switching = switching;
+    }
+    
+    /// Get translation switching state
+    pub fn is_translation_switching(&self) -> bool {
+        self.translation_switching
+    }
+    
+    /// Set current theme and persist to storage
+    pub fn set_current_theme(&mut self, theme_id: String) {
+        use crate::storage::save_selected_theme;
+        self.current_theme_id = theme_id.clone();
+        save_selected_theme(&theme_id);
+    }
+    
+    /// Get current theme
+    pub fn get_current_theme(&self) -> &str {
+        &self.current_theme_id
+    }
+    
+    /// Set current translation and persist to storage
+    pub fn set_current_translation(&mut self, short_name: String) {
+        use crate::storage::set_selected_translation;
+        self.current_translation_short_name = short_name.clone();
+        let _ = set_selected_translation(&short_name);
+    }
+    
+    /// Get current translation short name
+    pub fn get_current_translation_short_name(&self) -> &str {
+        &self.current_translation_short_name
     }
 
     pub fn execute(&mut self, instruction: &Instruction) -> InstructionResult {
