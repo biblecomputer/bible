@@ -1,4 +1,5 @@
 use crate::core::{Bible, BIBLE, init_bible_signal};
+use crate::storage::translations::get_current_translation;
 use leptos::prelude::Set;
 use gloo_net::http::Request;
 use rexie::{ObjectStore, Rexie, TransactionMode};
@@ -8,7 +9,14 @@ pub async fn init_bible() -> std::result::Result<(), Box<dyn std::error::Error>>
         return Ok(());
     }
 
-    let bible = load_or_fetch_bible().await?;
+    let mut bible = load_or_fetch_bible().await?;
+
+    // Apply translation mapping based on current translation language
+    if let Some(current_translation) = get_current_translation() {
+        if let Some(language) = current_translation.languages.first() {
+            bible = bible.translate_names(*language);
+        }
+    }
 
     BIBLE
         .set(bible.clone())

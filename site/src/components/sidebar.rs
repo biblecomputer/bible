@@ -3,7 +3,6 @@ use crate::core::*;
 use crate::utils::is_mobile_screen;
 use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
-use crate::translation_map::translation::Translation;
 use crate::view_state::ViewStateSignal;
 use leptos::component;
 use leptos::prelude::*;
@@ -15,36 +14,14 @@ use leptos_router::location::Location;
 use urlencoding::decode;
 
 
+// Translation is now handled at the Bible data level, so names are already translated
 fn get_translated_name(input: &str) -> String {
-    if let Some(current_translation) = get_current_translation() {
-        if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(*first_language);
-            
-            // Convert input to lowercase and replace spaces with underscores for lookup
-            let lookup_key = input.to_lowercase().replace(' ', "_");
-            
-            if let Some(translated_name) = translation.get(&lookup_key) {
-                return translated_name;
-            }
-        }
-    }
-    
-    // Return original input if no translation found
     input.to_string()
 }
 
-fn is_name_translated(input: &str) -> bool {
-    if let Some(current_translation) = get_current_translation() {
-        if let Some(first_language) = current_translation.languages.first() {
-            let translation = Translation::from_language(*first_language);
-            
-            // Convert input to lowercase and replace spaces with underscores for lookup
-            let lookup_key = input.to_lowercase().replace(' ', "_");
-            
-            return translation.get(&lookup_key).is_some();
-        }
-    }
-    false
+fn is_name_translated(_input: &str) -> bool {
+    // All names are now pre-translated, so we can treat them as always translated
+    true
 }
 
 fn get_ui_text(key: &str) -> String {
