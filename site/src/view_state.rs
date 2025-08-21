@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 use crate::storage::{get_sidebar_open, save_sidebar_open, get_references_sidebar_open, save_references_sidebar_open, get_verse_visibility, save_verse_visibility};
-use crate::core::{Chapter, VerseRange, get_bible};
+use crate::core::{Bible, Chapter, VerseRange, get_bible};
 use crate::instructions::Instruction;
 
 /// Central state management for all UI view states
@@ -36,6 +36,8 @@ pub struct ViewState {
     pub export_status: String,
     pub is_exporting: bool,
     
+    // Bible data - single source of truth
+    pub current_bible: Option<Bible>,
 }
 
 impl Default for ViewState {
@@ -57,6 +59,7 @@ impl Default for ViewState {
             export_progress: 0.0,
             export_status: String::new(),
             is_exporting: false,
+            current_bible: Some(get_bible().clone()),
         }
     }
 }
@@ -65,6 +68,16 @@ impl ViewState {
     /// Create a new ViewState with default values
     pub fn new() -> Self {
         Self::default()
+    }
+    
+    /// Get a reference to the current Bible
+    pub fn get_bible(&self) -> Option<&Bible> {
+        self.current_bible.as_ref()
+    }
+    
+    /// Set the current Bible
+    pub fn set_bible(&mut self, bible: Bible) {
+        self.current_bible = Some(bible);
     }
 
     pub fn execute(&mut self, instruction: &Instruction) -> InstructionResult {
@@ -406,7 +419,7 @@ impl ViewState {
                 } else if let Some(next_verse) = target_chapter.get_next_verse(current_verse) {
                     // Move to next verse in current chapter
                     current_verse = next_verse;
-                } else if let Some(next_chapter) = get_bible().get_next_chapter(&target_chapter) {
+                } else if let Some(next_chapter) = self.get_bible().and_then(|bible| bible.get_next_chapter(&target_chapter)) {
                     // Reached end of chapter, move to first verse of next chapter
                     target_chapter = next_chapter;
                     current_verse = 1;
@@ -440,7 +453,7 @@ impl ViewState {
             for _ in 0..multiplier {
                 if current_verse == 0 {
                     // Currently on chapter heading, navigate to last verse of previous chapter
-                    if let Some(prev_chapter) = get_bible().get_previous_chapter(&target_chapter) {
+                    if let Some(prev_chapter) = self.get_bible().and_then(|bible| bible.get_previous_chapter(&target_chapter)) {
                         target_chapter = prev_chapter;
                         current_verse = target_chapter.verses.len() as u32;
                     } else {
@@ -449,7 +462,7 @@ impl ViewState {
                     }
                 } else if current_verse == 1 {
                     // Currently on first verse, navigate to last verse of previous chapter
-                    if let Some(prev_chapter) = get_bible().get_previous_chapter(&target_chapter) {
+                    if let Some(prev_chapter) = self.get_bible().and_then(|bible| bible.get_previous_chapter(&target_chapter)) {
                         target_chapter = prev_chapter;
                         current_verse = target_chapter.verses.len() as u32;
                     } else {
@@ -483,7 +496,7 @@ impl ViewState {
     
     fn handle_next_chapter_with_multiplier(&mut self, multiplier: u32) -> InstructionResult {
         if let Some(ref current_chapter) = self.current_chapter {
-            if let Some(target_path) = get_bible().get_nth_next_chapter_path(current_chapter, multiplier) {
+            if let Some(target_path) = self.get_bible().and_then(|bible| bible.get_nth_next_chapter_path(current_chapter, multiplier)) {
                 InstructionResult::Navigate(target_path)
             } else {
                 InstructionResult::Failed("No next chapter available".to_string())
@@ -495,7 +508,7 @@ impl ViewState {
     
     fn handle_previous_chapter_with_multiplier(&mut self, multiplier: u32) -> InstructionResult {
         if let Some(ref current_chapter) = self.current_chapter {
-            if let Some(target_path) = get_bible().get_nth_previous_chapter_path(current_chapter, multiplier) {
+            if let Some(target_path) = self.get_bible().and_then(|bible| bible.get_nth_previous_chapter_path(current_chapter, multiplier)) {
                 InstructionResult::Navigate(target_path)
             } else {
                 InstructionResult::Failed("No previous chapter available".to_string())
@@ -510,7 +523,7 @@ impl ViewState {
             let mut target_chapter = current_chapter.clone();
             
             for _ in 0..multiplier {
-                if let Some(next_book_chapter) = get_bible().get_next_book(&target_chapter) {
+                if let Some(next_book_chapter) = self.get_bible().and_then(|bible| bible.get_next_book(&target_chapter)) {
                     target_chapter = next_book_chapter;
                 } else {
                     // Reached the end
@@ -529,7 +542,7 @@ impl ViewState {
             let mut target_chapter = current_chapter.clone();
             
             for _ in 0..multiplier {
-                if let Some(prev_book_chapter) = get_bible().get_previous_book(&target_chapter) {
+                if let Some(prev_book_chapter) = self.get_bible().and_then(|bible| bible.get_previous_book(&target_chapter)) {
                     target_chapter = prev_book_chapter;
                 } else {
                     // Reached the beginning
@@ -732,7 +745,7 @@ impl ViewState {
         use std::sync::atomic::{AtomicUsize, Ordering};
         static RANDOM_COUNTER: AtomicUsize = AtomicUsize::new(1);
         
-        let bible = get_bible();
+        let bible = self.get_bible()?;
         let mut total_verses = 0;
         let mut verse_locations = Vec::new();
 
@@ -771,7 +784,7 @@ impl ViewState {
         use std::sync::atomic::{AtomicUsize, Ordering};
         static RANDOM_COUNTER: AtomicUsize = AtomicUsize::new(1);
         
-        let bible = get_bible();
+        let bible = self.get_bible()?;
         let mut total_chapters = 0;
         let mut chapter_locations = Vec::new();
 
