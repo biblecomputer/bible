@@ -1,20 +1,17 @@
-use crate::core::{get_bible, init_bible_signal};
-use crate::core::*;
-use crate::utils::is_mobile_screen;
-use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
+use crate::core::*;
+use crate::core::{get_bible, init_bible_signal};
+use crate::storage::translations::get_current_translation;
+use crate::utils::is_mobile_screen;
 use crate::view_state::ViewStateSignal;
 use leptos::component;
 use leptos::prelude::*;
 use leptos::view;
 use leptos::IntoView;
 use leptos_router::hooks::{use_location, use_navigate};
-use leptos_router::NavigateOptions;
 use leptos_router::location::Location;
+use leptos_router::NavigateOptions;
 use urlencoding::decode;
-
-
-// Removed redundant translation functions - names are already translated at Bible data level
 
 fn get_ui_text(key: &str) -> String {
     if let Some(current_translation) = get_current_translation() {
@@ -40,22 +37,22 @@ fn get_ui_text(key: &str) -> String {
 pub fn Sidebar(view_state: ViewStateSignal) -> impl IntoView {
     let location = use_location();
     let bible_signal = init_bible_signal();
-    
+
     // Extract book name from current URL and auto-expand it
     let current_book = Memo::new(move |_| {
         let pathname = location.pathname.get();
         let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
-        
+
         if path_parts.len() >= 2 {
             // Decode the URL-encoded book name and convert underscores back to spaces
             if let Ok(decoded) = decode(path_parts[0]) {
                 return decoded.into_owned();
             }
         }
-        
+
         String::new() // Return empty string if no valid book found
     });
-    
+
     // Removed local selected_book signal - now using ViewState
 
     // Create reactive books list
@@ -95,7 +92,7 @@ fn BookView(
 
     view! {
         <li>
-            <button 
+            <button
                 class="w-full text-left px-3 py-2 rounded-md transition-colors duration-150 font-medium"
                 style="color: var(--theme-sidebar-text); background-color: var(--theme-sidebar-background)"
                 on:click={
@@ -134,9 +131,9 @@ fn BookView(
                 let chapter_path_for_class = chapter_path.clone();
                 let chapter_path_for_style = chapter_path.clone();
                 let location = location.clone();
-                
+
                 view! {
-                    <button 
+                    <button
                         class={
                             move || {
                                 let current_path = location.pathname.get();
