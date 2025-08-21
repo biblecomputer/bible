@@ -39,9 +39,9 @@ pub enum SearchResult {
 impl SearchResult {
     pub fn get_display_name(&self) -> String {
         match self {
-            SearchResult::Chapter(chapter) => get_translated_chapter_name(&chapter.name),
+            SearchResult::Chapter(chapter) => chapter.name.clone(),
             SearchResult::Verse { chapter, verse_number, .. } => {
-                format!("{} verse {}", get_translated_chapter_name(&chapter.name), verse_number)
+                format!("{} verse {}", chapter.name, verse_number)
             }
             SearchResult::Instruction { name, .. } => name.clone(),
             SearchResult::RecentChapter { display_name, .. } => display_name.clone(),
@@ -253,10 +253,7 @@ fn get_all_instructions() -> Vec<SearchResult> {
         .collect()
 }
 
-fn get_translated_chapter_name(chapter_name: &str) -> String {
-    // Translation is now handled at the Bible data level, so just return the input string
-    chapter_name.to_string()
-}
+// Removed redundant get_translated_chapter_name function - names are already translated
 
 fn get_current_chapter_from_bible(bible: &Bible, location_pathname: &str) -> Option<Chapter> {
     let path_parts: Vec<&str> = location_pathname.trim_start_matches('/').split('/').collect();
@@ -640,7 +637,7 @@ pub fn CommandPalette(
                     let score = if original_score > 0 {
                         original_score
                     } else {
-                        let translated_name = get_translated_chapter_name(&chapter.name).to_lowercase();
+                        let translated_name = chapter.name.to_lowercase();
                         fuzzy_score(&translated_name, &query)
                     };
                     

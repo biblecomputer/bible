@@ -16,10 +16,8 @@ pub mod translation_comparison;
 
 pub use command_palette::*;
 pub use sidebar::*;
-// pub use theme_switcher::*;
 pub use theme_sidebar::*;
 pub use cross_references_sidebar::*;
 pub use pdf_loading_progress::*;
 pub use custom_translation_import::*;
 pub use translation_comparison::*;
-// pub use translation_switcher::*;

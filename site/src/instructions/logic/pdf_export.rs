@@ -311,10 +311,7 @@ where
 }
 
 /// Convenience function for exporting PDF without progress tracking
-#[allow(dead_code)]
-pub fn export_bible_to_pdf_simple(bible: &Bible) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
-    export_bible_to_pdf(bible, None::<fn(f32, String)>)
-}
+// Removed unused export_bible_to_pdf_simple function
 
 /// Trigger PDF download in the browser
 pub fn trigger_pdf_download(pdf_bytes: Vec<u8>, filename: &str) {
