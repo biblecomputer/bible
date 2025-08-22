@@ -20,6 +20,7 @@ use wasm_bindgen_futures::spawn_local;
 
 // Core types and utilities
 use crate::core::{VerseRange, parse_verse_ranges_from_url, Verse};
+use crate::instructions::types::Instruction;
 use crate::storage::{get_downloaded_translations, load_downloaded_translation};
 use crate::storage::translations::get_translations;
 use crate::view_state::ViewStateSignal;
@@ -147,7 +148,7 @@ pub fn TranslationComparison(
     window_event_listener(ev::keydown, move |evt: KeyboardEvent| {
         if evt.key() == "Escape" && view_state.with(|state| state.is_translation_comparison_open) {
             evt.prevent_default();
-            view_state.update(|state| state.is_translation_comparison_open = false);
+            view_state.update(|state| { state.execute(&Instruction::CloseTranslationComparison); });
         }
     });
 

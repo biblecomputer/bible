@@ -18,6 +18,7 @@ use crate::components::{
     CommandPalette, CrossReferencesSidebar, Sidebar, ThemeSidebar, TranslationComparison,
 };
 use crate::core::{get_bible, parse_verse_ranges_from_url, Chapter};
+use crate::instructions::types::Instruction;
 use crate::keyboard_navigation::KeyboardNavigationHandler;
 use crate::storage::{add_recent_chapter, get_selected_theme};
 use crate::themes::{get_default_theme, get_theme_by_id, theme_to_css_vars, Theme};
@@ -236,7 +237,7 @@ fn BibleWithSidebar(
                     <button
                         class="p-2 rounded transition-colors header-button"
                         on:click=move |_| {
-                            view_state.update(|state| state.toggle_left_sidebar());
+                            view_state.update(|state| { state.execute(&Instruction::ToggleSidebar); });
                         }
                         aria-label=move || if view_state.with(|state| state.is_left_sidebar_open) { "Hide books sidebar" } else { "Show books sidebar" }
                         title=move || if view_state.with(|state| state.is_left_sidebar_open) { "Hide books sidebar" } else { "Show books sidebar" }
@@ -279,7 +280,7 @@ fn BibleWithSidebar(
                                 }
                             }
                             on:click=move |_| {
-                                view_state.update(|state| state.toggle_right_sidebar());
+                                view_state.update(|state| { state.execute(&Instruction::ToggleCrossReferences); });
                             }
                             aria-label=move || {
                                 if view_state.with(|state| state.is_right_sidebar_open) { "Hide cross-references" } else { "Show cross-references" }
@@ -307,7 +308,7 @@ fn BibleWithSidebar(
                         <button
                             class="p-2 rounded transition-colors header-button"
                             on:click=move |_| {
-                                view_state.update(|state| state.toggle_theme_sidebar());
+                                view_state.update(|state| { state.execute(&Instruction::ToggleThemeSidebar); });
                             }
                             aria-label="Theme options"
                             title="Theme options"
@@ -372,7 +373,7 @@ fn BibleWithSidebar(
                     <div
                         class="fixed inset-0 bg-black bg-opacity-50 z-30"
                         on:click=move |_| {
-                            view_state.update(|state| state.set_left_sidebar(false));
+                            view_state.update(|state| { state.execute(&Instruction::CloseLeftSidebar); });
                         }
                     />
                 </Show>
@@ -439,7 +440,7 @@ fn BibleWithSidebar(
                                             class="mt-4 px-3 py-1.5 text-sm rounded transition-colors hover:opacity-80"
                                             style="color: var(--theme-text-muted)"
                                             on:click=move |_| {
-                                                view_state.update(|state| state.set_right_sidebar(false));
+                                                view_state.update(|state| { state.execute(&Instruction::CloseRightSidebar); });
                                             }
                                         >
                                             Close
@@ -461,7 +462,7 @@ fn BibleWithSidebar(
                     <div
                         class="fixed inset-0 bg-black bg-opacity-50 z-35"
                         on:click=move |_| {
-                            view_state.update(|state| state.set_right_sidebar(false));
+                            view_state.update(|state| { state.execute(&Instruction::CloseRightSidebar); });
                         }
                     />
                 </Show>
@@ -490,7 +491,7 @@ fn BibleWithSidebar(
                     <div
                         class="fixed inset-0 bg-black bg-opacity-50 z-44"
                         on:click=move |_| {
-                            view_state.update(|state| state.set_theme_sidebar(false));
+                            view_state.update(|state| { state.execute(&Instruction::CloseThemeSidebar); });
                         }
                     />
                 </Show>
@@ -528,7 +529,7 @@ fn SidebarAutoHide(view_state: ViewStateSignal) -> impl IntoView {
         // If we're on a chapter page and screen is mobile-sized, hide sidebar
         if path_parts.len() == 2 && !path_parts[0].is_empty() && !path_parts[1].is_empty() {
             if is_mobile_screen() {
-                view_state.update(|state| state.set_left_sidebar(false));
+                view_state.update(|state| { state.execute(&Instruction::CloseLeftSidebar); });
             }
         }
     });

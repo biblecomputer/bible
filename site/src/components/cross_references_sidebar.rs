@@ -1,5 +1,6 @@
 use crate::core::{load_cross_references};
 use crate::core::types::{References, Reference, VerseId};
+use crate::instructions::types::Instruction;
 use crate::storage::translations::get_current_translation;
 use crate::core::types::Language;
 use crate::translation_map::translation::Translation;
@@ -477,7 +478,7 @@ pub fn CrossReferencesSidebar(
                     navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
                     // Close sidebar on mobile when reference is selected
                     if is_mobile_screen() {
-                        view_state.update(|state| state.is_right_sidebar_open = false);
+                        view_state.update(|state| { state.execute(&Instruction::CloseRightSidebar); });
                     }
                 } else {
                     web_sys::console::warn_1(&format!("Attempted to navigate to reference at invalid index: {} (refs.len: {})", current, refs.len()).into());
@@ -647,7 +648,7 @@ fn ReferenceItem(
                     navigate(&reference_url, NavigateOptions { scroll: false, ..Default::default() });
                     // Close sidebar on mobile when reference is selected
                     if is_mobile_screen() {
-                        view_state.update(|state| state.is_right_sidebar_open = false);
+                        view_state.update(|state| { state.execute(&Instruction::CloseRightSidebar); });
                     }
                 }
             >

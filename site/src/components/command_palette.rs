@@ -714,7 +714,7 @@ pub fn CommandPalette(
     // Handle NextPaletteResult navigation signal
     Effect::new(move |_| {
         if view_state.with(|state| state.next_palette_result_trigger) {
-            view_state.update(|state| state.next_palette_result_trigger = false); // Reset signal
+            view_state.update(|state| { state.execute(&Instruction::NextPaletteResult); }); // This handles the trigger reset
             let results = filtered_results.get();
             if !results.is_empty() {
                 let current = selected_index.get();
@@ -734,7 +734,7 @@ pub fn CommandPalette(
     // Handle PreviousPaletteResult navigation signal
     Effect::new(move |_| {
         if view_state.with(|state| state.previous_palette_result_trigger) {
-            view_state.update(|state| state.previous_palette_result_trigger = false); // Reset signal
+            view_state.update(|state| { state.execute(&Instruction::PreviousPaletteResult); }); // This handles the trigger reset
             let results = filtered_results.get();
             if !results.is_empty() {
                 let current = selected_index.get();
@@ -782,7 +782,7 @@ pub fn CommandPalette(
             let handle_keydown = move |e: KeyboardEvent| {
                 match e.key().as_str() {
                     "Escape" => {
-                        view_state.update(|state| state.is_command_palette_open = false);
+                        view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); });
                         set_search_query.set(String::new());
                         set_selected_index.set(0);
                     }
@@ -804,7 +804,7 @@ pub fn CommandPalette(
                                             set_execute_instruction.set(Some(instruction));
                                         }
                                         // Close the palette
-                                        view_state.update(|state| state.is_command_palette_open = false);
+                                        view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); });
                                         set_search_query.set(String::new());
                                         set_selected_index.set(0);
                                     }
@@ -813,7 +813,7 @@ pub fn CommandPalette(
                                         set_navigate_to.set(Some(result.to_path()));
                                         
                                         // Close palette immediately
-                                        view_state.update(|state| state.is_command_palette_open = false);
+                                        view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); });
                                         
                                         // Reset search state after a small delay to avoid race conditions
                                         spawn_local(async move {
@@ -886,7 +886,7 @@ pub fn CommandPalette(
             // Backdrop
             <div 
                 class="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-start justify-center pt-20"
-                on:click=move |_| view_state.update(|state| state.is_command_palette_open = false)
+                on:click=move |_| view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); })
             >
                 // Command Palette Modal
                 <div 
@@ -1004,7 +1004,7 @@ pub fn CommandPalette(
                                                                         set_execute_instruction.set(Some(instruction));
                                                                     }
                                                                     // Close the palette
-                                                                    view_state.update(|state| state.is_command_palette_open = false);
+                                                                    view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); });
                                                                     set_search_query.set(String::new());
                                                                     set_selected_index.set(0);
                                                                 }
@@ -1013,7 +1013,7 @@ pub fn CommandPalette(
                                                                     set_navigate_to.set(Some(path.clone()));
                                                                     
                                                                     // Close palette and reset state immediately  
-                                                                    view_state.update(|state| state.is_command_palette_open = false);
+                                                                    view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); });
                                                                     
                                                                     // Reset search state after a small delay to avoid race conditions
                                                                     spawn_local(async move {

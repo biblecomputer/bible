@@ -38,6 +38,8 @@ pub enum Instruction {
     EndOfChapter,
     /// Navigate to a specific verse number
     GoToVerse(VerseId),
+    /// Navigate to a specific chapter (handles all side effects like mobile sidebar closing)
+    GoToChapter(String), // chapter path
 
     // === Special Navigation Instructions ===
     // Advanced navigation features
@@ -58,6 +60,19 @@ pub enum Instruction {
     ToggleTranslationComparison, // Added: Toggle translation comparison panel
     ToggleVerseVisibility,
     ToggleVersePallate,
+    
+    // === UI Close Instructions ===
+    // Direct close actions for specific UI elements
+    CloseCommandPalette,
+    CloseLeftSidebar,
+    CloseRightSidebar,
+    CloseThemeSidebar,
+    CloseTranslationComparison,
+    
+    // === Book Selection Instructions ===
+    // Book navigation and selection
+    SelectBook(String),
+    ClearSelectedBook,
 
     // === External Actions ===
     // Actions that interact with external systems
