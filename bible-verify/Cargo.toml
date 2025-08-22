@@ -1,8 +1,7 @@
 [package]
-name = "parser-toolkit"
+name = "bible-verify"
 version = "0.1.0"
 edition = "2021"
-default-run = "bible-verify"
 
 [[bin]]
 name = "bible-verify"
