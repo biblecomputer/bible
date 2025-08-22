@@ -92,6 +92,28 @@ enum VerificationError {
         chapter: usize,
         verse: usize,
     },
+
+    #[error("Missing chapter")]
+    #[diagnostic(code(bible_verify::missing_chapter))]
+    MissingChapter {
+        #[source_code]
+        src: NamedSource<String>,
+        #[label("Missing chapter {chapter} in {book}")]
+        span: SourceSpan,
+        book: String,
+        chapter: usize,
+    },
+
+    #[error("Duplicate chapter")]
+    #[diagnostic(code(bible_verify::duplicate_chapter))]
+    DuplicateChapter {
+        #[source_code]
+        src: NamedSource<String>,
+        #[label("Duplicate chapter {chapter} in {book}")]
+        span: SourceSpan,
+        book: String,
+        chapter: usize,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -271,6 +293,34 @@ fn verify_bible(path: &PathBuf) -> Result<(), VerificationError> {
     }
 
     for (book_idx, book) in bible.books.iter().enumerate() {
+        // First check for duplicate chapters
+        let mut seen_chapters = std::collections::HashSet::new();
+        for (chapter_idx, chapter) in book.chapters.iter().enumerate() {
+            if !seen_chapters.insert(chapter.chapter) {
+                return Err(VerificationError::DuplicateChapter {
+                    src: NamedSource::new(&filename, content.clone()),
+                    span: find_json_span(&content, book_idx, Some(chapter_idx), None)
+                        .unwrap_or((0, 10).into()),
+                    book: book.name.clone(),
+                    chapter: chapter.chapter,
+                });
+            }
+        }
+
+        // Then check for missing chapters (only after ensuring no duplicates)
+        let max_chapter = book.chapters.iter().map(|c| c.chapter).max().unwrap_or(0);
+        for i in 1..=max_chapter {
+            if !book.chapters.iter().any(|c| c.chapter == i) {
+                return Err(VerificationError::MissingChapter {
+                    src: NamedSource::new(&filename, content.clone()),
+                    span: find_json_span(&content, book_idx, None, None)
+                        .unwrap_or((0, 10).into()),
+                    book: book.name.clone(),
+                    chapter: i,
+                });
+            }
+        }
+
         for (chapter_idx, chapter) in book.chapters.iter().enumerate() {
             let verse_count = chapter.verses.len();
             
