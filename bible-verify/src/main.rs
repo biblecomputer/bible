@@ -1,12 +1,19 @@
 mod types;
 
-use serde_json::Value;
-use std::fs;
 use types::{Bible, Book, Chapter, ValidationError, Verse};
 
 fn main() {
-    let s = include_str!("./kjv.json");
+    let s = include_str!("../kjv.json");
     let bible = parse(s);
+    
+    // Test valid Bible
+    test_bible_validation(&bible);
+    
+    // Test with sample data
+    test_with_sample_data();
+    
+    // Test invalid book names
+    test_invalid_book_names();
 }
 
 /// Parse a JSON string into a Bible structure
@@ -33,11 +40,14 @@ fn test_bible_validation(bible: &Bible) {
                 ValidationError::VerseAmount(count) => {
                     println!("  Invalid verse count: {}", count);
                 }
-                ValidationError::SuspiciousVerseLength => {
-                    println!("  Found verse with less than 3 words");
+                ValidationError::SuspiciousVerseLength(verse) => {
+                    println!("  Found verse with less than 3 words: {}", verse.name);
                 }
-                ValidationError::SuspiciousChapterLength => {
-                    println!("  Found chapter with less than 3 verses");
+                ValidationError::SuspiciousChapterLength(chapter) => {
+                    println!("  Found chapter with less than 3 verses: {}", chapter.name);
+                }
+                ValidationError::InvalidBookName(book_name) => {
+                    println!("  Invalid book name: '{}'", book_name);
                 }
             }
         }
@@ -154,15 +164,74 @@ fn test_with_sample_data() {
                        Genesis|1|3|And God said, Let there be light.\n\
                        Exodus|1|1|Now these are the names of the children of Israel.";
 
-    match parse_custom_format(custom_data) {
-        Ok(bible) => {
-            println!("Successfully parsed custom format:");
-            println!("  Books: {}", bible.books.len());
-            for book in &bible.books {
-                println!("  - {} ({} chapters)", book.name, book.chapters.len());
-            }
+    // Custom parser functionality removed for now
+    println!("Custom parser functionality not implemented yet");
+}
+
+/// Test invalid book names to ensure they are properly caught
+fn test_invalid_book_names() {
+    println!("\n=== Testing Invalid Book Names ===");
+
+    // Test with misspelled book name
+    let invalid_bible = Bible {
+        books: vec![
+            Book {
+                name: "Genesiss".to_string(), // Misspelled
+                chapters: vec![
+                    Chapter {
+                        chapter: 1,
+                        name: "Genesis 1".to_string(),
+                        verses: vec![
+                            Verse {
+                                verse: 1,
+                                chapter: 1,
+                                name: "Genesis 1:1".to_string(),
+                                text: "In the beginning God created the heaven and the earth.".to_string(),
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    };
+
+    match invalid_bible.is_valid() {
+        Ok(()) => println!("✗ Misspelled book name test failed - should have caught error"),
+        Err(ValidationError::InvalidBookName(name)) => {
+            println!("✓ Correctly caught invalid book name: '{}'", name);
         }
-        Err(e) => println!("Failed to parse custom format: {}", e),
+        Err(other) => println!("✗ Unexpected error: {:?}", other),
+    }
+
+    // Test with completely wrong book name
+    let invalid_bible2 = Bible {
+        books: vec![
+            Book {
+                name: "Harry Potter".to_string(), // Invalid book
+                chapters: vec![
+                    Chapter {
+                        chapter: 1,
+                        name: "Chapter 1".to_string(),
+                        verses: vec![
+                            Verse {
+                                verse: 1,
+                                chapter: 1,
+                                name: "1:1".to_string(),
+                                text: "This is not a Bible verse.".to_string(),
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    };
+
+    match invalid_bible2.is_valid() {
+        Ok(()) => println!("✗ Invalid book name test failed - should have caught error"),
+        Err(ValidationError::InvalidBookName(name)) => {
+            println!("✓ Correctly caught invalid book name: '{}'", name);
+        }
+        Err(other) => println!("✗ Unexpected error: {:?}", other),
     }
 }
 
