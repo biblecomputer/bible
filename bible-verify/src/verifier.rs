@@ -5,6 +5,26 @@ use std::fs;
 use std::path::PathBuf;
 use thiserror::Error;
 
+// Valid KJV Bible book names in order
+const VALID_BOOK_NAMES: [&str; 66] = [
+    // Old Testament
+    "Genesis", "Exodus", "Leviticus", "Numbers", "Deuteronomy",
+    "Joshua", "Judges", "Ruth", "I Samuel", "II Samuel",
+    "I Kings", "II Kings", "I Chronicles", "II Chronicles", "Ezra",
+    "Nehemiah", "Esther", "Job", "Psalms", "Proverbs",
+    "Ecclesiastes", "Song of Solomon", "Isaiah", "Jeremiah", "Lamentations",
+    "Ezekiel", "Daniel", "Hosea", "Joel", "Amos",
+    "Obadiah", "Jonah", "Micah", "Nahum", "Habakkuk",
+    "Zephaniah", "Haggai", "Zechariah", "Malachi", 
+    // New Testament
+    "Matthew", "Mark", "Luke", "John", "Acts",
+    "Romans", "I Corinthians", "II Corinthians", "Galatians", "Ephesians",
+    "Philippians", "Colossians", "I Thessalonians", "II Thessalonians", "I Timothy",
+    "II Timothy", "Titus", "Philemon", "Hebrews", "James",
+    "I Peter", "II Peter", "I John", "II John", "III John",
+    "Jude", "Revelation of John",
+];
+
 #[derive(Parser, Debug)]
 #[command(name = "bible-verify")]
 #[command(about = "A Bible JSON verifier that checks for correct verse counts", long_about = None)]
@@ -113,6 +133,18 @@ enum VerificationError {
         span: SourceSpan,
         book: String,
         chapter: usize,
+    },
+
+    #[error("Invalid book name")]
+    #[diagnostic(code(bible_verify::invalid_book_name))]
+    InvalidBookName {
+        #[source_code]
+        src: NamedSource<String>,
+        #[label("Book name '{book_name}' is not a valid Bible book")]
+        span: SourceSpan,
+        book_name: String,
+        #[help]
+        help: String,
     },
 }
 
@@ -290,6 +322,24 @@ fn verify_bible(path: &PathBuf) -> Result<(), VerificationError> {
             span: find_json_span(&content, 0, None, None).unwrap_or((0, 10).into()),
             found: bible.books.len(),
         });
+    }
+
+    // Validate book names
+    for (book_idx, book) in bible.books.iter().enumerate() {
+        if !VALID_BOOK_NAMES.contains(&book.name.as_str()) {
+            let help = format!(
+                "Valid book names include: Genesis, Exodus, Leviticus, Numbers, etc. \
+                Make sure to use the exact spelling as in the KJV Bible, including \
+                Roman numerals like 'I Samuel', 'II Kings', etc."
+            );
+            
+            return Err(VerificationError::InvalidBookName {
+                src: NamedSource::new(&filename, content.clone()),
+                span: find_json_span(&content, book_idx, None, None).unwrap_or((0, 10).into()),
+                book_name: book.name.clone(),
+                help,
+            });
+        }
     }
 
     for (book_idx, book) in bible.books.iter().enumerate() {
