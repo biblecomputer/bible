@@ -5,6 +5,7 @@ use crate::storage::{
     save_references_sidebar_open, save_sidebar_open, save_verse_visibility,
 };
 use crate::storage::{get_selected_theme, get_selected_translation};
+use crate::utils::is_mobile_screen;
 use leptos::prelude::*;
 
 /// Central state management for all UI view states
@@ -122,11 +123,6 @@ impl AppState {
     }
 
     // Component-specific state management
-
-    /// Set selected book in sidebar
-    pub fn set_selected_book(&mut self, book: String) {
-        self.selected_book = book;
-    }
 
     /// Get selected book
     pub fn get_selected_book(&self) -> &str {
@@ -353,6 +349,13 @@ impl AppState {
             Instruction::BeginningOfChapter => self.handle_beginning_of_chapter(),
             Instruction::EndOfChapter => self.handle_end_of_chapter(),
             Instruction::GoToVerse(verse_id) => self.handle_go_to_verse(*verse_id),
+            Instruction::GoToChapter(chapter_path) => {
+                // Handle mobile sidebar closing as a side effect
+                if is_mobile_screen() {
+                    self.execute(&Instruction::CloseLeftSidebar);
+                }
+                InstructionResult::Navigate(chapter_path.clone())
+            }
 
             // Selection instructions
             Instruction::ExtendSelectionNextVerse => self.handle_extend_selection_next_verse(),
@@ -402,6 +405,38 @@ impl AppState {
                 } else {
                     InstructionResult::Failed("No chapters available".to_string())
                 }
+            }
+
+            // UI Close instructions
+            Instruction::CloseCommandPalette => {
+                self.is_command_palette_open = false;
+                InstructionResult::Handled
+            }
+            Instruction::CloseLeftSidebar => {
+                self.is_left_sidebar_open = false;
+                InstructionResult::Handled
+            }
+            Instruction::CloseRightSidebar => {
+                self.is_right_sidebar_open = false;
+                InstructionResult::Handled
+            }
+            Instruction::CloseThemeSidebar => {
+                self.is_theme_sidebar_open = false;
+                InstructionResult::Handled
+            }
+            Instruction::CloseTranslationComparison => {
+                self.is_translation_comparison_open = false;
+                InstructionResult::Handled
+            }
+
+            // Book Selection instructions
+            Instruction::SelectBook(book_name) => {
+                self.selected_book = book_name.clone();
+                InstructionResult::Handled
+            }
+            Instruction::ClearSelectedBook => {
+                self.selected_book = String::new();
+                InstructionResult::Handled
             }
 
             // Instructions that still need external handling (exports, copy operations, palette toggles)
@@ -900,15 +935,15 @@ impl AppState {
 
     /// Close all sidebars and panels
     pub fn close_all_sidebars(&mut self) {
-        self.set_left_sidebar(false);
-        self.set_right_sidebar(false);
-        self.set_theme_sidebar(false);
-        self.set_translation_comparison(false);
+        self.execute(&Instruction::CloseLeftSidebar);
+        self.execute(&Instruction::CloseRightSidebar);
+        self.execute(&Instruction::CloseThemeSidebar);
+        self.execute(&Instruction::CloseTranslationComparison);
     }
 
     /// Close all overlays (useful for mobile)
     pub fn close_all_overlays(&mut self) {
-        self.set_command_palette(false);
+        self.execute(&Instruction::CloseCommandPalette);
         self.close_all_sidebars();
     }
 

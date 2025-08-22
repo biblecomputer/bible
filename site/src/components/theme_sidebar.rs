@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos::ev;
 use leptos::web_sys::KeyboardEvent;
 use leptos::wasm_bindgen::JsCast;
+use crate::instructions::types::Instruction;
 use crate::themes::{get_themes, Theme};
 use crate::storage::save_selected_theme;
 use crate::utils::is_mobile_screen;
@@ -112,7 +113,7 @@ pub fn ThemeSidebar(
                     class="p-2 hover:bg-gray-100 rounded transition-colors"
                     style="color: var(--theme-text-secondary)"
                     on:click=move |_| {
-                        view_state.update(|state| state.is_theme_sidebar_open = false);
+                        view_state.update(|state| { state.execute(&Instruction::CloseThemeSidebar); });
                     }
                     aria-label="Close themes"
                     title="Close themes"
@@ -172,7 +173,7 @@ pub fn ThemeSidebar(
                                 
                                 // Close sidebar on mobile after selection
                                 if is_mobile_screen() {
-                                    view_state.update(|state| state.is_theme_sidebar_open = false);
+                                    view_state.update(|state| { state.execute(&Instruction::CloseThemeSidebar); });
                                 }
                             }
                         >

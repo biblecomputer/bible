@@ -1,8 +1,9 @@
 use crate::core::types::Language;
 use crate::core::*;
 use crate::core::{get_bible, init_bible_signal};
+use crate::instructions::Instruction;
 use crate::storage::translations::get_current_translation;
-use crate::utils::is_mobile_screen;
+use crate::utils::execute_with_navigation;
 use crate::view_state::ViewStateSignal;
 use leptos::component;
 use leptos::prelude::*;
@@ -10,7 +11,6 @@ use leptos::view;
 use leptos::IntoView;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_router::location::Location;
-use leptos_router::NavigateOptions;
 use urlencoding::decode;
 
 fn get_ui_text(key: &str) -> String {
@@ -101,9 +101,9 @@ fn BookView(
                         view_state.update(|state| {
                             if state.get_selected_book() == book_name {
                                 // When you want to collapse the chapters
-                                state.set_selected_book(String::new());
+                                state.execute(&Instruction::ClearSelectedBook);
                             } else {
-                                state.set_selected_book(book_name.clone());
+                                state.execute(&Instruction::SelectBook(book_name.clone()));
                             }
                         });
                     }
@@ -158,11 +158,7 @@ fn BookView(
                             let navigate = navigate.clone();
                             let nav_path = chapter_path.clone();
                             move |_| {
-                                navigate(&nav_path, NavigateOptions { scroll: false, ..Default::default() });
-                                // Close sidebar on mobile when chapter is selected
-                                if is_mobile_screen() {
-                                    view_state.update(|state| state.is_left_sidebar_open = false);
-                                }
+                                execute_with_navigation(view_state, &navigate, Instruction::GoToChapter(nav_path.clone()));
                             }
                         }
                     >
