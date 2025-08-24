@@ -27,7 +27,7 @@ pub fn handle_open_github_repository() {
     if let Some(window) = leptos::web_sys::window() {
         let _ = window
             .location()
-            .set_href("https://github.com/sempruijs/bible");
+            .set_href("https://github.com/biblecomputer/bible");
     }
 }
 

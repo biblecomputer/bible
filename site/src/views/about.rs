@@ -12,7 +12,7 @@ pub fn About() -> impl IntoView {
                         "A keyboard-driven Bible reading website. Built with Rust and open source."
                     </p>
                     <a 
-                        href="https://github.com/sempruijs/bible" 
+                        href="https://github.com/biblecomputer/bible" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         class="hover:underline translation-link"
