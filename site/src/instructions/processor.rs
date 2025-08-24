@@ -338,7 +338,7 @@ where
                         .next()
                         .unwrap_or("");
                     copy_text.push_str(&format!(
-                        "https://bible.pruijs.net/{}/{}?verses={}",
+                        "https://bible.computer/{}/{}?verses={}",
                         book_name_url, chapter_num, verses_param
                     ));
 

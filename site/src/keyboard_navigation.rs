@@ -194,11 +194,33 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
                     );
                 }
                 crate::view_state::InstructionResult::NotHandled => {
-                    // Instruction not handled by ViewState - this shouldn't happen much anymore
+                    // Instruction not handled by ViewState - try with processor
                     #[cfg(target_arch = "wasm32")]
                     leptos::web_sys::console::log_1(
-                        &format!("🤷 Instruction not handled: {:?}", instruction).into(),
+                        &format!("🔄 Passing to processor: {:?}", instruction).into(),
                     );
+                    
+                    // Create processor and try to handle the instruction
+                    let processor = crate::instructions::processor::InstructionProcessor::new(
+                        |path: &str, opts: leptos_router::NavigateOptions| {
+                            navigate(path, opts);
+                        }
+                    );
+                    
+                    let handled = view_state.with(|state| {
+                        if multiplier > 1 {
+                            processor.process_with_multiplier(instruction.clone(), state, multiplier)
+                        } else {
+                            processor.process(instruction.clone(), state)
+                        }
+                    });
+                    
+                    if !handled {
+                        #[cfg(target_arch = "wasm32")]
+                        leptos::web_sys::console::log_1(
+                            &format!("🤷 Instruction not handled by processor either: {:?}", instruction).into(),
+                        );
+                    }
                 }
             }
         }
