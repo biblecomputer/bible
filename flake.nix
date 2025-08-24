@@ -25,20 +25,7 @@
 
         craneLib = (crane.mkLib pkgs).overrideToolchain (_: rustToolchain);
 
-        unfilteredRoot = ./site;
-        src = pkgs.lib.fileset.toSource {
-          root = unfilteredRoot;
-          fileset = pkgs.lib.fileset.unions [
-            (craneLib.fileset.commonCargoSources unfilteredRoot)
-            (pkgs.lib.fileset.fileFilter (
-              file: pkgs.lib.any file.hasExt [ "html" "scss" "css" "js" "json" "txt" "png" ]
-            ) unfilteredRoot)
-            (pkgs.lib.fileset.maybeMissing ./assets)
-          ];
-        };
-
         commonArgs = {
-          inherit src;
           strictDeps = true;
           buildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
             pkgs.libiconv
@@ -46,98 +33,45 @@
         };
 
         nativeArgs = commonArgs // {
+          src = pkgs.lib.fileset.toSource {
+            root = ./site;
+            fileset = pkgs.lib.fileset.unions [
+              (craneLib.fileset.commonCargoSources ./site)
+              (pkgs.lib.fileset.fileFilter (
+                file: pkgs.lib.any file.hasExt [ "html" "scss" "css" "js" "json" "txt" "png" ]
+              ) ./site)
+              (pkgs.lib.fileset.maybeMissing ./assets)
+            ];
+          };
           pname = "trunk-workspace-native";
         };
 
         cargoArtifacts = craneLib.buildDepsOnly nativeArgs;
 
-        wasmArgs = commonArgs // {
-          pname = "trunk-workspace-wasm";
-          cargoExtraArgs = "--package=bible";
-          CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
+        site = import ./site.nix {
+          inherit pkgs craneLib rustToolchain;
         };
 
-        cargoArtifactsWasm = craneLib.buildDepsOnly (wasmArgs // {
-          doCheck = false;
-        });
+        bibleVerify = import ./bible-verify.nix {
+          inherit pkgs craneLib;
+        };
 
-        myClient = craneLib.buildTrunkPackage (
-          wasmArgs // {
-            pname = "trunk-workspace-client";
-            cargoArtifacts = cargoArtifactsWasm;
-
-            # Add tailwindcss as build input
-            nativeBuildInputs = (wasmArgs.nativeBuildInputs or []) ++ [ 
-              pkgs.tailwindcss
-            ];
-
-            # Fix trunk caching issues in sandbox and build tailwind
-            preBuild = ''
-              mkdir -p target/trunk-cache
-              
-              # Build tailwind CSS
-              echo "Building Tailwind CSS..."
-              ${pkgs.tailwindcss}/bin/tailwindcss \
-                -i ./style/tailwind.css \
-                -o ./style/output.css \
-                --config ./tailwind.config.js
-            '';
-            TRUNK_CACHE_DIR = "./target/trunk-cache";
-            HOME = "./target/home";
-
-            postBuild = ''
-              # Copy index.html as 404.html
-              cp ./dist/index.html ./dist/404.html
-              
-              mv ./dist ..
-              cd ..
-            '';
-
-            # Required wasm-bindgen-cli setup
-            wasm-bindgen-cli = pkgs.buildWasmBindgenCli rec {
-              src = pkgs.fetchCrate {
-                pname = "wasm-bindgen-cli";
-                version = "0.2.100";
-                hash = "sha256-3RJzK7mkYFrs7C/WkhW9Rr4LdP5ofb2FdYGz1P7Uxog=";
-              };
-
-              cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
-                inherit src;
-                inherit (src) pname version;
-                hash = "sha256-qsO12332HSjWCVKtf1cUePWWb9IdYUmT+8OPj/XP2WE=";
-              };
-            };
-          }
-        );
       in {
         packages = {
-          default = myClient;
-          bible-verify = craneLib.buildPackage {
-            src = pkgs.lib.fileset.toSource {
-              root = ./bible-verify;
-              fileset = pkgs.lib.fileset.unions [
-                (craneLib.fileset.commonCargoSources ./bible-verify)
-                (pkgs.lib.fileset.maybeMissing ./bible-verify/kjv.json)
-              ];
-            };
-            pname = "bible-verify";
-            version = "0.1.0";
-            strictDeps = true;
-            buildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
-              pkgs.libiconv
-            ];
-          };
+          default = site;
+          bible-verify = bibleVerify;
         };
 
         checks = {
-          inherit myClient;
+          inherit site;
 
           clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
+            src = ./site;
             cargoClippyExtraArgs = "--all-targets -- --deny warnings";
           });
 
-          fmt = craneLib.cargoFmt commonArgs;
+          fmt = craneLib.cargoFmt (commonArgs // { src = ./site; });
         };
 
         devShells.default = craneLib.devShell {
@@ -156,7 +90,7 @@
         apps = {
           default = flake-utils.lib.mkApp {
             name = "bible";
-            drv = myClient;
+            drv = site;
           };
           
           dev = flake-utils.lib.mkApp {
