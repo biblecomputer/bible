@@ -383,7 +383,7 @@ impl AppState {
                     if let Some(window) = leptos::web_sys::window() {
                         let _ = window
                             .location()
-                            .set_href("https://github.com/sempruijs/bible");
+                            .set_href("https://github.com/biblecomputer/bible");
                     }
                 }
                 InstructionResult::Handled
