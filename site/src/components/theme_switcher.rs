@@ -1,6 +1,6 @@
-use leptos::prelude::*;
-use crate::themes::{get_themes, Theme};
 use crate::storage::save_selected_theme;
+use crate::themes::{get_themes, Theme};
+use leptos::prelude::*;
 
 #[component]
 pub fn ThemeSwitcher(
@@ -62,7 +62,7 @@ pub fn ThemeSwitcher(
                             let theme_id_for_show = theme.id.clone();
                             let theme_name = theme.name.clone();
                             let current_theme_id = move || current_theme.get().id.clone();
-                            
+
                             view! {
                                 <button
                                     class="w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"

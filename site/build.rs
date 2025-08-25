@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::Path;
-use serde::{Deserialize, Serialize};
 
 // Mirror the structures from the main code
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -22,7 +22,7 @@ impl VerseId {
         let packed = ((book_id as u32) << 24) | ((chapter & 0xFFF) << 12) | (verse & 0xFFF);
         VerseId(packed)
     }
-    
+
     fn from_book_name(book_name: &str, chapter: u32, verse: u32) -> Option<Self> {
         let book_id = book_name_to_id(book_name)?;
         Some(Self::new(book_id, chapter, verse))
@@ -71,7 +71,7 @@ fn book_name_to_id(book_name: &str) -> Option<u8> {
         "Haggai" => Some(37),
         "Zechariah" => Some(38),
         "Malachi" => Some(39),
-        
+
         // New Testament
         "Matthew" => Some(40),
         "Mark" => Some(41),
@@ -100,7 +100,7 @@ fn book_name_to_id(book_name: &str) -> Option<u8> {
         "3 John" => Some(64),
         "Jude" => Some(65),
         "Revelation" => Some(66),
-        
+
         _ => None,
     }
 }
@@ -109,7 +109,7 @@ fn expand_book_abbreviation(abbrev: &str) -> String {
     match abbrev {
         // Old Testament
         "Gen" => "Genesis",
-        "Exod" => "Exodus", 
+        "Exod" => "Exodus",
         "Lev" => "Leviticus",
         "Num" => "Numbers",
         "Deut" => "Deuteronomy",
@@ -147,7 +147,7 @@ fn expand_book_abbreviation(abbrev: &str) -> String {
         "Hag" => "Haggai",
         "Zech" => "Zechariah",
         "Mal" => "Malachi",
-        
+
         // New Testament
         "Matt" => "Matthew",
         "Mark" => "Mark",
@@ -176,25 +176,30 @@ fn expand_book_abbreviation(abbrev: &str) -> String {
         "3John" => "3 John",
         "Jude" => "Jude",
         "Rev" => "Revelation",
-        
+
         // Return as-is if not found
         _ => abbrev,
-    }.to_string()
+    }
+    .to_string()
 }
 
-fn parse_single_verse_reference(verse_ref: &str) -> Result<(String, u32, u32, Option<u32>), String> {
+fn parse_single_verse_reference(
+    verse_ref: &str,
+) -> Result<(String, u32, u32, Option<u32>), String> {
     let parts: Vec<&str> = verse_ref.split('.').collect();
-    
+
     if parts.len() != 3 {
         return Err("Invalid verse reference format".to_string());
     }
-    
+
     let book_name = expand_book_abbreviation(parts[0]);
-    let chapter = parts[1].parse::<u32>()
+    let chapter = parts[1]
+        .parse::<u32>()
         .map_err(|_| "Invalid chapter number".to_string())?;
-    let verse = parts[2].parse::<u32>()
+    let verse = parts[2]
+        .parse::<u32>()
         .map_err(|_| "Invalid verse number".to_string())?;
-    
+
     Ok((book_name, chapter, verse, None))
 }
 
@@ -212,44 +217,47 @@ fn parse_verse_reference(verse_ref: &str) -> Result<(String, u32, u32, Option<u3
 
 fn parse_cross_references(content: &str) -> Result<HashMap<VerseId, Vec<Reference>>, String> {
     let mut references_map = HashMap::new();
-    
+
     let lines = content.lines();
-    
+
     for (line_num, line) in lines.enumerate() {
         // Skip header line
         if line_num == 0 {
             continue;
         }
-        
+
         // Skip empty lines
         if line.trim().is_empty() {
             continue;
         }
-        
+
         // Split by tabs
         let parts: Vec<&str> = line.split('\t').collect();
         if parts.len() != 3 {
             continue; // Skip malformed lines
         }
-        
+
         let from_verse_ref = parts[0].trim();
         let to_verse_ref = parts[1].trim();
         let votes_str = parts[2].trim();
-        
+
         // Parse votes
-        let votes = votes_str.parse::<i32>()
+        let votes = votes_str
+            .parse::<i32>()
             .map_err(|_| "Invalid votes".to_string())?;
-        
+
         // Parse from verse
-        let (from_book, from_chapter, from_verse, _) = parse_single_verse_reference(from_verse_ref)?;
+        let (from_book, from_chapter, from_verse, _) =
+            parse_single_verse_reference(from_verse_ref)?;
         let from_key = match VerseId::from_book_name(&from_book, from_chapter, from_verse) {
             Some(id) => id,
             None => continue, // Skip unknown books
         };
-        
+
         // Parse to verse (can be range)
-        let (to_book, to_chapter, to_verse_start, to_verse_end) = parse_verse_reference(to_verse_ref)?;
-        
+        let (to_book, to_chapter, to_verse_start, to_verse_end) =
+            parse_verse_reference(to_verse_ref)?;
+
         let reference = Reference {
             to_book_name: to_book,
             to_chapter,
@@ -257,54 +265,61 @@ fn parse_cross_references(content: &str) -> Result<HashMap<VerseId, Vec<Referenc
             to_verse_end,
             votes,
         };
-        
+
         // Add to map
         references_map
             .entry(from_key)
             .or_insert_with(Vec::new)
             .push(reference);
     }
-    
+
     Ok(references_map)
 }
 
 fn main() {
     println!("cargo:rerun-if-changed=src/storage/cross_references.txt");
-    
+
     let cross_references_path = "src/storage/cross_references.txt";
-    
+
     // Read the cross-references file
-    let content = fs::read_to_string(cross_references_path)
-        .expect("Failed to read cross_references.txt");
-    
+    let content =
+        fs::read_to_string(cross_references_path).expect("Failed to read cross_references.txt");
+
     // Parse the cross-references
-    let references = parse_cross_references(&content)
-        .expect("Failed to parse cross-references");
-    
+    let references = parse_cross_references(&content).expect("Failed to parse cross-references");
+
     println!("Parsed {} verses with cross-references", references.len());
-    
+
     // Convert to simpler format for binary serialization
     let simplified_map: HashMap<u32, Vec<(String, u32, u32, Option<u32>, i32)>> = references
         .into_iter()
         .map(|(verse_id, refs)| {
-            let simplified_refs = refs.into_iter()
-                .map(|r| (r.to_book_name, r.to_chapter, r.to_verse_start, r.to_verse_end, r.votes))
+            let simplified_refs = refs
+                .into_iter()
+                .map(|r| {
+                    (
+                        r.to_book_name,
+                        r.to_chapter,
+                        r.to_verse_start,
+                        r.to_verse_end,
+                        r.votes,
+                    )
+                })
                 .collect();
             (verse_id.0, simplified_refs)
         })
         .collect();
-    
+
     // Serialize to binary format for faster loading
-    let binary_data = bincode::serialize(&simplified_map)
-        .expect("Failed to serialize cross-references");
-    
+    let binary_data =
+        bincode::serialize(&simplified_map).expect("Failed to serialize cross-references");
+
     // Write binary data to output directory
     let out_dir = env::var("OUT_DIR").unwrap();
     let binary_path = Path::new(&out_dir).join("cross_references.bin");
-    
-    fs::write(&binary_path, &binary_data)
-        .expect("Failed to write cross_references.bin");
-    
+
+    fs::write(&binary_path, &binary_data).expect("Failed to write cross_references.bin");
+
     // Generate simple Rust code that loads the binary at runtime
     let code = r#"// Auto-generated cross-references loader at compile time
 use crate::core::types::{References, Reference, VerseId};
@@ -342,12 +357,14 @@ pub fn get_compiled_cross_references() -> &'static References {
     })
 }
 "#;
-    
+
     // Write the Rust code
     let dest_path = Path::new(&out_dir).join("compiled_cross_references.rs");
-    fs::write(&dest_path, code)
-        .expect("Failed to write compiled_cross_references.rs");
-    
-    println!("Generated compiled cross-references with {} bytes of binary data", binary_data.len());
+    fs::write(&dest_path, code).expect("Failed to write compiled_cross_references.rs");
+
+    println!(
+        "Generated compiled cross-references with {} bytes of binary data",
+        binary_data.len()
+    );
     println!("Generated at: {}", dest_path.display());
 }

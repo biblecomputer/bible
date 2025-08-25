@@ -1,10 +1,10 @@
 /*!
  * Translation Comparison Component
- * 
+ *
  * This component provides side-by-side comparison of Bible verses across
  * different translations. Users can select multiple translations and view
  * the current verse(s) displayed in parallel.
- * 
+ *
  * Features:
  * - Multi-translation selection via checkboxes
  * - Automatic verse context from current URL
@@ -13,18 +13,17 @@
  * - Keyboard shortcuts (Escape to close)
  */
 
-use leptos::prelude::*;
 use leptos::ev;
+use leptos::prelude::*;
 use leptos::web_sys::KeyboardEvent;
 use wasm_bindgen_futures::spawn_local;
 
 // Core types and utilities
-use crate::core::{VerseRange, parse_verse_ranges_from_url, Verse};
+use crate::core::{parse_verse_ranges_from_url, Verse, VerseRange};
 use crate::instructions::types::Instruction;
-use crate::storage::{get_downloaded_translations, load_downloaded_translation};
 use crate::storage::translations::get_translations;
+use crate::storage::{get_downloaded_translations, load_downloaded_translation};
 use crate::view_state::ViewStateSignal;
-
 
 /// Internal state for tracking comparison data
 #[derive(Debug, Clone)]
@@ -37,7 +36,7 @@ struct ComparisonData {
 
 /**
  * Main Translation Comparison Component
- * 
+ *
  * Renders a right-side panel that allows users to compare verses across
  * multiple Bible translations. The panel includes:
  * - Header with close button
@@ -55,28 +54,26 @@ pub fn TranslationComparison(
     view_state: ViewStateSignal,
 ) -> impl IntoView {
     // === State Management ===
-    
+
     // List of translation keys selected for comparison
     let (selected_translations, set_selected_translations) = signal::<Vec<String>>(Vec::new());
-    
+
     // Processed comparison data with translation names and verses
     let (comparison_data, set_comparison_data) = signal::<Vec<ComparisonData>>(Vec::new());
-    
+
     // Loading state for async operations
     let (loading, set_loading) = signal(false);
-    
+
     // List of downloaded translations available for selection
     let (downloaded_translations, set_downloaded_translations) = signal::<Vec<String>>(Vec::new());
 
     // === Computed Values ===
-    
+
     // Get the current verse ranges from the URL parameters
-    let current_verse_ranges = Memo::new(move |_| {
-        parse_verse_ranges_from_url()
-    });
+    let current_verse_ranges = Memo::new(move |_| parse_verse_ranges_from_url());
 
     // === Effects ===
-    
+
     // Load available translations when panel opens
     // This effect runs whenever the panel is opened and populates
     // the list of available translations for comparison.
@@ -92,23 +89,25 @@ pub fn TranslationComparison(
     // and loads the corresponding verses for comparison.
     Effect::new(move |_| {
         let selected = selected_translations.get();
-        
+
         if !selected.is_empty() && view_state.with(|state| state.is_translation_comparison_open) {
             let book = current_book.get();
             let chapter = current_chapter.get();
             let verse_ranges = current_verse_ranges.get();
-            
+
             set_loading.set(true);
-            
+
             spawn_local(async move {
                 let mut comparison_results = Vec::new();
-                
+
                 // Load each selected translation
                 for translation_key in selected {
                     if let Ok(bible) = load_downloaded_translation(&translation_key).await {
                         if let Ok(chapter_data) = bible.get_chapter(&book, chapter) {
                             // Filter verses based on current selection
-                            let filtered_verses: Vec<Verse> = chapter_data.verses.iter()
+                            let filtered_verses: Vec<Verse> = chapter_data
+                                .verses
+                                .iter()
                                 .filter(|verse| {
                                     verse_ranges.iter().any(|range| {
                                         verse.verse >= range.start && verse.verse <= range.end
@@ -116,13 +115,14 @@ pub fn TranslationComparison(
                                 })
                                 .cloned()
                                 .collect();
-                            
+
                             // Get user-friendly translation name
-                            let translation_name = get_translations().iter()
+                            let translation_name = get_translations()
+                                .iter()
                                 .find(|t| t.short_name == translation_key)
                                 .map(|t| t.name.clone())
                                 .unwrap_or_else(|| translation_key.clone());
-                            
+
                             comparison_results.push(ComparisonData {
                                 translation_name,
                                 verses: filtered_verses,
@@ -130,7 +130,7 @@ pub fn TranslationComparison(
                         }
                     }
                 }
-                
+
                 set_comparison_data.set(comparison_results);
                 set_loading.set(false);
             });
@@ -141,24 +141,26 @@ pub fn TranslationComparison(
     });
 
     // === Event Handlers ===
-    
+
     // Close panel on Escape key press
     // Global keyboard listener that closes the comparison panel
     // when the user presses the Escape key.
     window_event_listener(ev::keydown, move |evt: KeyboardEvent| {
         if evt.key() == "Escape" && view_state.with(|state| state.is_translation_comparison_open) {
             evt.prevent_default();
-            view_state.update(|state| { state.execute(&Instruction::CloseTranslationComparison); });
+            view_state.update(|state| {
+                state.execute(&Instruction::CloseTranslationComparison);
+            });
         }
     });
 
     // === Render Component ===
-    
+
     view! {
         <Show when=move || view_state.with(|state| state.is_translation_comparison_open) fallback=|| view! { <></> }>
             {/* Main Panel Container */}
             <div class="fixed inset-y-0 right-0 w-96 bg-white shadow-lg z-30 flex flex-col border-l border-gray-200">
-                
+
                 {/* Panel Header */}
                 <div class="flex items-center justify-between p-4 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-800">Translation Comparison</h2>
@@ -201,10 +203,10 @@ pub fn TranslationComparison(
                 <div class="p-4 border-t border-gray-200 bg-gray-50">
                     <div class="text-xs text-gray-500 text-center">
                         <p>
-                            Press 
-                            <kbd class="px-1 py-0.5 bg-gray-200 rounded text-xs">Esc</kbd> 
-                            or 
-                            <kbd class="px-1 py-0.5 bg-gray-200 rounded text-xs">C</kbd> 
+                            Press
+                            <kbd class="px-1 py-0.5 bg-gray-200 rounded text-xs">Esc</kbd>
+                            or
+                            <kbd class="px-1 py-0.5 bg-gray-200 rounded text-xs">C</kbd>
                             to close
                         </p>
                     </div>
@@ -216,7 +218,7 @@ pub fn TranslationComparison(
 
 /**
  * Render a translation selection checkbox
- * 
+ *
  * Creates a checkbox for selecting/deselecting a translation
  * for comparison. Includes the translation name and short code.
  */
@@ -226,17 +228,16 @@ fn render_translation_checkbox(
     set_selected_translations: WriteSignal<Vec<String>>,
 ) -> impl IntoView {
     let translation_clone = translation.clone();
-    
+
     // Get display name for the translation
-    let translation_display = get_translations().iter()
+    let translation_display = get_translations()
+        .iter()
         .find(|t| t.short_name == translation)
         .map(|t| format!("{} ({})", t.name, t.short_name))
         .unwrap_or_else(|| translation.clone());
-    
+
     // Check if this translation is currently selected
-    let is_selected = Memo::new(move |_| {
-        selected_translations.get().contains(&translation)
-    });
+    let is_selected = Memo::new(move |_| selected_translations.get().contains(&translation));
 
     view! {
         <label class="flex items-center space-x-2 cursor-pointer">
@@ -263,7 +264,7 @@ fn render_translation_checkbox(
 
 /**
  * Render the comparison results section
- * 
+ *
  * Shows either a loading state, empty state, or the actual
  * verse comparisons based on the current state.
  */
@@ -290,7 +291,7 @@ fn render_comparison_results(
 
 /**
  * Render the actual comparison content
- * 
+ *
  * Shows either the verse comparisons or an empty state message.
  */
 fn render_comparison_content(
@@ -334,7 +335,7 @@ fn render_empty_state(current_verse_ranges: Memo<Vec<VerseRange>>) -> impl IntoV
 
 /**
  * Render verses for a single translation
- * 
+ *
  * Creates a card showing the translation name and its verses.
  */
 fn render_translation_verses(data: ComparisonData) -> impl IntoView {
@@ -367,12 +368,13 @@ fn render_translation_verses(data: ComparisonData) -> impl IntoView {
 
 /**
  * Format verse ranges for display
- * 
+ *
  * Converts a list of verse ranges into a human-readable string.
  * Examples: "5", "1-3", "1-3, 5, 10-12"
  */
 fn format_verse_ranges(ranges: &[VerseRange]) -> String {
-    ranges.iter()
+    ranges
+        .iter()
         .map(|range| {
             if range.start == range.end {
                 range.start.to_string()

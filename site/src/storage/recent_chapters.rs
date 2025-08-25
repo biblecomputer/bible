@@ -28,23 +28,26 @@ pub fn get_recent_chapters() -> Vec<RecentChapter> {
 
 pub fn add_recent_chapter(book_name: String, chapter: u32, display_name: String, path: String) {
     let mut recent_chapters = get_recent_chapters();
-    
+
     // Remove if already exists (to avoid duplicates and move to front)
     recent_chapters.retain(|ch| !(ch.book_name == book_name && ch.chapter == chapter));
-    
+
     // Add to front (use simple incrementing timestamp)
     let timestamp = recent_chapters.len() as u64;
-    recent_chapters.insert(0, RecentChapter {
-        book_name,
-        chapter,
-        display_name,
-        path,
-        timestamp,
-    });
-    
+    recent_chapters.insert(
+        0,
+        RecentChapter {
+            book_name,
+            chapter,
+            display_name,
+            path,
+            timestamp,
+        },
+    );
+
     // Keep only the most recent ones
     recent_chapters.truncate(MAX_RECENT_CHAPTERS);
-    
+
     // Save to localStorage
     if let Some(window) = web_sys::window() {
         if let Ok(Some(storage)) = window.local_storage() {
@@ -54,4 +57,3 @@ pub fn add_recent_chapter(book_name: String, chapter: u32, display_name: String,
         }
     }
 }
-

@@ -1,9 +1,9 @@
 use crate::api::{try_fetch_bible, try_fetch_bible_with_progress};
-use crate::core::{Bible, init_bible_signal};
-use crate::core::types::Language;
 use crate::components::custom_translation_import::_remove_custom_translation;
-use leptos::prelude::Set;
+use crate::core::types::Language;
+use crate::core::{init_bible_signal, Bible};
 use gloo_storage::{LocalStorage, Storage};
+use leptos::prelude::Set;
 use rexie::{ObjectStore, Rexie, TransactionMode};
 use serde::{Deserialize, Serialize};
 
@@ -15,7 +15,6 @@ pub struct BibleTranslation {
     pub iagon: String,
     pub languages: Vec<Language>,
 }
-
 
 const SELECTED_TRANSLATION_KEY: &str = "selected_translation";
 const DOWNLOADED_TRANSLATIONS_KEY: &str = "downloaded_translations";
@@ -115,16 +114,18 @@ where
     F: Fn(f32, String) + Clone + 'static,
 {
     progress_callback(0.1, "Starting download...".to_string());
-    
-    let bible = fetch_translation_from_url_with_progress(&translation.iagon, progress_callback.clone()).await?;
+
+    let bible =
+        fetch_translation_from_url_with_progress(&translation.iagon, progress_callback.clone())
+            .await?;
 
     progress_callback(0.8, "Saving to storage...".to_string());
-    
+
     let translation_cache_key = format!("translation_{}", translation.short_name);
     save_translation_to_cache_internal(&translation_cache_key, &bible).await?;
 
     progress_callback(0.95, "Updating translation list...".to_string());
-    
+
     add_downloaded_translation(&translation.short_name)?;
 
     progress_callback(1.0, "Download complete!".to_string());
@@ -161,8 +162,8 @@ async fn fetch_translation_from_url(url: &str) -> Result<Bible, Box<dyn std::err
 }
 
 async fn fetch_translation_from_url_with_progress<F>(
-    url: &str, 
-    progress_callback: F
+    url: &str,
+    progress_callback: F,
 ) -> Result<Bible, Box<dyn std::error::Error>>
 where
     F: Fn(f32, String) + Clone + 'static,
@@ -175,8 +176,11 @@ where
     let mut last_error = None;
 
     for (i, proxy_url) in proxy_urls.iter().enumerate() {
-        progress_callback(0.2 + (i as f32 * 0.1), format!("Trying download server {}...", i + 1));
-        
+        progress_callback(
+            0.2 + (i as f32 * 0.1),
+            format!("Trying download server {}...", i + 1),
+        );
+
         match try_fetch_bible_with_progress(proxy_url, progress_callback.clone()).await {
             Ok(bible) => return Ok(bible),
             Err(e) => {
@@ -188,7 +192,6 @@ where
 
     Err(last_error.unwrap_or_else(|| "All proxy attempts failed".into()))
 }
-
 
 async fn load_translation_from_cache(cache_key: &str) -> Result<Bible, Box<dyn std::error::Error>> {
     let rexie = Rexie::builder("TranslationCache")

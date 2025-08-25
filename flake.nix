@@ -48,11 +48,11 @@
 
         cargoArtifacts = craneLib.buildDepsOnly nativeArgs;
 
-        site = import ./site.nix {
+        site = import ./site/site.nix {
           inherit pkgs craneLib rustToolchain;
         };
 
-        bibleVerify = import ./bible-verify.nix {
+        bibleVerify = import ./bible-verify/bible-verify.nix {
           inherit pkgs craneLib;
         };
 

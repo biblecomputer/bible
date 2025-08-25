@@ -1,7 +1,7 @@
-use crate::core::{Bible, BIBLE, init_bible_signal};
+use crate::core::{init_bible_signal, Bible, BIBLE};
 use crate::storage::translations::get_current_translation;
-use leptos::prelude::Set;
 use gloo_net::http::Request;
+use leptos::prelude::Set;
 use rexie::{ObjectStore, Rexie, TransactionMode};
 
 pub async fn init_bible() -> std::result::Result<(), Box<dyn std::error::Error>> {
@@ -28,8 +28,10 @@ pub async fn init_bible() -> std::result::Result<(), Box<dyn std::error::Error>>
 }
 
 async fn load_or_fetch_bible() -> std::result::Result<Bible, Box<dyn std::error::Error>> {
-    use crate::storage::{get_selected_translation, is_translation_downloaded, load_downloaded_translation};
-    
+    use crate::storage::{
+        get_selected_translation, is_translation_downloaded, load_downloaded_translation,
+    };
+
     if let Some(selected_translation) = get_selected_translation() {
         if is_translation_downloaded(&selected_translation) {
             if let Ok(bible) = load_downloaded_translation(&selected_translation).await {
@@ -208,12 +210,15 @@ pub async fn try_fetch_bible(url: &str) -> std::result::Result<Bible, Box<dyn st
     Ok(bible)
 }
 
-pub async fn try_fetch_bible_with_progress<F>(url: &str, progress_callback: F) -> std::result::Result<Bible, Box<dyn std::error::Error>>
+pub async fn try_fetch_bible_with_progress<F>(
+    url: &str,
+    progress_callback: F,
+) -> std::result::Result<Bible, Box<dyn std::error::Error>>
 where
     F: Fn(f32, String) + Clone + 'static,
 {
     progress_callback(0.3, "Downloading Bible data...".to_string());
-    
+
     let response = Request::get(url).send().await?;
 
     progress_callback(0.6, "Processing response...".to_string());

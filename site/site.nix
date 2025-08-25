@@ -1,7 +1,7 @@
 { pkgs, craneLib, rustToolchain }:
 
 let
-  unfilteredRoot = ./site;
+  unfilteredRoot = ./.;
   src = pkgs.lib.fileset.toSource {
     root = unfilteredRoot;
     fileset = pkgs.lib.fileset.unions [

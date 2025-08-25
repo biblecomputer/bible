@@ -2,10 +2,10 @@
 
 craneLib.buildPackage {
   src = pkgs.lib.fileset.toSource {
-    root = ./bible-verify;
+    root = ./.;
     fileset = pkgs.lib.fileset.unions [
-      (craneLib.fileset.commonCargoSources ./bible-verify)
-      (pkgs.lib.fileset.maybeMissing ./bible-verify/kjv.json)
+      (craneLib.fileset.commonCargoSources ./.)
+      (pkgs.lib.fileset.maybeMissing ./kjv.json)
     ];
   };
   pname = "bible-verify";

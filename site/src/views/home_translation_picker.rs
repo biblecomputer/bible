@@ -1,13 +1,13 @@
+use crate::components::{theme_switcher::ThemeSwitcher, CustomTranslationImport};
+use crate::core::types::Language;
+use crate::storage::{
+    download_translation_with_progress, get_available_languages, get_selected_translation,
+    get_translations_by_language, is_translation_downloaded, set_selected_translation,
+    switch_bible_translation, uninstall_translation, BibleTranslation,
+};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
-use crate::storage::{
-    get_selected_translation, set_selected_translation, 
-    is_translation_downloaded, download_translation_with_progress, switch_bible_translation, uninstall_translation,
-    get_available_languages, get_translations_by_language, BibleTranslation
-};
-use crate::core::types::Language;
-use crate::components::{theme_switcher::ThemeSwitcher, CustomTranslationImport};
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Clone, PartialEq)]
@@ -41,10 +41,12 @@ fn TranslationItem(
     let translation_name = translation.name.clone();
     let translation_release_year = translation.release_year;
     let translation_clone_for_download = translation.clone();
-    
+
     #[cfg(target_arch = "wasm32")]
-    web_sys::console::log_1(&format!("TranslationItem rendered for: {}", translation_short_name).into());
-    
+    web_sys::console::log_1(
+        &format!("TranslationItem rendered for: {}", translation_short_name).into(),
+    );
+
     view! {
         <div class="relative">
             {
@@ -56,12 +58,12 @@ fn TranslationItem(
                 // Watch the refresh trigger and check download status
                 let _ = ui_refresh_trigger.get();
                 let is_downloaded = is_translation_downloaded(&translation_short_name_ref);
-                
+
                 #[cfg(target_arch = "wasm32")]
-                web_sys::console::log_1(&format!("Translation {} - downloading: {}, downloaded: {}, uninstalling: {}", 
+                web_sys::console::log_1(&format!("Translation {} - downloading: {}, downloaded: {}, uninstalling: {}",
                     translation_short_name_ref, is_downloading, is_downloaded, is_uninstalling).into());
-                
-                
+
+
                 if is_downloading {
                     view! {
                         <div class="border rounded-lg p-6 shadow-sm" style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)">
@@ -82,7 +84,7 @@ fn TranslationItem(
                                     <div>
                                         <div class="text-sm font-medium" style="color: var(--theme-text-primary)">"Downloading..."</div>
                                         <div class="w-24 rounded-full h-1 mt-1" style="background-color: var(--theme-sidebar-border)">
-                                            <div 
+                                            <div
                                                 class="h-1 rounded-full transition-all duration-300 ease-out" style="background-color: var(--theme-buttons-primary-background)"
                                                 style:width={format!("{}%", download_progress.get() * 100.0)}
                                             ></div>
@@ -94,7 +96,7 @@ fn TranslationItem(
                     }.into_any()
                 } else if is_downloaded {
                     view! {
-                        <button 
+                        <button
                             class="w-full border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow text-left cursor-pointer"
                             style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)"
                             disabled=move || is_switching.get() || is_uninstalling
@@ -106,7 +108,7 @@ fn TranslationItem(
                                         set_is_switching.set(true);
                                         let _ = set_selected_translation(&translation_short_name_clone3);
                                         set_selected_translation_signal.set(translation_short_name_clone3.clone());
-                                        
+
                                         let translation_short_name_clone2 = translation_short_name_clone3.clone();
                                         let navigate_clone2 = navigate_clone.clone();
                                         spawn_local(async move {
@@ -154,7 +156,7 @@ fn TranslationItem(
                                                                 #[cfg(target_arch = "wasm32")]
                                                                 web_sys::console::log_1(&format!("Delete clicked for: {}", translation_short_name_clone4).into());
                                                                 set_uninstalling_translation.set(Some(translation_short_name_clone4.clone()));
-                                                                
+
                                                                 let translation_short_name_clone2 = translation_short_name_clone4.clone();
                                                                 spawn_local(async move {
                                                                     match uninstall_translation(&translation_short_name_clone2).await {
@@ -171,7 +173,7 @@ fn TranslationItem(
                                                                             set_uninstalling_translation.set(None);
                                                                         }
                                                                     }
-                                                                });  
+                                                                });
                                                             }
                                                         }
                                                     }
@@ -210,7 +212,7 @@ fn TranslationItem(
                     }.into_any()
                 } else {
                     view! {
-                        <button 
+                        <button
                             class="w-full border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow text-left cursor-pointer"
                             style="background-color: var(--theme-background); border-color: var(--theme-sidebar-border)"
                             on:click={
@@ -224,11 +226,11 @@ fn TranslationItem(
                                     set_download_error.set(None);
                                     set_download_progress.set(0.0);
                                     set_download_status.set("Preparing download...".to_string());
-                                    
+
                                     let translation_clone2 = translation_clone.clone();
                                     let translation_short_name_clone2 = translation_short_name_clone.clone();
                                     let navigate_clone2 = navigate_clone.clone();
-                                    
+
                                     // Create progress callback
                                     let progress_callback = {
                                         move |progress: f32, status: String| {
@@ -236,17 +238,17 @@ fn TranslationItem(
                                             set_download_status.set(status);
                                         }
                                     };
-                                    
+
                                     spawn_local(async move {
                                         match download_translation_with_progress(&translation_clone2, progress_callback).await {
                                             Ok(_) => {
                                                 let _ = set_selected_translation(&translation_short_name_clone2);
                                                 set_selected_translation_signal.set(translation_short_name_clone2.clone());
-                                                
+
                                                 if let Err(e) = switch_bible_translation(&translation_short_name_clone2).await {
                                                     leptos::logging::error!("Failed to switch translation: {}", e);
                                                 }
-                                                
+
                                                 set_downloading_translation.set(None);
                                                 set_download_progress.set(0.0);
                                                 // Trigger UI refresh to update download status
@@ -282,7 +284,7 @@ fn TranslationItem(
                     }.into_any()
                 }
             }}
-            
+
         </div>
     }
 }
@@ -292,50 +294,54 @@ pub fn HomeTranslationPicker(
     current_theme: ReadSignal<crate::themes::Theme>,
     set_current_theme: WriteSignal<crate::themes::Theme>,
 ) -> impl IntoView {
-    let (selected_translation, set_selected_translation_signal) = signal(get_selected_translation().unwrap_or_else(|| "sv".to_string()));
+    let (selected_translation, set_selected_translation_signal) =
+        signal(get_selected_translation().unwrap_or_else(|| "sv".to_string()));
     let (downloading_translation, set_downloading_translation) = signal::<Option<String>>(None);
     let (view_state, set_view_state) = signal(ViewState::LanguageSelection);
-    
+
     // Debug: Watch downloading translation changes
     Effect::new(move |_| {
         let _current = downloading_translation.get();
         #[cfg(target_arch = "wasm32")]
-        web_sys::console::log_1(&format!("Downloading translation changed to: {:?}", _current).into());
+        web_sys::console::log_1(
+            &format!("Downloading translation changed to: {:?}", _current).into(),
+        );
     });
     let (download_progress, set_download_progress) = signal::<f32>(0.0);
     let (download_status, set_download_status) = signal::<String>(String::new());
     let (download_error, set_download_error) = signal::<Option<String>>(None);
     let (is_switching, set_is_switching) = signal(false);
     let (uninstalling_translation, set_uninstalling_translation) = signal::<Option<String>>(None);
-    
+
     // Debug: Watch uninstalling translation changes
     Effect::new(move |_| {
         let _current = uninstalling_translation.get();
         #[cfg(target_arch = "wasm32")]
-        web_sys::console::log_1(&format!("Uninstalling translation changed to: {:?}", _current).into());
+        web_sys::console::log_1(
+            &format!("Uninstalling translation changed to: {:?}", _current).into(),
+        );
     });
-    
+
     let (uninstall_error, _set_uninstall_error) = signal::<Option<String>>(None);
     let (ui_refresh_trigger, set_ui_refresh_trigger) = signal::<u32>(0);
-    
+
     // Debug: Watch UI refresh trigger changes
     Effect::new(move |_| {
         let _current = ui_refresh_trigger.get();
         #[cfg(target_arch = "wasm32")]
         web_sys::console::log_1(&format!("UI refresh trigger changed to: {}", _current).into());
     });
-    
+
     let navigate = use_navigate();
     let languages = get_available_languages();
-    
-    
+
     // Get the current URL parameters once at component initialization
     let location = leptos_router::hooks::use_location();
     let search_params = location.search.get();
-    
+
     #[cfg(target_arch = "wasm32")]
     web_sys::console::log_1(&format!("Search params: {}", search_params).into());
-    
+
     let return_url = {
         use urlencoding::decode;
         // Parse return_url parameter
@@ -345,18 +351,18 @@ pub fn HomeTranslationPicker(
                 .find('&')
                 .map(|pos| return_url_start + pos)
                 .unwrap_or(search_params.len());
-            
+
             let encoded_return_url = &search_params[return_url_start..return_url_end];
-            
+
             #[cfg(target_arch = "wasm32")]
             web_sys::console::log_1(&format!("Encoded return URL: {}", encoded_return_url).into());
-            
+
             if let Ok(decoded_url) = decode(encoded_return_url) {
                 let decoded_string = decoded_url.to_string();
-                
+
                 #[cfg(target_arch = "wasm32")]
                 web_sys::console::log_1(&format!("Decoded return URL: {}", decoded_string).into());
-                
+
                 Some(decoded_string)
             } else {
                 #[cfg(target_arch = "wasm32")]
@@ -373,14 +379,26 @@ pub fn HomeTranslationPicker(
     let navigate_to_first_chapter = move || {
         // Use the pre-parsed return URL if available
         if let Some(ref return_url) = return_url {
-            navigate(return_url, NavigateOptions { scroll: false, ..Default::default() });
+            navigate(
+                return_url,
+                NavigateOptions {
+                    scroll: false,
+                    ..Default::default()
+                },
+            );
             return;
         }
-        
+
         // Fallback: navigate to Genesis 1 if no return URL
-        navigate("/Genesis/1", NavigateOptions { scroll: false, ..Default::default() });
+        navigate(
+            "/Genesis/1",
+            NavigateOptions {
+                scroll: false,
+                ..Default::default()
+            },
+        );
     };
-    
+
     view! {
         <div class="max-w-2xl mx-auto py-8">
             <div class="flex justify-between mb-4">
@@ -411,7 +429,7 @@ pub fn HomeTranslationPicker(
                     }}
                 </p>
             </div>
-            
+
             <div class="space-y-4">
                 {move || match view_state.get() {
                     ViewState::LanguageSelection => {
@@ -484,7 +502,7 @@ pub fn HomeTranslationPicker(
                                     }
                                 }).collect_view()
                                 }
-                                
+
                                 <CustomTranslationImport
                                     selected_language=RwSignal::new(selected_language.clone()).read_only()
                                     on_success=move || {
@@ -498,7 +516,7 @@ pub fn HomeTranslationPicker(
                     }
                 }}
             </div>
-            
+
             <Show
                 when=move || download_error.get().is_some()
                 fallback=|| view! { <></> }
@@ -515,7 +533,7 @@ pub fn HomeTranslationPicker(
                     </div>
                 </div>
             </Show>
-            
+
             <Show
                 when=move || uninstall_error.get().is_some()
                 fallback=|| view! { <></> }

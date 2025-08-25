@@ -27,7 +27,6 @@ pub struct Verse {
     pub text: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct BibleTranslation {
     pub name: String,
@@ -48,10 +47,6 @@ pub enum Language {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct References(pub HashMap<VerseId, Vec<Reference>>);
 
-
-
-
-
 /// Highly optimized verse identifier using a single u32
 /// Format: book_id (8 bits) | chapter (12 bits) | verse (12 bits)
 /// Supports: 256 books, 4096 chapters, 4096 verses
@@ -64,27 +59,26 @@ impl VerseId {
         let packed = ((book_id as u32) << 24) | ((chapter & 0xFFF) << 12) | (verse & 0xFFF);
         VerseId(packed)
     }
-    
+
     pub fn from_book_name(book_name: &str, chapter: u32, verse: u32) -> Option<Self> {
         let book_id = book_name_to_id(book_name)?;
         Some(Self::new(book_id, chapter, verse))
     }
-    
+
     /// Extract book_id from packed VerseId
     pub fn book_id(&self) -> u8 {
         ((self.0 >> 24) & 0xFF) as u8
     }
-    
+
     /// Extract chapter from packed VerseId
     pub fn chapter(&self) -> u32 {
         (self.0 >> 12) & 0xFFF
     }
-    
+
     /// Extract verse from packed VerseId
     pub fn verse(&self) -> u32 {
         self.0 & 0xFFF
     }
-    
 }
 
 /// Convert book name to compact ID for faster lookups
@@ -130,7 +124,7 @@ pub fn book_name_to_id(book_name: &str) -> Option<u8> {
         "Haggai" => Some(37),
         "Zechariah" => Some(38),
         "Malachi" => Some(39),
-        
+
         // New Testament
         "Matthew" => Some(40),
         "Mark" => Some(41),
@@ -159,11 +153,10 @@ pub fn book_name_to_id(book_name: &str) -> Option<u8> {
         "3 John" => Some(64),
         "Jude" => Some(65),
         "Revelation" => Some(66),
-        
+
         _ => None,
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -173,7 +166,7 @@ mod tests {
     fn test_verse_id_packing() {
         // Test Genesis 1:1 (book_id=1, chapter=1, verse=1)
         let verse_id = VerseId::new(1, 1, 1);
-        
+
         // Test the packed value is correct
         assert_eq!(verse_id.0, 0x01001001); // Expected packed value
     }
@@ -182,7 +175,7 @@ mod tests {
     fn test_verse_id_from_book_name() {
         // Test creating VerseId from book name
         let verse_id = VerseId::from_book_name("Genesis", 1, 1).unwrap();
-        
+
         // Test the packed value is correct
         assert_eq!(verse_id.0, 0x01001001);
     }
@@ -191,7 +184,7 @@ mod tests {
     fn test_verse_id_large_values() {
         // Test maximum supported values (12 bits = 4095)
         let verse_id = VerseId::new(66, 4095, 4095);
-        
+
         // Test the packed value
         assert_eq!(verse_id.0, 0x42FFFFFF); // book_id=66, chapter=4095, verse=4095
     }
@@ -210,13 +203,13 @@ mod tests {
     fn test_verse_id_hash_performance() {
         // Test that VerseId is much more efficient for hashing
         use std::collections::HashMap;
-        
+
         let mut map: HashMap<VerseId, Vec<Reference>> = HashMap::new();
         let verse_id = VerseId::new(1, 1, 1);
-        
+
         map.insert(verse_id, vec![]);
         assert!(map.contains_key(&verse_id));
-        
+
         // The u32 should be much faster to hash than the old String-based key
         assert_eq!(verse_id.0, 0x01001001); // Expected packed value
     }
@@ -236,5 +229,5 @@ pub struct Reference {
     pub to_chapter: u32,
     pub to_verse_start: u32,
     pub to_verse_end: Option<u32>, // None for single verse, Some for verse ranges
-    pub votes: i32, // Can be negative based on the data
+    pub votes: i32,                // Can be negative based on the data
 }

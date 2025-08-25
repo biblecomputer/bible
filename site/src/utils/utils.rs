@@ -15,14 +15,20 @@ pub fn execute_with_navigation<F>(
     F: Fn(&str, NavigateOptions) + Clone,
 {
     let mut instruction_result = InstructionResult::Failed("Not executed".to_string());
-    
+
     view_state.update(|state| {
         instruction_result = state.execute(&instruction);
     });
-    
+
     match instruction_result {
         InstructionResult::Navigate(path) => {
-            navigate(&path, NavigateOptions { scroll: false, ..Default::default() });
+            navigate(
+                &path,
+                NavigateOptions {
+                    scroll: false,
+                    ..Default::default()
+                },
+            );
         }
         InstructionResult::Handled => {
             // Instruction was handled, nothing more to do
@@ -33,7 +39,9 @@ pub fn execute_with_navigation<F>(
         }
         InstructionResult::NotHandled => {
             #[cfg(target_arch = "wasm32")]
-            leptos::web_sys::console::warn_1(&format!("⚠️ Instruction not handled: {:?}", instruction).into());
+            leptos::web_sys::console::warn_1(
+                &format!("⚠️ Instruction not handled: {:?}", instruction).into(),
+            );
         }
     }
 }

@@ -529,7 +529,9 @@ fn SidebarAutoHide(view_state: ViewStateSignal) -> impl IntoView {
         // If we're on a chapter page and screen is mobile-sized, hide sidebar
         if path_parts.len() == 2 && !path_parts[0].is_empty() && !path_parts[1].is_empty() {
             if is_mobile_screen() {
-                view_state.update(|state| { state.execute(&Instruction::CloseLeftSidebar); });
+                view_state.update(|state| {
+                    state.execute(&Instruction::CloseLeftSidebar);
+                });
             }
         }
     });

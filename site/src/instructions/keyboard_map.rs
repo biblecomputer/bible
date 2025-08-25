@@ -21,7 +21,7 @@ impl KeyCombination {
             alt: e.alt_key(),
         }
     }
-    
+
     pub fn simple(key: &str) -> Self {
         Self {
             key: key.to_string(),
@@ -31,7 +31,7 @@ impl KeyCombination {
             alt: false,
         }
     }
-    
+
     pub fn with_shift(key: &str) -> Self {
         Self {
             key: key.to_string(),
@@ -41,7 +41,7 @@ impl KeyCombination {
             alt: false,
         }
     }
-    
+
     pub fn with_ctrl(key: &str) -> Self {
         Self {
             key: key.to_string(),
@@ -51,7 +51,7 @@ impl KeyCombination {
             alt: false,
         }
     }
-    
+
     pub fn with_meta(key: &str) -> Self {
         Self {
             key: key.to_string(),
@@ -61,7 +61,7 @@ impl KeyCombination {
             alt: false,
         }
     }
-    
+
     pub fn with_ctrl_shift(key: &str) -> Self {
         Self {
             key: key.to_string(),
@@ -71,7 +71,7 @@ impl KeyCombination {
             alt: false,
         }
     }
-    
+
     pub fn with_meta_or_ctrl(key: &str) -> Self {
         // For cross-platform compatibility (Cmd on Mac, Ctrl on others)
         Self {
@@ -96,7 +96,7 @@ impl KeyboardMapper {
                 return Some(Instruction::GoToVerse(verse_id));
             }
         }
-        
+
         match (
             combination.key.as_str(),
             combination.shift,
@@ -109,38 +109,38 @@ impl KeyboardMapper {
             ("ArrowLeft" | "h", false, false, false, false) => Some(Instruction::PreviousChapter),
             ("ArrowDown" | "j", false, false, false, false) => Some(Instruction::NextVerse),
             ("ArrowUp" | "k", false, false, false, false) => Some(Instruction::PreviousVerse),
-            
+
             // Book navigation
             ("H", true, false, false, false) => Some(Instruction::PreviousBook),
             ("L", true, false, false, false) => Some(Instruction::NextBook),
-            
+
             // Chapter jumping
             ("G", true, false, false, false) => Some(Instruction::EndOfChapter),
-            
+
             // Special navigation
             ("s", false, false, false, false) => Some(Instruction::SwitchToPreviousChapter),
-            
+
             // Copy operations
             ("y", false, false, false, false) => Some(Instruction::CopyRawVerse),
             ("Y", true, false, false, false) | ("y", true, false, false, false) => {
                 Some(Instruction::CopyVerseWithReference)
             }
-            
+
             // UI toggles
             ("b", false, true, false, false) => Some(Instruction::ToggleSidebar),
             ("r", false, false, false, false) => Some(Instruction::ToggleCrossReferences),
             ("R", true, true, false, false) => Some(Instruction::ToggleCrossReferences),
             ("c", false, false, false, false) => Some(Instruction::ToggleTranslationComparison),
-            
+
             // Command palette (Cmd/Ctrl+K)
             ("k", false, true, false, false) | ("k", false, false, true, false) => {
                 Some(Instruction::ToggleBiblePallate)
             }
-            
+
             _ => None,
         }
     }
-    
+
     pub fn should_handle_key(combination: &KeyCombination) -> bool {
         KeyboardMapper::map_to_instruction(combination).is_some()
     }
