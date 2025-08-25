@@ -151,7 +151,11 @@ where
         }
     }
 
-    fn handle_go_to_verse(&self, context: &AppState, verse_id: crate::core::types::VerseId) -> bool {
+    fn handle_go_to_verse(
+        &self,
+        context: &AppState,
+        verse_id: crate::core::types::VerseId,
+    ) -> bool {
         if let Some(ref current_chapter) = context.current_chapter {
             let verse_num = verse_id.verse();
             if verse_num > 0 && verse_num <= current_chapter.verses.len() as u32 {

@@ -1,6 +1,6 @@
 /*!
  * URL Parsing Utilities
- * 
+ *
  * Shared utilities for parsing Bible application URLs and extracting
  * book, chapter, and verse information from URL paths and parameters.
  */
@@ -8,21 +8,21 @@
 use urlencoding::decode;
 
 /// Parse book and chapter information from URL pathname
-/// 
+///
 /// Extracts the book name and chapter number from URL paths like:
 /// - `/Genesis/1` -> Some(("Genesis", 1))
 /// - `/1%20Timothy/3` -> Some(("1 Timothy", 3))
 /// - `/invalid` -> None
-/// 
+///
 /// # Arguments
 /// * `pathname` - URL pathname to parse (e.g., "/Genesis/1")
-/// 
+///
 /// # Returns
 /// * `Some((book_name, chapter_number))` if parsing succeeds
 /// * `None` if the path format is invalid
 pub fn parse_book_chapter_from_url(pathname: &str) -> Option<(String, u32)> {
     let path_parts: Vec<&str> = pathname.trim_start_matches('/').split('/').collect();
-    
+
     if path_parts.len() == 2 {
         // Decode URL-encoded book name (handles spaces as %20, etc.)
         let book_name = if let Ok(decoded) = decode(path_parts[0]) {
@@ -37,18 +37,18 @@ pub fn parse_book_chapter_from_url(pathname: &str) -> Option<(String, u32)> {
             return Some((book_name, chapter_num));
         }
     }
-    
+
     None
 }
 
 /// Validate if a URL path represents a valid Bible chapter
-/// 
+///
 /// Checks if the given pathname follows the expected format
 /// for Bible chapter URLs: `/{book_name}/{chapter_number}`
-/// 
+///
 /// # Arguments
 /// * `pathname` - URL pathname to validate
-/// 
+///
 /// # Returns
 /// * `true` if the path has the correct format
 /// * `false` if the path is invalid or incomplete

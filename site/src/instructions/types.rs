@@ -60,7 +60,7 @@ pub enum Instruction {
     ToggleTranslationComparison, // Added: Toggle translation comparison panel
     ToggleVerseVisibility,
     ToggleVersePallate,
-    
+
     // === UI Close Instructions ===
     // Direct close actions for specific UI elements
     CloseCommandPalette,
@@ -68,7 +68,7 @@ pub enum Instruction {
     CloseRightSidebar,
     CloseThemeSidebar,
     CloseTranslationComparison,
-    
+
     // === Book Selection Instructions ===
     // Book navigation and selection
     SelectBook(String),

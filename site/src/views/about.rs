@@ -5,15 +5,15 @@ pub fn About() -> impl IntoView {
     view! {
         <article class="max-w-2xl mx-auto px-4 py-12">
             <h1 class="text-2xl font-bold mb-8" style="color: var(--theme-text-primary)">"About"</h1>
-            
+
             <div class="space-y-8 text-sm leading-relaxed" style="color: var(--theme-text-primary)">
                 <section>
                     <p class="mb-4">
                         "A keyboard-driven Bible reading website. Built with Rust and open source."
                     </p>
-                    <a 
-                        href="https://github.com/biblecomputer/bible" 
-                        target="_blank" 
+                    <a
+                        href="https://github.com/biblecomputer/bible"
+                        target="_blank"
                         rel="noopener noreferrer"
                         class="hover:underline translation-link"
                     >

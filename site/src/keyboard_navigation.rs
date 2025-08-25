@@ -36,14 +36,16 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
 
     // Visual display for vim command buffer
     let vim_display = Memo::new(move |_| {
-        vim_mapper.try_with(|mapper| {
-            let display = mapper.get_current_input_display();
-            if display.is_empty() {
-                None
-            } else {
-                Some(display)
-            }
-        }).unwrap_or(None)
+        vim_mapper
+            .try_with(|mapper| {
+                let display = mapper.get_current_input_display();
+                if display.is_empty() {
+                    None
+                } else {
+                    Some(display)
+                }
+            })
+            .unwrap_or(None)
     });
 
     // Set up keyboard event handler
@@ -67,7 +69,9 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
         };
 
         // If user is typing in input and palette is open, only intercept specific control keys
-        let palette_open = view_state.try_with(|state| state.is_command_palette_open).unwrap_or(false);
+        let palette_open = view_state
+            .try_with(|state| state.is_command_palette_open)
+            .unwrap_or(false);
         if palette_open && is_typing_in_input {
             let key = e.key();
             let is_control_sequence = e.ctrl_key() && (key == "j" || key == "k" || key == "o")
@@ -84,23 +88,33 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
         // Get instruction from vim-style keyboard mapper
         let instruction_result = {
             // Get the current mapper state
-            let mut current_mapper = vim_mapper.try_with_untracked(|mapper| mapper.clone()).unwrap_or_else(|| VimKeyboardMapper::new());
-            
+            let mut current_mapper = vim_mapper
+                .try_with_untracked(|mapper| mapper.clone())
+                .unwrap_or_else(|| VimKeyboardMapper::new());
+
             #[cfg(target_arch = "wasm32")]
-            leptos::web_sys::console::log_1(&format!("🔤 Key pressed: '{}', current sequence: '{}', multiplier: '{}'", 
-                e.key(), 
-                current_mapper.get_sequence_buffer(), 
-                current_mapper.get_multiplier_buffer()
-            ).into());
-            
+            leptos::web_sys::console::log_1(
+                &format!(
+                    "🔤 Key pressed: '{}', current sequence: '{}', multiplier: '{}'",
+                    e.key(),
+                    current_mapper.get_sequence_buffer(),
+                    current_mapper.get_multiplier_buffer()
+                )
+                .into(),
+            );
+
             let result = current_mapper.map_to_instruction(&e);
-            
+
             #[cfg(target_arch = "wasm32")]
-            leptos::web_sys::console::log_1(&format!("🎯 Mapper result: {:?}, new sequence: '{}', new multiplier: '{}'", 
-                result, 
-                current_mapper.get_sequence_buffer(), 
-                current_mapper.get_multiplier_buffer()
-            ).into());
+            leptos::web_sys::console::log_1(
+                &format!(
+                    "🎯 Mapper result: {:?}, new sequence: '{}', new multiplier: '{}'",
+                    result,
+                    current_mapper.get_sequence_buffer(),
+                    current_mapper.get_multiplier_buffer()
+                )
+                .into(),
+            );
 
             // Store the updated mapper back
             let _ = vim_mapper.try_update_untracked(|m| *m = current_mapper);
@@ -109,7 +123,9 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
         };
 
         // Handle palette navigation priority when palette is open
-        let palette_open_check = view_state.try_with(|state| state.is_command_palette_open).unwrap_or(false);
+        let palette_open_check = view_state
+            .try_with(|state| state.is_command_palette_open)
+            .unwrap_or(false);
         if palette_open_check {
             if let Some((ref instruction, _)) = instruction_result {
                 match instruction {
@@ -199,26 +215,34 @@ pub fn KeyboardNavigationHandler(view_state: ViewStateSignal) -> impl IntoView {
                     leptos::web_sys::console::log_1(
                         &format!("🔄 Passing to processor: {:?}", instruction).into(),
                     );
-                    
+
                     // Create processor and try to handle the instruction
                     let processor = crate::instructions::processor::InstructionProcessor::new(
                         |path: &str, opts: leptos_router::NavigateOptions| {
                             navigate(path, opts);
-                        }
+                        },
                     );
-                    
+
                     let handled = view_state.with(|state| {
                         if multiplier > 1 {
-                            processor.process_with_multiplier(instruction.clone(), state, multiplier)
+                            processor.process_with_multiplier(
+                                instruction.clone(),
+                                state,
+                                multiplier,
+                            )
                         } else {
                             processor.process(instruction.clone(), state)
                         }
                     });
-                    
+
                     if !handled {
                         #[cfg(target_arch = "wasm32")]
                         leptos::web_sys::console::log_1(
-                            &format!("🤷 Instruction not handled by processor either: {:?}", instruction).into(),
+                            &format!(
+                                "🤷 Instruction not handled by processor either: {:?}",
+                                instruction
+                            )
+                            .into(),
                         );
                     }
                 }

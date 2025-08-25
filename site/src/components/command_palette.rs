@@ -1,17 +1,17 @@
 use crate::core::{Bible, Chapter, VerseRange};
-use crate::storage::translations::get_current_translation;
-use crate::storage::recent_chapters::get_recent_chapters;
-use crate::translation_map::translation::Translation;
-use crate::instructions::types::Instruction;
 use crate::instructions::processor::InstructionProcessor;
+use crate::instructions::types::Instruction;
 use crate::instructions::vim_keys::KeyboardMappings;
+use crate::storage::recent_chapters::get_recent_chapters;
+use crate::storage::translations::get_current_translation;
+use crate::translation_map::translation::Translation;
 use crate::view_state::ViewStateSignal;
 use leptos::prelude::*;
-use leptos_router::hooks::{use_navigate, use_location};
-use leptos_router::NavigateOptions;
-use wasm_bindgen_futures::spawn_local;
 use leptos::web_sys::KeyboardEvent;
+use leptos_router::hooks::{use_location, use_navigate};
+use leptos_router::NavigateOptions;
 use std::collections::HashMap;
+use wasm_bindgen_futures::spawn_local;
 
 // Removed unused cache - translation is now handled at Bible data level
 
@@ -40,25 +40,38 @@ impl SearchResult {
     pub fn get_display_name(&self) -> String {
         match self {
             SearchResult::Chapter(chapter) => chapter.name.clone(),
-            SearchResult::Verse { chapter, verse_number, .. } => {
+            SearchResult::Verse {
+                chapter,
+                verse_number,
+                ..
+            } => {
                 format!("{} verse {}", chapter.name, verse_number)
             }
             SearchResult::Instruction { name, .. } => name.clone(),
             SearchResult::RecentChapter { display_name, .. } => display_name.clone(),
         }
     }
-    
+
     pub fn to_path(&self) -> String {
         match self {
             SearchResult::Chapter(chapter) => chapter.to_path(),
-            SearchResult::Verse { chapter, verse_number, .. } => {
-                let verse_range = VerseRange { start: *verse_number, end: *verse_number };
+            SearchResult::Verse {
+                chapter,
+                verse_number,
+                ..
+            } => {
+                let verse_range = VerseRange {
+                    start: *verse_number,
+                    end: *verse_number,
+                };
                 let path = chapter.to_path_with_verses(&[verse_range]);
-                
+
                 // Debug log for verse navigation
                 #[cfg(target_arch = "wasm32")]
-                web_sys::console::log_1(&format!("Generating verse path: {} (verse {})", path, verse_number).into());
-                
+                web_sys::console::log_1(
+                    &format!("Generating verse path: {} (verse {})", path, verse_number).into(),
+                );
+
                 path
             }
             SearchResult::Instruction { .. } => {
@@ -80,19 +93,19 @@ struct VerseReference {
 fn parse_verse_reference(query: &str) -> Option<VerseReference> {
     // Handle formats like "gen 1:1", "genesis 1:5", "john 3:16", "mat 5:3-7", and "gen 1:" (incomplete)
     let query = query.trim().to_lowercase();
-    
+
     // Look for colon indicating verse reference
     if let Some(colon_pos) = query.find(':') {
         let before_colon = &query[..colon_pos];
         let after_colon = &query[colon_pos + 1..].trim();
-        
+
         // Split the part before colon into book and chapter
         let parts: Vec<&str> = before_colon.split_whitespace().collect();
         if parts.len() >= 2 {
             // Try to parse the last part as chapter number
             if let Ok(chapter_num) = parts.last().unwrap().parse::<u32>() {
                 let book_name = parts[..parts.len() - 1].join(" ");
-                
+
                 // Handle incomplete verse reference (just "gen 1:")
                 if after_colon.is_empty() {
                     return Some(VerseReference {
@@ -101,7 +114,7 @@ fn parse_verse_reference(query: &str) -> Option<VerseReference> {
                         verse: None, // No specific verse
                     });
                 }
-                
+
                 // Parse verse number (take only the first number if it's a range like "3-7")
                 let verse_str = after_colon.split('-').next().unwrap_or(after_colon);
                 if let Ok(verse_num) = verse_str.parse::<u32>() {
@@ -114,37 +127,36 @@ fn parse_verse_reference(query: &str) -> Option<VerseReference> {
             }
         }
     }
-    
+
     None
 }
 
 fn score_verse_number_match(verse_number: u32, search_number: u32) -> usize {
     let verse_str = verse_number.to_string();
     let search_str = search_number.to_string();
-    
+
     // Exact match gets highest score
     if verse_number == search_number {
         return 1000;
     }
-    
+
     // Check if verse number starts with search number (e.g., 10, 11, 12 when searching for 1)
     if verse_str.starts_with(&search_str) {
         return 800;
     }
-    
+
     // Check if search number starts with verse number (e.g., searching for 10 when verse is 1)
     if search_str.starts_with(&verse_str) {
         return 400;
     }
-    
+
     // Check if verse number contains search number (e.g., 21, 31 when searching for 1)
     if verse_str.contains(&search_str) {
         return 600;
     }
-    
+
     0
 }
-
 
 // Convert vim key notation to user-friendly display
 fn vim_key_to_display(vim_key: &str) -> String {
@@ -175,43 +187,133 @@ fn vim_key_to_display(vim_key: &str) -> String {
 // Convert instruction enum name to user-friendly display name and description
 fn instruction_to_display(instruction_name: &str) -> (String, String) {
     match instruction_name {
-        "NextVerse" => ("Next Verse".to_string(), "Navigate to the next verse".to_string()),
-        "PreviousVerse" => ("Previous Verse".to_string(), "Navigate to the previous verse".to_string()),
-        "NextChapter" => ("Next Chapter".to_string(), "Navigate to the next chapter".to_string()),
-        "PreviousChapter" => ("Previous Chapter".to_string(), "Navigate to the previous chapter".to_string()),
-        "NextBook" => ("Next Book".to_string(), "Navigate to the next book".to_string()),
-        "PreviousBook" => ("Previous Book".to_string(), "Navigate to the previous book".to_string()),
-        "BeginningOfChapter" => ("Beginning of Chapter".to_string(), "Go to the first verse of the chapter".to_string()),
-        "EndOfChapter" => ("End of Chapter".to_string(), "Go to the last verse of the chapter".to_string()),
-        "SwitchToPreviousChapter" => ("Switch to Previous Chapter".to_string(), "Go back to the previously viewed chapter".to_string()),
-        "CopyRawVerse" => ("Copy Raw Verse".to_string(), "Copy the verse text to clipboard".to_string()),
-        "CopyVerseWithReference" => ("Copy Verse with Reference".to_string(), "Copy verse with reference to clipboard".to_string()),
-        "ToggleSidebar" => ("Toggle Sidebar".to_string(), "Show/hide the books sidebar".to_string()),
-        "ToggleCrossReferences" => ("Toggle Cross References".to_string(), "Show/hide cross-references panel".to_string()),
-        "ToggleBiblePallate" => ("Toggle Command Palette".to_string(), "Toggle this command palette".to_string()),
-        "ToggleCommandPallate" => ("Open Command Palette".to_string(), "Open command palette with shortcuts".to_string()),
-        "NextReference" => ("Next Reference".to_string(), "Navigate to next cross-reference".to_string()),
-        "PreviousReference" => ("Previous Reference".to_string(), "Navigate to previous cross-reference".to_string()),
-        "NextPaletteResult" => ("Next Palette Result".to_string(), "Navigate to next search result".to_string()),
-        "PreviousPaletteResult" => ("Previous Palette Result".to_string(), "Navigate to previous search result".to_string()),
-        "OpenGithubRepository" => ("Open GitHub Repository".to_string(), "Open the project repository on GitHub".to_string()),
-        "RandomVerse" => ("Random Verse".to_string(), "Navigate to a random verse in the Bible".to_string()),
-        "RandomChapter" => ("Random Chapter".to_string(), "Navigate to a random chapter in the Bible".to_string()),
-        "OpenAboutPage" => ("About".to_string(), "View information about this Bible website".to_string()),
-        "ShowTranslations" => ("Show Translations".to_string(), "Go to the translation selection page".to_string()),
-        "ToggleVersePallate" => ("Open Verse Palette".to_string(), "Open command palette for verse navigation".to_string()),
-        "ExportToPDF" => ("Export to PDF".to_string(), "Export the entire Bible as a PDF document".to_string()),
-        "ExportToMarkdown" => ("Export to Markdown".to_string(), "Export the entire Bible as a Markdown document".to_string()),
-        "ExportLinkedMarkdown" => ("Export to Linked Markdown (Obsidian)".to_string(), "Export the entire Bible as linked Markdown files for Obsidian".to_string()),
-        "ToggleTranslationComparison" => ("Compare Translations".to_string(), "Open translation comparison panel for current verse".to_string()),
-        _ => (instruction_name.to_string(), format!("Execute {}", instruction_name)),
+        "NextVerse" => (
+            "Next Verse".to_string(),
+            "Navigate to the next verse".to_string(),
+        ),
+        "PreviousVerse" => (
+            "Previous Verse".to_string(),
+            "Navigate to the previous verse".to_string(),
+        ),
+        "NextChapter" => (
+            "Next Chapter".to_string(),
+            "Navigate to the next chapter".to_string(),
+        ),
+        "PreviousChapter" => (
+            "Previous Chapter".to_string(),
+            "Navigate to the previous chapter".to_string(),
+        ),
+        "NextBook" => (
+            "Next Book".to_string(),
+            "Navigate to the next book".to_string(),
+        ),
+        "PreviousBook" => (
+            "Previous Book".to_string(),
+            "Navigate to the previous book".to_string(),
+        ),
+        "BeginningOfChapter" => (
+            "Beginning of Chapter".to_string(),
+            "Go to the first verse of the chapter".to_string(),
+        ),
+        "EndOfChapter" => (
+            "End of Chapter".to_string(),
+            "Go to the last verse of the chapter".to_string(),
+        ),
+        "SwitchToPreviousChapter" => (
+            "Switch to Previous Chapter".to_string(),
+            "Go back to the previously viewed chapter".to_string(),
+        ),
+        "CopyRawVerse" => (
+            "Copy Raw Verse".to_string(),
+            "Copy the verse text to clipboard".to_string(),
+        ),
+        "CopyVerseWithReference" => (
+            "Copy Verse with Reference".to_string(),
+            "Copy verse with reference to clipboard".to_string(),
+        ),
+        "ToggleSidebar" => (
+            "Toggle Sidebar".to_string(),
+            "Show/hide the books sidebar".to_string(),
+        ),
+        "ToggleCrossReferences" => (
+            "Toggle Cross References".to_string(),
+            "Show/hide cross-references panel".to_string(),
+        ),
+        "ToggleBiblePallate" => (
+            "Toggle Command Palette".to_string(),
+            "Toggle this command palette".to_string(),
+        ),
+        "ToggleCommandPallate" => (
+            "Open Command Palette".to_string(),
+            "Open command palette with shortcuts".to_string(),
+        ),
+        "NextReference" => (
+            "Next Reference".to_string(),
+            "Navigate to next cross-reference".to_string(),
+        ),
+        "PreviousReference" => (
+            "Previous Reference".to_string(),
+            "Navigate to previous cross-reference".to_string(),
+        ),
+        "NextPaletteResult" => (
+            "Next Palette Result".to_string(),
+            "Navigate to next search result".to_string(),
+        ),
+        "PreviousPaletteResult" => (
+            "Previous Palette Result".to_string(),
+            "Navigate to previous search result".to_string(),
+        ),
+        "OpenGithubRepository" => (
+            "Open GitHub Repository".to_string(),
+            "Open the project repository on GitHub".to_string(),
+        ),
+        "RandomVerse" => (
+            "Random Verse".to_string(),
+            "Navigate to a random verse in the Bible".to_string(),
+        ),
+        "RandomChapter" => (
+            "Random Chapter".to_string(),
+            "Navigate to a random chapter in the Bible".to_string(),
+        ),
+        "OpenAboutPage" => (
+            "About".to_string(),
+            "View information about this Bible website".to_string(),
+        ),
+        "ShowTranslations" => (
+            "Show Translations".to_string(),
+            "Go to the translation selection page".to_string(),
+        ),
+        "ToggleVersePallate" => (
+            "Open Verse Palette".to_string(),
+            "Open command palette for verse navigation".to_string(),
+        ),
+        "ExportToPDF" => (
+            "Export to PDF".to_string(),
+            "Export the entire Bible as a PDF document".to_string(),
+        ),
+        "ExportToMarkdown" => (
+            "Export to Markdown".to_string(),
+            "Export the entire Bible as a Markdown document".to_string(),
+        ),
+        "ExportLinkedMarkdown" => (
+            "Export to Linked Markdown (Obsidian)".to_string(),
+            "Export the entire Bible as linked Markdown files for Obsidian".to_string(),
+        ),
+        "ToggleTranslationComparison" => (
+            "Compare Translations".to_string(),
+            "Open translation comparison panel for current verse".to_string(),
+        ),
+        _ => (
+            instruction_name.to_string(),
+            format!("Execute {}", instruction_name),
+        ),
     }
 }
 
 fn get_all_instructions() -> Vec<SearchResult> {
     let mappings = KeyboardMappings::load();
     let mut instruction_shortcuts: HashMap<String, Vec<String>> = HashMap::new();
-    
+
     // Group all shortcuts by instruction
     for (vim_key, instruction_name) in &mappings.mappings {
         let display_key = vim_key_to_display(vim_key);
@@ -220,30 +322,53 @@ fn get_all_instructions() -> Vec<SearchResult> {
             .or_insert_with(Vec::new)
             .push(display_key);
     }
-    
+
     // Add any instructions that might not have shortcuts yet (for future extensibility)
     let all_possible_instructions = [
-        "NextVerse", "PreviousVerse", "NextChapter", "PreviousChapter",
-        "NextBook", "PreviousBook", "BeginningOfChapter", "EndOfChapter",
-        "SwitchToPreviousChapter", "CopyRawVerse", "CopyVerseWithReference",
-        "ToggleSidebar", "ToggleCrossReferences", "ToggleBiblePallate", "ToggleCommandPallate",
-        "NextReference", "PreviousReference", "NextPaletteResult", "PreviousPaletteResult",
-        "OpenGithubRepository", "RandomVerse", "RandomChapter", "OpenAboutPage", "ShowTranslations", "ToggleVersePallate", "ToggleTranslationComparison", "ExportToPDF", "ExportToMarkdown", "ExportLinkedMarkdown"
+        "NextVerse",
+        "PreviousVerse",
+        "NextChapter",
+        "PreviousChapter",
+        "NextBook",
+        "PreviousBook",
+        "BeginningOfChapter",
+        "EndOfChapter",
+        "SwitchToPreviousChapter",
+        "CopyRawVerse",
+        "CopyVerseWithReference",
+        "ToggleSidebar",
+        "ToggleCrossReferences",
+        "ToggleBiblePallate",
+        "ToggleCommandPallate",
+        "NextReference",
+        "PreviousReference",
+        "NextPaletteResult",
+        "PreviousPaletteResult",
+        "OpenGithubRepository",
+        "RandomVerse",
+        "RandomChapter",
+        "OpenAboutPage",
+        "ShowTranslations",
+        "ToggleVersePallate",
+        "ToggleTranslationComparison",
+        "ExportToPDF",
+        "ExportToMarkdown",
+        "ExportLinkedMarkdown",
     ];
-    
+
     for instruction in &all_possible_instructions {
         if !instruction_shortcuts.contains_key(*instruction) {
             instruction_shortcuts.insert(instruction.to_string(), vec!["No shortcut".to_string()]);
         }
     }
-    
+
     // Create SearchResult for each unique instruction
     instruction_shortcuts
         .into_iter()
         .map(|(instruction_name, shortcuts)| {
             let (display_name, description) = instruction_to_display(&instruction_name);
             let shortcut_text = shortcuts.join(", ");
-            
+
             SearchResult::Instruction {
                 name: display_name,
                 description,
@@ -256,7 +381,10 @@ fn get_all_instructions() -> Vec<SearchResult> {
 // Removed redundant get_translated_chapter_name function - names are already translated
 
 fn get_current_chapter_from_bible(bible: &Bible, location_pathname: &str) -> Option<Chapter> {
-    let path_parts: Vec<&str> = location_pathname.trim_start_matches('/').split('/').collect();
+    let path_parts: Vec<&str> = location_pathname
+        .trim_start_matches('/')
+        .split('/')
+        .collect();
     if path_parts.len() == 2 {
         let book_name = path_parts[0].replace('_', " ");
         if let Ok(chapter_num) = path_parts[1].parse::<u32>() {
@@ -335,12 +463,10 @@ fn instruction_name_to_instruction(name: &str) -> Option<Instruction> {
 }
 
 #[component]
-pub fn CommandPalette(
-    view_state: crate::view_state::ViewStateSignal,
-) -> impl IntoView {
+pub fn CommandPalette(view_state: crate::view_state::ViewStateSignal) -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
-    
+
     // Separate signals for input display vs actual search query (for debouncing)
     let (input_value, set_input_value) = signal(String::new());
     let (search_query, set_search_query) = signal(String::new());
@@ -348,26 +474,26 @@ pub fn CommandPalette(
     let (navigate_to, set_navigate_to) = signal::<Option<String>>(None);
     let (is_mounted, set_is_mounted) = signal(false);
     let (execute_instruction, set_execute_instruction) = signal::<Option<Instruction>>(None);
-    
+
     // Debouncing effect: update search_query 150ms after input_value stops changing
     Effect::new(move |_| {
         let input_val = input_value.get();
         let set_search_query_clone = set_search_query.clone();
-        
+
         spawn_local(async move {
             // Wait 150ms before updating search query
             gloo_timers::future::TimeoutFuture::new(150).await;
-            
+
             // Only update if the input value hasn't changed in the meantime
             if input_val == input_value.get_untracked() {
                 set_search_query_clone.set(input_val);
             }
         });
     });
-    
+
     // Create a node ref for the input element
     let input_ref = NodeRef::<leptos::html::Input>::new();
-    
+
     // Create instruction processor
     let processor = InstructionProcessor::new(navigate.clone());
 
@@ -377,26 +503,32 @@ pub fn CommandPalette(
             let pathname = location.pathname.get();
             let search = location.search.get();
             if update_view_state_from_url(view_state, &pathname, &search) {
-                let handled = view_state.with(|state| {
-                    processor.process(instruction.clone(), state)
-                });
-                
+                let handled =
+                    view_state.with(|state| processor.process(instruction.clone(), state));
+
                 if !handled {
                     use web_sys::CustomEvent;
-                    
+
                     // Handle export instructions that need special processing
-                    if matches!(instruction, 
-                        crate::instructions::Instruction::ExportToPDF | 
-                        crate::instructions::Instruction::ExportToMarkdown |
-                        crate::instructions::Instruction::ExportLinkedMarkdown
+                    if matches!(
+                        instruction,
+                        crate::instructions::Instruction::ExportToPDF
+                            | crate::instructions::Instruction::ExportToMarkdown
+                            | crate::instructions::Instruction::ExportLinkedMarkdown
                     ) {
                         if let Some(window) = web_sys::window() {
                             if let Some(document) = window.document() {
                                 // Create custom event with instruction data
                                 let event_name = match instruction {
-                                    crate::instructions::Instruction::ExportToPDF => "palette-pdf-export",
-                                    crate::instructions::Instruction::ExportToMarkdown => "palette-markdown-export",
-                                    crate::instructions::Instruction::ExportLinkedMarkdown => "palette-linked-markdown-export",
+                                    crate::instructions::Instruction::ExportToPDF => {
+                                        "palette-pdf-export"
+                                    }
+                                    crate::instructions::Instruction::ExportToMarkdown => {
+                                        "palette-markdown-export"
+                                    }
+                                    crate::instructions::Instruction::ExportLinkedMarkdown => {
+                                        "palette-linked-markdown-export"
+                                    }
                                     _ => "palette-instruction",
                                 };
                                 if let Ok(event) = CustomEvent::new(event_name) {
@@ -415,7 +547,7 @@ pub fn CommandPalette(
     Effect::new(move |_| {
         if let Some(query) = view_state.with(|state| state.initial_search_query.clone()) {
             set_input_value.set(query); // Set input_value to show in field, debouncing will handle search_query
-            // The signal will be cleared by the parent component
+                                        // The signal will be cleared by the parent component
         }
     });
 
@@ -425,11 +557,12 @@ pub fn CommandPalette(
         if query.is_empty() || query.starts_with(':') || query.starts_with('>') || query.len() < 3 {
             return false;
         }
-        
+
         // Check if there would be any chapter results
         if let Some(bible) = view_state.with(|state| state.get_bible().cloned()) {
             for book in &bible.books {
-                for chapter in book.chapters.iter().take(5) { // Quick check of first few chapters
+                for chapter in book.chapters.iter().take(5) {
+                    // Quick check of first few chapters
                     let original_name = chapter.name.to_lowercase();
                     if fuzzy_score(&original_name, &query.to_lowercase()) > 0 {
                         return false; // Found chapter results, not global search
@@ -446,16 +579,20 @@ pub fn CommandPalette(
         if query.is_empty() {
             // Show recent chapters when empty
             let recent_chapters = get_recent_chapters();
-            return recent_chapters.into_iter()
+            return recent_chapters
+                .into_iter()
                 .enumerate()
                 .map(|(index, recent)| {
                     let score = 1000 - index; // Higher score for more recent
-                    (SearchResult::RecentChapter {
-                        book_name: recent.book_name,
-                        chapter: recent.chapter,
-                        display_name: recent.display_name,
-                        path: recent.path,
-                    }, score)
+                    (
+                        SearchResult::RecentChapter {
+                            book_name: recent.book_name,
+                            chapter: recent.chapter,
+                            display_name: recent.display_name,
+                            path: recent.path,
+                        },
+                        score,
+                    )
                 })
                 .collect();
         }
@@ -464,19 +601,29 @@ pub fn CommandPalette(
         if query.starts_with('>') {
             let instruction_query = query.strip_prefix('>').unwrap_or("").to_lowercase();
             let instructions = get_all_instructions();
-            
+
             if instruction_query.is_empty() {
                 // Just ">" - show all instructions
                 return instructions.into_iter().map(|inst| (inst, 1000)).collect();
             } else {
                 // Filter instructions by name or description
-                return instructions.into_iter()
+                return instructions
+                    .into_iter()
                     .filter_map(|inst| {
-                        if let SearchResult::Instruction { name, description, .. } = &inst {
+                        if let SearchResult::Instruction {
+                            name, description, ..
+                        } = &inst
+                        {
                             let name_lower = name.to_lowercase();
                             let desc_lower = description.to_lowercase();
-                            if name_lower.contains(&instruction_query) || desc_lower.contains(&instruction_query) {
-                                let score = if name_lower.starts_with(&instruction_query) { 1000 } else { 500 };
+                            if name_lower.contains(&instruction_query)
+                                || desc_lower.contains(&instruction_query)
+                            {
+                                let score = if name_lower.starts_with(&instruction_query) {
+                                    1000
+                                } else {
+                                    500
+                                };
                                 Some((inst, score))
                             } else {
                                 None
@@ -491,11 +638,11 @@ pub fn CommandPalette(
 
         let query = query.to_lowercase();
         let mut results: Vec<(SearchResult, usize)> = Vec::new();
-        
+
         // Check if this is a current chapter verse shortcut (e.g., ":5" or ":")
         if let Some(verse_part) = query.strip_prefix(':') {
-            if let Some(current_chapter) = get_current_chapter(view_state, &location.pathname.get()) {
-                
+            if let Some(current_chapter) = get_current_chapter(view_state, &location.pathname.get())
+            {
                 if verse_part.is_empty() {
                     // Just ":" - show all verses from current chapter (limited to first 15)
                     for verse in current_chapter.verses.iter().take(15) {
@@ -505,22 +652,24 @@ pub fn CommandPalette(
                                 verse_number: verse.verse,
                                 verse_text: verse.text.clone(),
                             },
-                            1000 // High score for current chapter verses
+                            1000, // High score for current chapter verses
                         ));
                     }
                 } else if let Ok(verse_num) = verse_part.parse::<u32>() {
                     // ":5" - jump to specific verse in current chapter
-                    if let Some(verse) = current_chapter.verses.iter().find(|v| v.verse == verse_num) {
+                    if let Some(verse) =
+                        current_chapter.verses.iter().find(|v| v.verse == verse_num)
+                    {
                         results.push((
                             SearchResult::Verse {
                                 chapter: current_chapter.clone(),
                                 verse_number: verse.verse,
                                 verse_text: verse.text.clone(),
                             },
-                            2000 // Very high score for exact verse match
+                            2000, // Very high score for exact verse match
                         ));
                     }
-                    
+
                     // Also show nearby verses for context
                     for verse in &current_chapter.verses {
                         let score = score_verse_number_match(verse.verse, verse_num);
@@ -531,7 +680,7 @@ pub fn CommandPalette(
                                     verse_number: verse.verse,
                                     verse_text: verse.text.clone(),
                                 },
-                                score + 500 // Bonus for being in current chapter
+                                score + 500, // Bonus for being in current chapter
                             ));
                         }
                     }
@@ -544,41 +693,54 @@ pub fn CommandPalette(
             if let Some(translation) = get_current_translation() {
                 if let Some(first_language) = translation.languages.first() {
                     let translation_obj = Translation::from_language(*first_language);
-                    
+
                     // Try to translate the book name
-                    let book_name_to_search = if let Some(translated) = translation_obj.get(&verse_ref.book_name) {
-                        translated
-                    } else {
-                        verse_ref.book_name.clone()
-                    };
-                    
+                    let book_name_to_search =
+                        if let Some(translated) = translation_obj.get(&verse_ref.book_name) {
+                            translated
+                        } else {
+                            verse_ref.book_name.clone()
+                        };
+
                     // Find the chapter - optimize by searching more efficiently
                     let bible = match view_state.with(|state| state.get_bible().cloned()) {
                         Some(bible) => bible,
                         None => return Vec::new(), // No Bible data available
                     };
                     let mut found_chapter = None;
-                    
+
                     // First try exact book name match
                     for book in &bible.books {
-                        if book.name.to_lowercase() == book_name_to_search.to_lowercase() 
-                            || book.name.to_lowercase() == verse_ref.book_name.to_lowercase() {
-                            found_chapter = book.chapters.iter().find(|c| c.chapter == verse_ref.chapter);
+                        if book.name.to_lowercase() == book_name_to_search.to_lowercase()
+                            || book.name.to_lowercase() == verse_ref.book_name.to_lowercase()
+                        {
+                            found_chapter = book
+                                .chapters
+                                .iter()
+                                .find(|c| c.chapter == verse_ref.chapter);
                             break;
                         }
                     }
-                    
+
                     // If no exact match, try partial match (but limit to avoid full scan)
                     if found_chapter.is_none() {
-                        for book in bible.books.iter().take(20) { // Limit search to first 20 books
-                            if book.name.to_lowercase().contains(&book_name_to_search.to_lowercase()) 
-                                || book.name.to_lowercase().contains(&verse_ref.book_name) {
-                                found_chapter = book.chapters.iter().find(|c| c.chapter == verse_ref.chapter);
+                        for book in bible.books.iter().take(20) {
+                            // Limit search to first 20 books
+                            if book
+                                .name
+                                .to_lowercase()
+                                .contains(&book_name_to_search.to_lowercase())
+                                || book.name.to_lowercase().contains(&verse_ref.book_name)
+                            {
+                                found_chapter = book
+                                    .chapters
+                                    .iter()
+                                    .find(|c| c.chapter == verse_ref.chapter);
                                 break;
                             }
                         }
                     }
-                    
+
                     if let Some(chapter) = found_chapter {
                         match verse_ref.verse {
                             Some(verse_num) => {
@@ -592,7 +754,7 @@ pub fn CommandPalette(
                                                 verse_number: verse.verse,
                                                 verse_text: verse.text.clone(),
                                             },
-                                            score
+                                            score,
                                         ));
                                     }
                                 }
@@ -606,7 +768,7 @@ pub fn CommandPalette(
                                             verse_number: verse.verse,
                                             verse_text: verse.text.clone(),
                                         },
-                                        900 // High score for chapter verse suggestions
+                                        900, // High score for chapter verse suggestions
                                     ));
                                 }
                             }
@@ -615,96 +777,103 @@ pub fn CommandPalette(
                 }
             }
         }
-        
+
         // Optimized chapter search - limit scope and avoid expensive operations for short queries
         let mut chapter_results: Vec<(SearchResult, usize)> = Vec::new();
-        
+
         // Only do expensive chapter search if query is at least 2 characters
         if query.len() >= 2 {
             if let Some(bible) = view_state.with(|state| state.get_bible().cloned()) {
                 let mut found_count = 0;
                 'outer: for book in &bible.books {
-                for chapter in &book.chapters {
-                    // Early exit if we have enough results
-                    if found_count >= 20 {
-                        break 'outer;
-                    }
-                    
-                    let original_name = chapter.name.to_lowercase();
-                    let original_score = fuzzy_score(&original_name, &query);
-                    
-                    // Only compute expensive translation if original name doesn't match well
-                    let score = if original_score > 0 {
-                        original_score
-                    } else {
-                        let translated_name = chapter.name.to_lowercase();
-                        fuzzy_score(&translated_name, &query)
-                    };
-                    
-                    if score > 0 {
-                        chapter_results.push((SearchResult::Chapter(chapter.clone()), score));
-                        found_count += 1;
+                    for chapter in &book.chapters {
+                        // Early exit if we have enough results
+                        if found_count >= 20 {
+                            break 'outer;
+                        }
+
+                        let original_name = chapter.name.to_lowercase();
+                        let original_score = fuzzy_score(&original_name, &query);
+
+                        // Only compute expensive translation if original name doesn't match well
+                        let score = if original_score > 0 {
+                            original_score
+                        } else {
+                            let translated_name = chapter.name.to_lowercase();
+                            fuzzy_score(&translated_name, &query)
+                        };
+
+                        if score > 0 {
+                            chapter_results.push((SearchResult::Chapter(chapter.clone()), score));
+                            found_count += 1;
+                        }
                     }
                 }
             }
         }
-        }
-            
+
         results.extend(chapter_results);
 
         // If no results and query is at least 3 characters, do global Bible search
-        if results.is_empty() && query.len() >= 3 && !query.starts_with(':') && !query.starts_with('>') {
+        if results.is_empty()
+            && query.len() >= 3
+            && !query.starts_with(':')
+            && !query.starts_with('>')
+        {
             let mut verse_matches: Vec<(SearchResult, usize)> = Vec::new();
             let mut search_count = 0;
-            
+
             // Normalize query once outside the loop for performance
             let query_normalized = normalize_text_for_search(&query);
-            
+
             if let Some(bible) = view_state.with(|state| state.get_bible().cloned()) {
                 'global_search: for book in &bible.books {
-                for chapter in &book.chapters {
-                    for verse in &chapter.verses {
-                        // Early exit if we have enough results
-                        if search_count >= 50 {
-                            break 'global_search;
-                        }
-                        
-                        // Normalize verse text for search (no cache needed for real-time search)
-                        let verse_text_normalized = normalize_text_for_search(&verse.text);
-                        if verse_text_normalized.contains(&query_normalized) {
-                            // Score based on how early the match appears in the verse
-                            let match_position = verse_text_normalized.find(&query_normalized).unwrap_or(verse_text_normalized.len());
-                            let score = if verse_text_normalized.starts_with(&query_normalized) {
-                                1000 // Starts with query
-                            } else if match_position < 10 {
-                                800 // Match near beginning
-                            } else if match_position < 30 {
-                                600 // Match in first part
-                            } else {
-                                400 // Match later in verse
-                            };
-                            
-                            verse_matches.push((
-                                SearchResult::Verse {
-                                    chapter: chapter.clone(),
-                                    verse_number: verse.verse,
-                                    verse_text: verse.text.clone(),
-                                },
-                                score
-                            ));
-                            search_count += 1;
+                    for chapter in &book.chapters {
+                        for verse in &chapter.verses {
+                            // Early exit if we have enough results
+                            if search_count >= 50 {
+                                break 'global_search;
+                            }
+
+                            // Normalize verse text for search (no cache needed for real-time search)
+                            let verse_text_normalized = normalize_text_for_search(&verse.text);
+                            if verse_text_normalized.contains(&query_normalized) {
+                                // Score based on how early the match appears in the verse
+                                let match_position = verse_text_normalized
+                                    .find(&query_normalized)
+                                    .unwrap_or(verse_text_normalized.len());
+                                let score = if verse_text_normalized.starts_with(&query_normalized)
+                                {
+                                    1000 // Starts with query
+                                } else if match_position < 10 {
+                                    800 // Match near beginning
+                                } else if match_position < 30 {
+                                    600 // Match in first part
+                                } else {
+                                    400 // Match later in verse
+                                };
+
+                                verse_matches.push((
+                                    SearchResult::Verse {
+                                        chapter: chapter.clone(),
+                                        verse_number: verse.verse,
+                                        verse_text: verse.text.clone(),
+                                    },
+                                    score,
+                                ));
+                                search_count += 1;
+                            }
                         }
                     }
                 }
-                }
             }
-            
+
             results.extend(verse_matches);
         }
 
         // Sort by score (higher is better)
         results.sort_by(|a, b| b.1.cmp(&a.1));
-        
+
         results
             .into_iter()
             .take(10)
@@ -714,7 +883,9 @@ pub fn CommandPalette(
     // Handle NextPaletteResult navigation signal
     Effect::new(move |_| {
         if view_state.with(|state| state.next_palette_result_trigger) {
-            view_state.update(|state| { state.execute(&Instruction::NextPaletteResult); }); // This handles the trigger reset
+            view_state.update(|state| {
+                state.execute(&Instruction::NextPaletteResult);
+            }); // This handles the trigger reset
             let results = filtered_results.get();
             if !results.is_empty() {
                 let current = selected_index.get();
@@ -724,7 +895,7 @@ pub fn CommandPalette(
                     current + 1
                 };
                 set_selected_index.set(next);
-                
+
                 // Keep focus on input field for continued typing
                 // VoiceOver will use aria-activedescendant to announce the selected result
             }
@@ -734,7 +905,9 @@ pub fn CommandPalette(
     // Handle PreviousPaletteResult navigation signal
     Effect::new(move |_| {
         if view_state.with(|state| state.previous_palette_result_trigger) {
-            view_state.update(|state| { state.execute(&Instruction::PreviousPaletteResult); }); // This handles the trigger reset
+            view_state.update(|state| {
+                state.execute(&Instruction::PreviousPaletteResult);
+            }); // This handles the trigger reset
             let results = filtered_results.get();
             if !results.is_empty() {
                 let current = selected_index.get();
@@ -744,7 +917,7 @@ pub fn CommandPalette(
                     current - 1
                 };
                 set_selected_index.set(next);
-                
+
                 // Keep focus on input field for continued typing
                 // VoiceOver will use aria-activedescendant to announce the selected result
             }
@@ -755,16 +928,18 @@ pub fn CommandPalette(
     Effect::new(move |_| {
         let current_index = selected_index.get();
         let results = filtered_results.get();
-        
+
         // Only scroll if we have results and palette is open
         if !results.is_empty() && view_state.with(|state| state.is_command_palette_open) {
             // Use a timeout to ensure the DOM has been updated
             spawn_local(async move {
                 gloo_timers::future::TimeoutFuture::new(10).await;
-                
+
                 if let Some(window) = leptos::web_sys::window() {
                     if let Some(document) = window.document() {
-                        if let Some(element) = document.get_element_by_id(&format!("palette-result-{}", current_index)) {
+                        if let Some(element) =
+                            document.get_element_by_id(&format!("palette-result-{}", current_index))
+                        {
                             // Use scrollIntoView with 'nearest' block behavior to avoid aggressive scrolling
                             element.scroll_into_view_with_bool(false); // false = use 'nearest' instead of 'start'
                         }
@@ -782,7 +957,9 @@ pub fn CommandPalette(
             let handle_keydown = move |e: KeyboardEvent| {
                 match e.key().as_str() {
                     "Escape" => {
-                        view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); });
+                        view_state.update(|state| {
+                            state.execute(&Instruction::CloseCommandPalette);
+                        });
                         set_search_query.set(String::new());
                         set_selected_index.set(0);
                     }
@@ -800,21 +977,27 @@ pub fn CommandPalette(
                                 match result {
                                     SearchResult::Instruction { name, .. } => {
                                         // Execute the instruction
-                                        if let Some(instruction) = instruction_name_to_instruction(name) {
+                                        if let Some(instruction) =
+                                            instruction_name_to_instruction(name)
+                                        {
                                             set_execute_instruction.set(Some(instruction));
                                         }
                                         // Close the palette
-                                        view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); });
+                                        view_state.update(|state| {
+                                            state.execute(&Instruction::CloseCommandPalette);
+                                        });
                                         set_search_query.set(String::new());
                                         set_selected_index.set(0);
                                     }
                                     _ => {
                                         // For chapters and verses, navigate
                                         set_navigate_to.set(Some(result.to_path()));
-                                        
+
                                         // Close palette immediately
-                                        view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); });
-                                        
+                                        view_state.update(|state| {
+                                            state.execute(&Instruction::CloseCommandPalette);
+                                        });
+
                                         // Reset search state after a small delay to avoid race conditions
                                         spawn_local(async move {
                                             gloo_timers::future::TimeoutFuture::new(50).await;
@@ -829,7 +1012,7 @@ pub fn CommandPalette(
                     _ => {}
                 }
             };
-            
+
             let cleanup = window_event_listener(leptos::ev::keydown, handle_keydown);
             on_cleanup(move || {
                 // Explicitly clean up when palette closes
@@ -843,7 +1026,7 @@ pub fn CommandPalette(
         search_query.track();
         set_selected_index.set(0);
     });
-    
+
     // Reset selected index when palette opens
     Effect::new(move |_| {
         if view_state.with(|state| state.is_command_palette_open) {
@@ -858,13 +1041,16 @@ pub fn CommandPalette(
             // Debug log to track navigation
             #[cfg(target_arch = "wasm32")]
             web_sys::console::log_1(&format!("Command palette navigating to: {}", path).into());
-            
+
             // Force navigation by using replace: false to ensure verse parameters are handled
-            navigate(&path, NavigateOptions { 
-                scroll: false, 
-                replace: false,
-                ..Default::default() 
-            });
+            navigate(
+                &path,
+                NavigateOptions {
+                    scroll: false,
+                    replace: false,
+                    ..Default::default()
+                },
+            );
             set_navigate_to.set(None);
         }
     });
@@ -879,17 +1065,15 @@ pub fn CommandPalette(
         }
     });
 
-
-
     view! {
         <Show when=move || is_mounted.get() && view_state.with(|state| state.is_command_palette_open) fallback=|| ()>
             // Backdrop
-            <div 
+            <div
                 class="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-start justify-center pt-20"
                 on:click=move |_| view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); })
             >
                 // Command Palette Modal
-                <div 
+                <div
                     class="rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-96 flex flex-col"
                     style="background-color: var(--theme-palette-background); border: 1px solid var(--theme-palette-border)"
                     on:click=move |e| e.stop_propagation()
@@ -937,8 +1121,8 @@ pub fn CommandPalette(
                                         </div>
                                     </div>
                                 </Show>
-                                
-                                <div 
+
+                                <div
                                     id="palette-results-listbox"
                                     class="max-h-64 overflow-y-auto"
                                     role="listbox"
@@ -947,24 +1131,24 @@ pub fn CommandPalette(
                                     {move || {
                                         let results = filtered_results.get();
                                         let current_selected = selected_index.get();
-                                        let bounded_selected = if results.is_empty() { 
-                                            0 
-                                        } else { 
-                                            current_selected.min(results.len() - 1) 
+                                        let bounded_selected = if results.is_empty() {
+                                            0
+                                        } else {
+                                            current_selected.min(results.len() - 1)
                                         };
-                                        
+
                                         results.into_iter().enumerate().map(|(index, (result, _score))| {
                                             let is_selected = index == bounded_selected;
                                             let result_path = result.to_path();
                                             let display_name = result.get_display_name();
-                                            
+
                                             view! {
-                                                <div 
+                                                <div
                                                     id=format!("palette-result-{}", index)
-                                                    class=if is_selected { 
-                                                        "px-4 py-3 cursor-pointer flex items-center border-b palette-result-selected" 
-                                                    } else { 
-                                                        "px-4 py-3 cursor-pointer flex items-center border-b palette-result-item" 
+                                                    class=if is_selected {
+                                                        "px-4 py-3 cursor-pointer flex items-center border-b palette-result-selected"
+                                                    } else {
+                                                        "px-4 py-3 cursor-pointer flex items-center border-b palette-result-item"
                                                     }
                                                     style=if is_selected {
                                                         "background-color: var(--theme-palette-highlight-background); color: var(--theme-palette-highlight); border-color: var(--theme-palette-highlight)"
@@ -976,11 +1160,11 @@ pub fn CommandPalette(
                                                     aria-label={
                                                         match &result {
                                                             SearchResult::Verse { verse_text, .. } => {
-                                                                format!("{}, verse text: {}", display_name, 
-                                                                    if verse_text.len() > 100 { 
-                                                                        format!("{}...", &verse_text[..100]) 
-                                                                    } else { 
-                                                                        verse_text.clone() 
+                                                                format!("{}, verse text: {}", display_name,
+                                                                    if verse_text.len() > 100 {
+                                                                        format!("{}...", &verse_text[..100])
+                                                                    } else {
+                                                                        verse_text.clone()
                                                                     }
                                                                 )
                                                             }
@@ -1011,10 +1195,10 @@ pub fn CommandPalette(
                                                                 _ => {
                                                                     // Navigate for chapters and verses
                                                                     set_navigate_to.set(Some(path.clone()));
-                                                                    
-                                                                    // Close palette and reset state immediately  
+
+                                                                    // Close palette and reset state immediately
                                                                     view_state.update(|state| { state.execute(&Instruction::CloseCommandPalette); });
-                                                                    
+
                                                                     // Reset search state after a small delay to avoid race conditions
                                                                     spawn_local(async move {
                                                                         gloo_timers::future::TimeoutFuture::new(50).await;
@@ -1121,7 +1305,8 @@ fn normalize_text_for_search(text: &str) -> String {
             'Ç' => 'C',
             'Ñ' => 'N',
             // Remove punctuation characters - replace with space to maintain word boundaries
-            ',' | '.' | ';' | ':' | '!' | '?' | '"' | '\'' | '(' | ')' | '[' | ']' | '-' | '—' | '–' | '/' | '\\' | '«' | '»' => ' ',
+            ',' | '.' | ';' | ':' | '!' | '?' | '"' | '\'' | '(' | ')' | '[' | ']' | '-' | '—'
+            | '–' | '/' | '\\' | '«' | '»' => ' ',
             // Keep other characters as-is
             _ => c,
         })
@@ -1157,17 +1342,17 @@ fn fuzzy_score(text: &str, query: &str) -> usize {
     if query.is_empty() {
         return 0;
     }
-    
+
     // Normalize both text and query for better matching
     let text_normalized = normalize_text_for_search(text);
     let query_normalized = normalize_text_for_search(query);
-    
+
     // Try with number/roman numeral conversions
     let text_arabic_to_roman = convert_arabic_to_roman(&text_normalized);
     let text_roman_to_arabic = convert_roman_to_arabic(&text_normalized);
     let query_arabic_to_roman = convert_arabic_to_roman(&query_normalized);
     let query_roman_to_arabic = convert_roman_to_arabic(&query_normalized);
-    
+
     // Calculate scores for all combinations
     let score1 = calculate_fuzzy_score(&text_normalized, &query_normalized);
     let score2 = calculate_fuzzy_score(&text_arabic_to_roman, &query_normalized);
@@ -1176,56 +1361,63 @@ fn fuzzy_score(text: &str, query: &str) -> usize {
     let score5 = calculate_fuzzy_score(&text_normalized, &query_roman_to_arabic);
     let score6 = calculate_fuzzy_score(&text_arabic_to_roman, &query_roman_to_arabic);
     let score7 = calculate_fuzzy_score(&text_roman_to_arabic, &query_arabic_to_roman);
-    
+
     // Return the best score
-    score1.max(score2).max(score3).max(score4).max(score5).max(score6).max(score7)
+    score1
+        .max(score2)
+        .max(score3)
+        .max(score4)
+        .max(score5)
+        .max(score6)
+        .max(score7)
 }
 
 fn calculate_fuzzy_score(text: &str, query: &str) -> usize {
     if query.is_empty() {
         return 0;
     }
-    
+
     let text_words: Vec<&str> = text.split_whitespace().collect();
     let query_words: Vec<&str> = query.split_whitespace().collect();
-    
+
     if query_words.is_empty() {
         return 0;
     }
-    
+
     let mut total_score = 0;
-    
+
     // Try to match each query word against text words
     for (query_word_index, &query_word) in query_words.iter().enumerate() {
         let mut best_word_score = 0;
         let mut found_match = false;
-        
+
         // Check each text word for the best match
         for (text_word_index, &text_word) in text_words.iter().enumerate() {
-            let word_score = score_word_match(text_word, query_word, text_word_index == query_word_index);
+            let word_score =
+                score_word_match(text_word, query_word, text_word_index == query_word_index);
             if word_score > best_word_score {
                 best_word_score = word_score;
                 found_match = true;
             }
         }
-        
+
         if !found_match {
             return 0; // Query word not found
         }
-        
+
         total_score += best_word_score;
     }
-    
+
     // Bonus for matching all words in order
     if query_words.len() == text_words.len() {
         total_score += 50;
     }
-    
+
     // Bonus for exact text match
     if text == query {
         total_score += 100;
     }
-    
+
     total_score
 }
 
@@ -1235,27 +1427,27 @@ fn score_word_match(text_word: &str, query_word: &str, is_positional_match: bool
     if text_word == query_word {
         return if is_positional_match { 100 } else { 80 };
     }
-    
+
     // Check if text word starts with query word (partial match)
     if text_word.starts_with(query_word) {
         let match_ratio = (query_word.len() * 100) / text_word.len();
-        return if is_positional_match { 
-            50 + match_ratio / 2 
-        } else { 
-            30 + match_ratio / 2 
+        return if is_positional_match {
+            50 + match_ratio / 2
+        } else {
+            30 + match_ratio / 2
         };
     }
-    
+
     // Check if query word is contained in text word
     if text_word.contains(query_word) {
         let match_ratio = (query_word.len() * 100) / text_word.len();
-        return if is_positional_match { 
-            20 + match_ratio / 4 
-        } else { 
-            10 + match_ratio / 4 
+        return if is_positional_match {
+            20 + match_ratio / 4
+        } else {
+            10 + match_ratio / 4
         };
     }
-    
+
     // Check for number matching (both are numbers)
     if let (Ok(_), Ok(_)) = (text_word.parse::<u32>(), query_word.parse::<u32>()) {
         if text_word == query_word {
@@ -1266,7 +1458,7 @@ fn score_word_match(text_word: &str, query_word: &str, is_positional_match: bool
             return if is_positional_match { 60 } else { 40 };
         }
     }
-    
+
     // Character-by-character fuzzy matching as fallback
     character_fuzzy_score(text_word, query_word, is_positional_match)
 }
@@ -1275,14 +1467,14 @@ fn score_word_match(text_word: &str, query_word: &str, is_positional_match: bool
 fn character_fuzzy_score(text: &str, query: &str, is_positional_match: bool) -> usize {
     let text_chars: Vec<char> = text.chars().collect();
     let query_chars: Vec<char> = query.chars().collect();
-    
+
     let mut score = 0;
     let mut text_index = 0;
     let mut consecutive_matches = 0;
-    
+
     for &query_char in &query_chars {
         let mut found = false;
-        
+
         while text_index < text_chars.len() {
             if text_chars[text_index] == query_char {
                 found = true;
@@ -1295,17 +1487,17 @@ fn character_fuzzy_score(text: &str, query: &str, is_positional_match: bool) -> 
                 text_index += 1;
             }
         }
-        
+
         if !found {
             return 0; // Query character not found
         }
     }
-    
+
     // Apply positional bonus
     if is_positional_match {
         score = score * 3 / 2;
     }
-    
+
     score
 }
 
@@ -1317,10 +1509,10 @@ mod tests {
     fn test_normalize_text_for_search() {
         // Test Dutch character normalization
         assert_eq!(normalize_text_for_search("Matteüs"), "matteus");
-        assert_eq!(normalize_text_for_search("Jesaja"), "jesaja");  
+        assert_eq!(normalize_text_for_search("Jesaja"), "jesaja");
         assert_eq!(normalize_text_for_search("Ezechiël"), "ezechiel");
         assert_eq!(normalize_text_for_search("Daniël"), "daniel");
-        
+
         // Test mixed case
         assert_eq!(normalize_text_for_search("MATTEÜS"), "matteus");
         assert_eq!(normalize_text_for_search("Matteüs"), "matteus");
@@ -1332,7 +1524,7 @@ mod tests {
         assert_eq!(convert_arabic_to_roman("1 samuel"), "i samuel");
         assert_eq!(convert_arabic_to_roman("2 samuel"), "ii samuel");
         assert_eq!(convert_arabic_to_roman("3 john"), "iii john");
-        
+
         // Test no change for non-numbered books
         assert_eq!(convert_arabic_to_roman("genesis"), "genesis");
         assert_eq!(convert_arabic_to_roman("matthew"), "matthew");
@@ -1340,11 +1532,11 @@ mod tests {
 
     #[test]
     fn test_convert_roman_to_arabic() {
-        // Test Roman to Arabic conversion  
+        // Test Roman to Arabic conversion
         assert_eq!(convert_roman_to_arabic("I samuel"), "1 samuel");
         assert_eq!(convert_roman_to_arabic("II samuel"), "2 samuel");
         assert_eq!(convert_roman_to_arabic("III john"), "3 john");
-        
+
         // Test no change for non-numbered books
         assert_eq!(convert_roman_to_arabic("genesis"), "genesis");
         assert_eq!(convert_roman_to_arabic("matthew"), "matthew");
@@ -1355,13 +1547,13 @@ mod tests {
         // Test that Dutch characters match their normalized equivalents
         let score1 = fuzzy_score("Matteüs", "matteus");
         assert!(score1 > 0, "Should match Dutch characters");
-        
+
         // Test number/roman conversion in search
         let score2 = fuzzy_score("I Samuel", "1 samuel");
         let score3 = fuzzy_score("II Samuel", "2 samuel");
         assert!(score2 > 0, "Should match 1 samuel with I Samuel");
         assert!(score3 > 0, "Should match 2 samuel with II Samuel");
-        
+
         // Test the reverse direction too
         let score4 = fuzzy_score("1 Samuel", "i samuel");
         let score5 = fuzzy_score("2 Samuel", "ii samuel");
@@ -1406,7 +1598,7 @@ mod tests {
         assert_eq!(result.book_name, "gen");
         assert_eq!(result.chapter, 1);
         assert_eq!(result.verse, None); // No specific verse
-        
+
         // Test incomplete with spaces "john 3: "
         let result = parse_verse_reference("john 3: ").unwrap();
         assert_eq!(result.book_name, "john");
@@ -1425,26 +1617,26 @@ mod tests {
         // Test exact match
         assert_eq!(score_verse_number_match(1, 1), 1000);
         assert_eq!(score_verse_number_match(16, 16), 1000);
-        
+
         // Test starts with (1 matches 10, 11, 12)
         assert_eq!(score_verse_number_match(10, 1), 800);
         assert_eq!(score_verse_number_match(11, 1), 800);
         assert_eq!(score_verse_number_match(12, 1), 800);
         assert_eq!(score_verse_number_match(100, 1), 800);
-        
+
         // Test contains (1 matches 21, 31, but not 151 since that starts with 1)
         assert_eq!(score_verse_number_match(21, 1), 600);
         assert_eq!(score_verse_number_match(31, 1), 600);
         assert_eq!(score_verse_number_match(151, 1), 800); // This starts with 1, so gets higher score
-        
+
         // Test reverse starts with (10 matches 1)
         assert_eq!(score_verse_number_match(1, 10), 400);
         assert_eq!(score_verse_number_match(2, 23), 400);
-        
+
         // Test no match
         assert_eq!(score_verse_number_match(2, 3), 0);
         assert_eq!(score_verse_number_match(25, 6), 0);
-        
+
         // Test priorities (exact > starts_with > contains > reverse_starts_with)
         assert!(score_verse_number_match(1, 1) > score_verse_number_match(10, 1));
         assert!(score_verse_number_match(10, 1) > score_verse_number_match(21, 1));
@@ -1456,7 +1648,7 @@ mod tests {
     #[test]
     fn test_search_result_to_path() {
         use crate::core::Chapter;
-        
+
         let chapter = Chapter {
             chapter: 1,
             name: "Genesis 1".to_string(),
@@ -1482,10 +1674,10 @@ mod tests {
         // Test fuzzy search functionality with translated names
         let score = fuzzy_score("numeri 1", "numeri");
         assert!(score > 0, "Should match 'numeri' in 'numeri 1'");
-        
+
         let score2 = fuzzy_score("numeri 1", "numeri 1");
         assert!(score2 > 0, "Should match exact 'numeri 1'");
-        
+
         let score3 = fuzzy_score("numbers 1", "numeri");
         assert_eq!(score3, 0, "Should not match 'numeri' in 'numbers 1'");
     }
@@ -1500,31 +1692,56 @@ mod tests {
     fn test_partial_word_matching() {
         // "ps 9" should match "psalmen 9"
         let score = fuzzy_score("psalmen 9", "ps 9");
-        assert!(score > 0, "ps 9 should match psalmen 9, got score: {}", score);
-        
+        assert!(
+            score > 0,
+            "ps 9 should match psalmen 9, got score: {}",
+            score
+        );
+
         // "gen 3" should match "genesis 3"
         let score = fuzzy_score("genesis 3", "gen 3");
-        assert!(score > 0, "gen 3 should match genesis 3, got score: {}", score);
-        
+        assert!(
+            score > 0,
+            "gen 3 should match genesis 3, got score: {}",
+            score
+        );
+
         // "john 14" should match "johannes 14"
         let score = fuzzy_score("johannes 14", "john 14");
-        assert!(score > 0, "john 14 should match johannes 14, got score: {}", score);
+        assert!(
+            score > 0,
+            "john 14 should match johannes 14, got score: {}",
+            score
+        );
     }
 
     #[test]
     fn test_number_matching() {
         // "ps 90" should match "psalmen 90"
         let score = fuzzy_score("psalmen 90", "ps 90");
-        assert!(score > 0, "ps 90 should match psalmen 90, got score: {}", score);
-        
+        assert!(
+            score > 0,
+            "ps 90 should match psalmen 90, got score: {}",
+            score
+        );
+
         // "9" should match "90" (partial number)
         let score = fuzzy_score("psalmen 90", "ps 9");
-        assert!(score > 0, "ps 9 should partially match psalmen 90, got score: {}", score);
-        
+        assert!(
+            score > 0,
+            "ps 9 should partially match psalmen 90, got score: {}",
+            score
+        );
+
         // Exact number match should score higher than partial
         let exact_score = fuzzy_score("psalmen 9", "ps 9");
         let partial_score = fuzzy_score("psalmen 90", "ps 9");
-        assert!(exact_score > partial_score, "Exact number match should score higher: {} vs {}", exact_score, partial_score);
+        assert!(
+            exact_score > partial_score,
+            "Exact number match should score higher: {} vs {}",
+            exact_score,
+            partial_score
+        );
     }
 
     #[test]
@@ -1536,12 +1753,25 @@ mod tests {
             ("psalmen 19", fuzzy_score("psalmen 19", "ps 9")),
             ("psalm 9", fuzzy_score("psalm 9", "ps 9")),
         ];
-        
+
         // psalmen 9 should score highest (exact number match)
-        let psalmen_9_score = results.iter().find(|(name, _)| *name == "psalmen 9").unwrap().1;
-        let psalmen_90_score = results.iter().find(|(name, _)| *name == "psalmen 90").unwrap().1;
-        
-        assert!(psalmen_9_score > psalmen_90_score, "Exact number match should score higher than partial: {} vs {}", psalmen_9_score, psalmen_90_score);
+        let psalmen_9_score = results
+            .iter()
+            .find(|(name, _)| *name == "psalmen 9")
+            .unwrap()
+            .1;
+        let psalmen_90_score = results
+            .iter()
+            .find(|(name, _)| *name == "psalmen 90")
+            .unwrap()
+            .1;
+
+        assert!(
+            psalmen_9_score > psalmen_90_score,
+            "Exact number match should score higher than partial: {} vs {}",
+            psalmen_9_score,
+            psalmen_90_score
+        );
     }
 
     #[test]
@@ -1559,8 +1789,11 @@ mod tests {
         let score1 = fuzzy_score("Genesis 1", "gen 1");
         let score2 = fuzzy_score("genesis 1", "GEN 1");
         let score3 = fuzzy_score("GENESIS 1", "gen 1");
-        
-        assert!(score1 > 0 && score2 > 0 && score3 > 0, "Should handle mixed case");
+
+        assert!(
+            score1 > 0 && score2 > 0 && score3 > 0,
+            "Should handle mixed case"
+        );
     }
 
     #[test]
@@ -1568,8 +1801,13 @@ mod tests {
         // Words in correct order should score higher
         let correct_order = fuzzy_score("genesis 3", "gen 3");
         let wrong_order = fuzzy_score("3 genesis", "gen 3");
-        
-        assert!(correct_order > wrong_order, "Correct word order should score higher: {} vs {}", correct_order, wrong_order);
+
+        assert!(
+            correct_order > wrong_order,
+            "Correct word order should score higher: {} vs {}",
+            correct_order,
+            wrong_order
+        );
     }
 
     #[test]
@@ -1577,8 +1815,13 @@ mod tests {
         // Word that starts with query should score higher than contains
         let starts_with_score = fuzzy_score("genesis 1", "gen");
         let contains_score = fuzzy_score("regeneration 1", "gen");
-        
-        assert!(starts_with_score > contains_score, "Starts-with should score higher than contains: {} vs {}", starts_with_score, contains_score);
+
+        assert!(
+            starts_with_score > contains_score,
+            "Starts-with should score higher than contains: {} vs {}",
+            starts_with_score,
+            contains_score
+        );
     }
 
     #[test]
@@ -1586,42 +1829,53 @@ mod tests {
         // Test the main use case: searching for "ps 9"
         let test_chapters = vec![
             "psalmen 9",
-            "psalmen 90", 
+            "psalmen 90",
             "psalmen 19",
             "psalm 9",
             "spreuken 9",
             "genesis 9",
         ];
-        
+
         let mut scored_results: Vec<(&str, usize)> = test_chapters
             .iter()
             .map(|&chapter| (chapter, fuzzy_score(chapter, "ps 9")))
             .filter(|(_, score)| *score > 0)
             .collect();
-        
+
         scored_results.sort_by(|a, b| b.1.cmp(&a.1));
-        
+
         // Should have results and prioritize exact number matches
         assert!(!scored_results.is_empty(), "Should find matches for 'ps 9'");
-        
+
         // Both "psalm 9" and "psalmen 9" should be in top results
-        let top_two: Vec<&str> = scored_results.iter().take(2).map(|(name, _)| *name).collect();
-        assert!(top_two.contains(&"psalm 9") || top_two.contains(&"psalmen 9"), 
-                "Top results should include psalm variants, got: {:?}", scored_results);
-        
+        let top_two: Vec<&str> = scored_results
+            .iter()
+            .take(2)
+            .map(|(name, _)| *name)
+            .collect();
+        assert!(
+            top_two.contains(&"psalm 9") || top_two.contains(&"psalmen 9"),
+            "Top results should include psalm variants, got: {:?}",
+            scored_results
+        );
+
         // Should find multiple relevant results
         let psalm_matches: Vec<&str> = scored_results
             .iter()
             .map(|(name, _)| *name)
             .filter(|name| name.starts_with("psalm"))
             .collect();
-        
-        assert!(psalm_matches.len() >= 2, "Should find multiple psalm matches: {:?}", psalm_matches);
+
+        assert!(
+            psalm_matches.len() >= 2,
+            "Should find multiple psalm matches: {:?}",
+            psalm_matches
+        );
     }
-    
+
     // Property tests using proptest
     use proptest::prelude::*;
-    
+
     proptest! {
         #[test]
         fn test_fuzzy_score_properties(
@@ -1630,30 +1884,30 @@ mod tests {
         ) {
             let text = text.trim();
             let query = query.trim();
-            
+
             if text.is_empty() || query.is_empty() {
                 return Ok(());
             }
-            
+
             let score = fuzzy_score(text, query);
-            
+
             // Basic properties
-            
+
             // Exact match should always score higher than partial match
             if text.to_lowercase() == query.to_lowercase() {
                 prop_assert!(score > 0);
             }
-            
+
             // Empty query should return 0 score
             prop_assert_eq!(fuzzy_score(text, ""), 0);
-            
+
             // Query longer than text should still work
             if query.len() > text.len() {
                 let _long_query_score = fuzzy_score(text, query);
                 // Query longer than text should still work
             }
         }
-        
+
         #[test]
         fn test_fuzzy_score_monotonicity(
             text in "[a-zA-Z0-9 ]{3,30}",
@@ -1661,19 +1915,19 @@ mod tests {
         ) {
             let text = text.trim();
             let query_base = query_base.trim();
-            
+
             if text.is_empty() || query_base.is_empty() {
                 return Ok(());
             }
-            
+
             // Longer, more specific queries should generally score higher if they match
             let _short_query_score = fuzzy_score(text, query_base);
             let long_query = format!("{} {}", query_base, query_base);
             let _long_query_score = fuzzy_score(text, &long_query);
-            
+
             // If both queries match, the relationship depends on the content
         }
-        
+
         #[test]
         fn test_score_word_match_properties(
             text_word in "[a-zA-Z0-9]{1,20}",
@@ -1681,28 +1935,28 @@ mod tests {
         ) {
             let text_word = text_word.trim();
             let query_word = query_word.trim();
-            
+
             if text_word.is_empty() || query_word.is_empty() {
                 return Ok(());
             }
-            
+
             let positional_score = score_word_match(text_word, query_word, true);
             let non_positional_score = score_word_match(text_word, query_word, false);
-            
+
             // Basic properties
-            
+
             // Positional matches should score higher than non-positional
             if positional_score > 0 && non_positional_score > 0 {
                 prop_assert!(positional_score >= non_positional_score);
             }
-            
+
             // Exact match should always score higher
             if text_word.to_lowercase() == query_word.to_lowercase() {
                 prop_assert!(positional_score > 0);
                 prop_assert!(non_positional_score > 0);
             }
         }
-        
+
         #[test]
         fn test_character_fuzzy_score_properties(
             text in "[a-zA-Z0-9]{1,30}",
@@ -1710,24 +1964,24 @@ mod tests {
         ) {
             let text = text.trim();
             let query = query.trim();
-            
+
             if text.is_empty() || query.is_empty() {
                 return Ok(());
             }
-            
+
             let positional_score = character_fuzzy_score(text, query, true);
             let non_positional_score = character_fuzzy_score(text, query, false);
-            
+
             // Basic properties
-            
+
             // Positional should score higher than non-positional when both match
             if positional_score > 0 && non_positional_score > 0 {
                 prop_assert!(positional_score >= non_positional_score);
             }
-            
+
             // If query is longer than text, it might still partially match
         }
-        
+
         #[test]
         fn test_fuzzy_score_case_insensitive(
             text in "[a-zA-Z ]{3,20}",
@@ -1735,24 +1989,24 @@ mod tests {
         ) {
             let text = text.trim();
             let query = query.trim();
-            
+
             if text.is_empty() || query.is_empty() {
                 return Ok(());
             }
-            
+
             let lower_score = fuzzy_score(&text.to_lowercase(), &query.to_lowercase());
             let upper_score = fuzzy_score(&text.to_uppercase(), &query.to_uppercase());
             let mixed_score = fuzzy_score(text, &query.to_lowercase());
-            
+
             // Case should not significantly affect scoring
-            
+
             // All should produce similar results (allowing for some variance)
             if lower_score > 0 {
                 prop_assert!(upper_score > 0);
                 prop_assert!(mixed_score > 0);
             }
         }
-        
+
         #[test]
         fn test_number_matching_properties(
             base_num in 1u32..999,
@@ -1760,21 +2014,21 @@ mod tests {
         ) {
             let text = format!("Book {}", base_num);
             let query = format!("Book {}", query_num);
-            
+
             let score = fuzzy_score(&text, &query);
-            
+
             // Should get some score for book name match (at least partial match on "Book")
-            
+
             // Test that "Book" prefix always matches
             let book_prefix_score = fuzzy_score(&text, "Book");
             prop_assert!(book_prefix_score > 0);
-            
+
             // Exact number match should score higher than book prefix alone
             if base_num == query_num {
                 let exact_score = score;
                 prop_assert!(exact_score > book_prefix_score);
             }
-            
+
             // Test partial number matching
             let base_str = base_num.to_string();
             let query_str = query_num.to_string();
@@ -1783,7 +2037,7 @@ mod tests {
                 prop_assert!(partial_num_score > 0);
             }
         }
-        
+
         #[test]
         fn test_word_order_sensitivity_property(
             word1 in "[a-zA-Z]{2,10}",
@@ -1793,20 +2047,20 @@ mod tests {
             let word1 = word1.trim();
             let word2 = word2.trim();
             let word3 = word3.trim();
-            
+
             if word1.is_empty() || word2.is_empty() || word3.is_empty() {
                 return Ok(());
             }
-            
+
             let correct_order = format!("{} {} {}", word1, word2, word3);
             let wrong_order = format!("{} {} {}", word3, word1, word2);
             let query = format!("{} {}", word1, word2);
-            
+
             let correct_score = fuzzy_score(&correct_order, &query);
             let wrong_score = fuzzy_score(&wrong_order, &query);
-            
+
             // Both should match since the words are present
-            
+
             // Correct order should typically score higher
             if correct_score > 0 && wrong_score > 0 {
                 // This is a tendency, not a strict rule due to fuzzy matching
@@ -1814,7 +2068,7 @@ mod tests {
                 prop_assert!(wrong_score > 0);
             }
         }
-        
+
         #[test]
         fn test_prefix_matching_advantage(
             prefix in "[a-zA-Z]{2,8}",
@@ -1822,21 +2076,21 @@ mod tests {
         ) {
             let prefix = prefix.trim();
             let suffix = suffix.trim();
-            
+
             if prefix.is_empty() || suffix.is_empty() {
                 return Ok(());
             }
-            
+
             let prefix_text = format!("{}{}", prefix, suffix);
             let contains_text = format!("xyz{}abc", prefix);
-            
+
             let prefix_score = fuzzy_score(&prefix_text, prefix);
             let contains_score = fuzzy_score(&contains_text, prefix);
-            
+
             // Both should match
             prop_assert!(prefix_score > 0);
             prop_assert!(contains_score > 0);
-            
+
             // Prefix match should score higher than contains match
             prop_assert!(prefix_score > contains_score);
         }

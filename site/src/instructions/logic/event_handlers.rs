@@ -1,9 +1,9 @@
+use crate::instructions::logic::export_handlers::{
+    handle_export_linked_markdown, handle_export_to_markdown, handle_export_to_pdf,
+};
 use leptos::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use crate::instructions::logic::export_handlers::{
-    handle_export_to_pdf, handle_export_to_markdown, handle_export_linked_markdown
-};
 
 /// Set up custom event listeners for export functionality
 pub fn setup_export_event_listeners(

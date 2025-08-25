@@ -36,10 +36,10 @@ impl VimKey {
                     "gt" => {
                         key = ">".to_string();
                         shift = true; // ">" requires shift
-                    },
+                    }
                     "/" => {
                         key = "/".to_string();
-                    },
+                    }
                     other => key = other.to_string(),
                 };
             } else if parts.len() == 2 {
@@ -311,7 +311,6 @@ impl VimKeyboardMapper {
         None
     }
 
-
     pub fn clear_buffers(&mut self) {
         self.sequence_buffer.clear();
         self.multiplier_buffer.clear();
@@ -324,11 +323,11 @@ impl VimKeyboardMapper {
     pub fn get_current_input_display(&self) -> String {
         format!("{}{}", self.multiplier_buffer, self.sequence_buffer)
     }
-    
+
     pub fn get_sequence_buffer(&self) -> &str {
         &self.sequence_buffer
     }
-    
+
     pub fn get_multiplier_buffer(&self) -> &str {
         &self.multiplier_buffer
     }

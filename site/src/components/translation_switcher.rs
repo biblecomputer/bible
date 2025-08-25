@@ -1,43 +1,47 @@
-use leptos::prelude::*;
 use crate::storage::{
-    get_selected_translation, get_downloaded_translations,
-    switch_bible_translation, set_selected_translation,
-    get_translations
+    get_downloaded_translations, get_selected_translation, get_translations,
+    set_selected_translation, switch_bible_translation,
 };
+use leptos::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 #[component]
 pub fn TranslationSwitcher() -> impl IntoView {
     let downloaded_translations = get_downloaded_translations();
-    
+
     // Only show if there are multiple downloaded translations
     if downloaded_translations.len() <= 1 {
         return view! { <></> }.into_any();
     }
-    
+
     let (is_open, set_is_open) = signal(false);
     let (is_switching, set_is_switching) = signal(false);
-    let current_translation = signal(get_selected_translation().unwrap_or_else(|| "sv".to_string())).0;
-    
+    let current_translation =
+        signal(get_selected_translation().unwrap_or_else(|| "sv".to_string())).0;
+
     // Get translation details
     let all_translations = get_translations();
-    let available_translations = signal(all_translations
-        .into_iter()
-        .filter(|t| downloaded_translations.contains(&t.short_name))
-        .collect::<Vec<_>>()).0;
-    
-    let current_translation_name = available_translations.get()
+    let available_translations = signal(
+        all_translations
+            .into_iter()
+            .filter(|t| downloaded_translations.contains(&t.short_name))
+            .collect::<Vec<_>>(),
+    )
+    .0;
+
+    let current_translation_name = available_translations
+        .get()
         .iter()
         .find(|t| t.short_name == current_translation.get())
         .map(|t| t.name.clone())
         .unwrap_or_else(|| "Unknown".to_string());
-    
+
     let handle_translation_switch = move |translation_short_name: String| {
         set_is_switching.set(true);
         set_is_open.set(false);
-        
+
         let _ = set_selected_translation(&translation_short_name);
-        
+
         spawn_local(async move {
             if let Err(e) = switch_bible_translation(&translation_short_name).await {
                 leptos::logging::error!("Failed to switch translation: {}", e);
@@ -45,7 +49,7 @@ pub fn TranslationSwitcher() -> impl IntoView {
             set_is_switching.set(false);
         });
     };
-    
+
     view! {
         <div class="relative">
             <button
@@ -63,7 +67,7 @@ pub fn TranslationSwitcher() -> impl IntoView {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
             </button>
-            
+
             <Show
                 when=move || is_open.get()
                 fallback=|| view! { <></> }
@@ -79,7 +83,7 @@ pub fn TranslationSwitcher() -> impl IntoView {
                             children=move |translation| {
                                 let is_current = translation.short_name == current_translation.get();
                                 let short_name = translation.short_name.clone();
-                                
+
                                 view! {
                                     <button
                                         class=if is_current { "w-full text-left px-3 py-2 text-sm bg-blue-50 text-blue-700" } else { "w-full text-left px-3 py-2 text-sm hover:bg-gray-100 transition-colors text-gray-700" }
@@ -119,13 +123,13 @@ pub fn TranslationSwitcher() -> impl IntoView {
                     </div>
                 </div>
             </Show>
-            
+
             // Click outside to close
             <Show
                 when=move || is_open.get()
                 fallback=|| view! { <></> }
             >
-                <div 
+                <div
                     class="fixed inset-0 z-40"
                     on:click=move |_| set_is_open.set(false)
                 />

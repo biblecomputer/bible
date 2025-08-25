@@ -1,10 +1,10 @@
+use crate::core::types::Language;
+use crate::translation_map::translation::Translation;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_location, use_params_map};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 use urlencoding::{decode, encode};
-use crate::core::types::Language;
-use crate::translation_map::translation::Translation;
 
 pub static BIBLE: OnceLock<Bible> = OnceLock::new();
 static CURRENT_BIBLE_SIGNAL: OnceLock<RwSignal<Option<Bible>>> = OnceLock::new();
@@ -54,28 +54,28 @@ impl Bible {
     /// Apply name translations to all books and chapters based on the specified language
     pub fn translate_names(mut self, language: Language) -> Self {
         let translation = Translation::from_language(language);
-        
+
         for book in &mut self.books {
             // Translate book names by trying the lowercase underscore version first
             let lookup_key = book.name.to_lowercase().replace(' ', "_");
             if let Some(translated_book_name) = translation.get_book(&lookup_key) {
                 book.name = translated_book_name.to_string();
             }
-            
+
             // Update chapter names to match the new book names
             for chapter in &mut book.chapters {
                 // Extract the chapter number from the current name
                 let chapter_number = chapter.chapter;
                 // Update the chapter name to use the translated book name
                 chapter.name = format!("{} {}", book.name, chapter_number);
-                
+
                 // Also update verse names to match
                 for verse in &mut chapter.verses {
                     verse.name = chapter.name.clone();
                 }
             }
         }
-        
+
         self
     }
 }
@@ -413,8 +413,8 @@ impl Bible {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use proptest::prelude::*;
     use crate::core::types::Language;
+    use proptest::prelude::*;
 
     #[test]
     fn test_verse_range_from_string() {
@@ -784,49 +784,41 @@ mod tests {
             books: vec![
                 Book {
                     name: "Genesis".to_string(),
-                    chapters: vec![
-                        Chapter {
+                    chapters: vec![Chapter {
+                        chapter: 1,
+                        name: "Genesis 1".to_string(),
+                        verses: vec![Verse {
+                            verse: 1,
                             chapter: 1,
                             name: "Genesis 1".to_string(),
-                            verses: vec![
-                                Verse {
-                                    verse: 1,
-                                    chapter: 1,
-                                    name: "Genesis 1".to_string(),
-                                    text: "In the beginning...".to_string(),
-                                }
-                            ]
-                        }
-                    ]
+                            text: "In the beginning...".to_string(),
+                        }],
+                    }],
                 },
                 Book {
                     name: "Matthew".to_string(),
-                    chapters: vec![
-                        Chapter {
+                    chapters: vec![Chapter {
+                        chapter: 1,
+                        name: "Matthew 1".to_string(),
+                        verses: vec![Verse {
+                            verse: 1,
                             chapter: 1,
                             name: "Matthew 1".to_string(),
-                            verses: vec![
-                                Verse {
-                                    verse: 1,
-                                    chapter: 1,
-                                    name: "Matthew 1".to_string(),
-                                    text: "The book of the generation...".to_string(),
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
+                            text: "The book of the generation...".to_string(),
+                        }],
+                    }],
+                },
+            ],
         };
 
         // Test Dutch translation
         let dutch_bible = bible.clone().translate_names(Language::Dutch);
-        
+
         // Genesis should become "Genesis" (already matches Dutch)
         assert_eq!(dutch_bible.books[0].name, "Genesis");
         assert_eq!(dutch_bible.books[0].chapters[0].name, "Genesis 1");
         assert_eq!(dutch_bible.books[0].chapters[0].verses[0].name, "Genesis 1");
-        
+
         // Matthew should become "Matteüs"
         assert_eq!(dutch_bible.books[1].name, "Matteüs");
         assert_eq!(dutch_bible.books[1].chapters[0].name, "Matteüs 1");
@@ -834,7 +826,7 @@ mod tests {
 
         // Test English translation
         let english_bible = bible.translate_names(Language::English);
-        
+
         // Names should remain the same for English
         assert_eq!(english_bible.books[0].name, "Genesis");
         assert_eq!(english_bible.books[1].name, "Matthew");

@@ -1,16 +1,16 @@
-use leptos::prelude::*;
-use leptos::html::Input;
-use web_sys::{FileReader, Event, HtmlInputElement};
-use wasm_bindgen::{JsCast, closure::Closure};
-use wasm_bindgen_futures::spawn_local;
-use gloo_storage::{LocalStorage, Storage};
-use serde::{Deserialize, Serialize};
-use crate::core::Bible;
 use crate::core::types::Language;
+use crate::core::Bible;
 use crate::storage::{
-    BibleTranslation, add_downloaded_translation, set_selected_translation,
-    switch_bible_translation, save_translation_to_cache
+    add_downloaded_translation, save_translation_to_cache, set_selected_translation,
+    switch_bible_translation, BibleTranslation,
 };
+use gloo_storage::{LocalStorage, Storage};
+use leptos::html::Input;
+use leptos::prelude::*;
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::{closure::Closure, JsCast};
+use wasm_bindgen_futures::spawn_local;
+use web_sys::{Event, FileReader, HtmlInputElement};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct CustomTranslation {
@@ -24,16 +24,20 @@ pub fn get_custom_translations() -> Vec<BibleTranslation> {
     LocalStorage::get::<Vec<BibleTranslation>>(CUSTOM_TRANSLATIONS_KEY).unwrap_or_default()
 }
 
-pub fn add_custom_translation(translation: &BibleTranslation) -> Result<(), gloo_storage::errors::StorageError> {
+pub fn add_custom_translation(
+    translation: &BibleTranslation,
+) -> Result<(), gloo_storage::errors::StorageError> {
     let mut custom_translations = get_custom_translations();
-    
+
     custom_translations.retain(|t| t.short_name != translation.short_name);
     custom_translations.push(translation.clone());
-    
+
     LocalStorage::set(CUSTOM_TRANSLATIONS_KEY, &custom_translations)
 }
 
-pub fn _remove_custom_translation(short_name: &str) -> Result<(), gloo_storage::errors::StorageError> {
+pub fn _remove_custom_translation(
+    short_name: &str,
+) -> Result<(), gloo_storage::errors::StorageError> {
     let mut custom_translations = get_custom_translations();
     custom_translations.retain(|t| t.short_name != short_name);
     LocalStorage::set(CUSTOM_TRANSLATIONS_KEY, &custom_translations)
@@ -55,12 +59,12 @@ pub fn CustomTranslationImport(
     let (show_import_modal, set_show_import_modal) = signal(false);
     let (import_error, set_import_error) = signal::<Option<String>>(None);
     let (is_importing, set_is_importing) = signal(false);
-    
+
     let (translation_name, set_translation_name) = signal(String::new());
     let (release_year, set_release_year) = signal(String::new());
     let (_file_selected, set_file_selected) = signal(false);
     let (file_content, set_file_content) = signal::<Option<String>>(None);
-    
+
     let file_input_ref = NodeRef::<Input>::new();
 
     let reset_form = move || {
@@ -75,17 +79,19 @@ pub fn CustomTranslationImport(
     };
 
     let on_file_change = move |ev: Event| {
-        let input = ev.target().and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
+        let input = ev
+            .target()
+            .and_then(|t| t.dyn_into::<HtmlInputElement>().ok());
         if let Some(input) = input {
             if let Some(files) = input.files() {
                 if files.length() > 0 {
                     if let Some(file) = files.get(0) {
                         set_file_selected.set(true);
                         set_import_error.set(None);
-                        
+
                         let file_reader = FileReader::new().unwrap();
                         let file_reader_clone = file_reader.clone();
-                        
+
                         let onload = Closure::wrap(Box::new(move |_: Event| {
                             if let Some(result) = file_reader_clone.result().ok() {
                                 if let Some(text) = result.as_string() {
@@ -93,10 +99,10 @@ pub fn CustomTranslationImport(
                                 }
                             }
                         }) as Box<dyn FnMut(_)>);
-                        
+
                         file_reader.set_onload(Some(onload.as_ref().unchecked_ref()));
                         onload.forget();
-                        
+
                         let _ = file_reader.read_as_text(&file);
                     }
                 }
@@ -130,12 +136,16 @@ pub fn CustomTranslationImport(
             let name = translation_name.get();
             let lang = selected_language.get();
             let success_callback = on_success.clone();
-            
+
             spawn_local(async move {
                 match serde_json::from_str::<Bible>(&text) {
                     Ok(bible) => {
-                        let short_name = format!("custom_{}", js_sys::Math::random().to_string().replace("0.", "")[..8].to_lowercase());
-                        
+                        let short_name = format!(
+                            "custom_{}",
+                            js_sys::Math::random().to_string().replace("0.", "")[..8]
+                                .to_lowercase()
+                        );
+
                         let translation = BibleTranslation {
                             name: name,
                             short_name: short_name.clone(),
@@ -153,28 +163,33 @@ pub fn CustomTranslationImport(
                                 }
 
                                 if let Err(e) = add_downloaded_translation(&short_name) {
-                                    set_import_error.set(Some(format!("Fout bij registreren: {}", e)));
+                                    set_import_error
+                                        .set(Some(format!("Fout bij registreren: {}", e)));
                                     set_is_importing.set(false);
                                     return;
                                 }
 
                                 let _ = set_selected_translation(&short_name);
-                                
+
                                 if let Err(e) = switch_bible_translation(&short_name).await {
-                                    leptos::logging::error!("Failed to switch to imported translation: {}", e);
+                                    leptos::logging::error!(
+                                        "Failed to switch to imported translation: {}",
+                                        e
+                                    );
                                 }
 
                                 set_is_importing.set(false);
                                 set_show_import_modal.set(false);
                                 reset_form();
                                 success_callback();
-                            },
+                            }
                             Err(e) => {
-                                set_import_error.set(Some(format!("Fout bij opslaan naar cache: {}", e)));
+                                set_import_error
+                                    .set(Some(format!("Fout bij opslaan naar cache: {}", e)));
                                 set_is_importing.set(false);
                             }
                         }
-                    },
+                    }
                     Err(e) => {
                         set_import_error.set(Some(format!("Ongeldig JSON formaat: {}", e)));
                         set_is_importing.set(false);

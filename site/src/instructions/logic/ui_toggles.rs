@@ -1,11 +1,9 @@
-use leptos::prelude::*;
 use crate::utils::is_mobile_screen;
 use crate::view_state::ViewStateSignal;
+use leptos::prelude::*;
 
 /// Handle toggling the Bible palette
-pub fn handle_toggle_bible_palette(
-    view_state: ViewStateSignal,
-) {
+pub fn handle_toggle_bible_palette(view_state: ViewStateSignal) {
     let is_currently_open = view_state.with(|state| state.is_command_palette_open);
     view_state.update(|state| state.set_command_palette(!is_currently_open));
     // Close sidebar on mobile when command palette opens
@@ -15,9 +13,7 @@ pub fn handle_toggle_bible_palette(
 }
 
 /// Handle toggling the command palette with ">" prefix
-pub fn handle_toggle_command_palette(
-    view_state: ViewStateSignal,
-) {
+pub fn handle_toggle_command_palette(view_state: ViewStateSignal) {
     // Open the command palette with ">" pre-filled
     view_state.update(|state| {
         state.set_initial_search_query(Some(">".to_string()));
@@ -30,9 +26,7 @@ pub fn handle_toggle_command_palette(
 }
 
 /// Handle toggling the verse palette with ":" prefix
-pub fn handle_toggle_verse_palette(
-    view_state: ViewStateSignal,
-) {
+pub fn handle_toggle_verse_palette(view_state: ViewStateSignal) {
     // Open the command palette with ":" pre-filled
     view_state.update(|state| {
         state.set_initial_search_query(Some(":".to_string()));
