@@ -5,7 +5,7 @@ on:
       - main
 
 jobs:
-  build:
+  build-site:
     runs-on: ubuntu-latest  # Indented correctly under 'build'
 
     steps:
