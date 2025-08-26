@@ -1,14 +1,31 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use std::collections::HashMap;
+use uuid::Uuid;
+
+struct Peter {
+    current: WindowID,
+    windows: HashMap<WindowID, Window>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+enum WindowInstr {
+    NewWindow,
+    DeleteWindow,
+}
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+struct WindowID(Uuid);
+
+struct Window {
+    point: Point,
+    color: Color,
+}
+
+enum Color {
+    Blue,
+    Red,
+    Green,
+    Yellow,
+}
+
+struct Point {
+    x: u32,
+    y: u32,
 }
