@@ -1,0 +1,5 @@
+# peter
+
+And I say also unto thee, That thou art Peter, and upon this rock I will build my church; and the gates of hell shall not prevail against it.
+
+[Matthew 16:18](https://bible.computer/Matthew/16?verses=18)
