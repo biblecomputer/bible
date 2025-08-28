@@ -13,10 +13,10 @@ pub struct Translation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Books(BTreeMap<BookName, Book>);
 
-impl TryFrom<Translation_v0> for Books {
-    type Error;
+impl TryFrom<TranslationV0> for Books {
+    type Error = ();
 
-    fn try_from(value: Translation_v0) -> Result<Self, Self::Error> {
+    fn try_from(_value: TranslationV0) -> Result<Self, Self::Error> {
         todo!()
     }
 }
@@ -57,11 +57,11 @@ enum VerseID {
 impl TryFrom<TranslationV0> for Translation {
     type Error = ();
 
-    fn try_from(value: TranslationV0) -> Result<Self, Self::Error> {
+    fn try_from(_value: TranslationV0) -> Result<Self, Self::Error> {
         todo!()
     }
 }
 
-pub fn build_v1(books: Books, meta: TranslationMetaData) -> TranslationV1 {
-    TranslationV1 { meta, books }
+pub fn build_v1(books: Books, meta: TranslationMetaData) -> Translation {
+    Translation { meta, books }
 }
