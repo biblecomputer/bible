@@ -65,10 +65,29 @@ fn migrate_translation(input_path: &str) {
     let translation = Translation::from(translation_v0);
 
     // Export as btrl format (pretty JSON)
-    match translation.export_as_btrl() {
-        Ok(output) => println!("{}", output),
+    let btrl_content = match translation.export_as_btrl() {
+        Ok(output) => output,
         Err(err) => {
             eprintln!("Error exporting translation: {}", err);
+            process::exit(1);
+        }
+    };
+
+    // Generate output filename by replacing extension with .btrl
+    let output_path = if input_path.contains('.') {
+        let base = input_path.rsplit_once('.').unwrap().0;
+        format!("{}.btrl", base)
+    } else {
+        format!("{}.btrl", input_path)
+    };
+
+    // Write to file
+    match fs::write(&output_path, btrl_content) {
+        Ok(_) => {
+            println!("Successfully migrated '{}' to '{}'", input_path, output_path);
+        }
+        Err(err) => {
+            eprintln!("Error writing to file '{}': {}", output_path, err);
             process::exit(1);
         }
     }
