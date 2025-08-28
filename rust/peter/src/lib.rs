@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use uuid::Uuid;
 
-mod language;
-mod translation;
+pub mod language;
+pub mod translation;
 
 struct Peter {
     current: WindowID,
