@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::fmt::Display;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Language {
@@ -7,8 +7,17 @@ pub enum Language {
     Dutch,
 }
 
-impl fmt::Display for Language {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Default for Language {
+    fn default() -> Self {
+        Self::English
+    }
+}
+
+// Improve this later for better  translated words.
+// English -> English
+// Dutch -> Nederlands
+impl Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Language::English => write!(f, "English"),
             Language::Dutch => write!(f, "Dutch"),

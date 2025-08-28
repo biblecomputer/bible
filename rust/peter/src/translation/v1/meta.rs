@@ -4,7 +4,8 @@ use url::Url;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranslationMetaData {
-    pub name: String,
+    pub full_name: String,
+    pub short_name: String,
     pub description: String,
     pub link: Url,
     pub release: Year,
@@ -20,5 +21,17 @@ pub struct TranslationMetaData {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct EquivalenceLevel(pub u8);
 
+impl EquivalenceLevel {
+    pub fn new(level: u8) -> Self {
+        EquivalenceLevel(level)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Year(pub i32);
+
+impl Year {
+    pub fn new(year: i32) -> Self {
+        Year(year)
+    }
+}
