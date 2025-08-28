@@ -15,6 +15,7 @@ struct Books(BTreeMap<BookName, Book>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Book {
+    /// The name in the language of the translation
     name: String,
     chapters: Chapters,
 }
