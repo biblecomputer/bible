@@ -21,4 +21,4 @@ pub struct TranslationMetaData {
 pub struct EquivalenceLevel(u8);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct Year(u16);
+pub struct Year(i32);

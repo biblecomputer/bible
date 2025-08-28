@@ -13,6 +13,14 @@ pub struct Translation {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Books(BTreeMap<BookName, Book>);
 
+impl TryFrom<Translation_v0> for Books {
+    type Error;
+
+    fn try_from(value: Translation_v0) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Book {
     /// The name in the language of the translation
@@ -52,4 +60,8 @@ impl TryFrom<TranslationV0> for Translation {
     fn try_from(value: TranslationV0) -> Result<Self, Self::Error> {
         todo!()
     }
+}
+
+pub fn build_v1(books: Books, meta: TranslationMetaData) -> TranslationV1 {
+    TranslationV1 { meta, books }
 }
