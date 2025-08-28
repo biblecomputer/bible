@@ -25,3 +25,11 @@ struct Verse {
     name: String,
     text: String,
 }
+
+impl TryFrom<&str> for TranslationV0 {
+    type Error = serde_json::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        serde_json::from_str(value)
+    }
+}
