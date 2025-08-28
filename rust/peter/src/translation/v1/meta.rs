@@ -4,21 +4,21 @@ use url::Url;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranslationMetaData {
-    name: String,
-    description: String,
-    link: Url,
-    release: Year,
-    languages: Vec<Language>,
-    equivalence_level: EquivalenceLevel,
+    pub name: String,
+    pub description: String,
+    pub link: Url,
+    pub release: Year,
+    pub languages: Vec<Language>,
+    pub equivalence_level: EquivalenceLevel,
     /// Describes the organisation or person who funded it.
-    funded_by: Option<String>,
+    pub funded_by: Option<String>,
 }
 
 /// describes equivulance of a translation
 /// 0 means extreamly formal - word for word
 /// 255 means extreamly functional - meaning
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct EquivalenceLevel(u8);
+pub struct EquivalenceLevel(pub u8);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct Year(i32);
+pub struct Year(pub i32);

@@ -5,4 +5,6 @@ edition = "2024"
 
 [dependencies]
 clap = "4.5.46"
+inquire = "0.7"
 peter = { path = "../peter" }
+url = "2.5"
