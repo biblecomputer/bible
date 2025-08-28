@@ -107,8 +107,9 @@ pub enum BookName {
     Revelation,
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum BookNameParseError {
+    #[error("Unknown book name: {0}")]
     UnknownName(String),
 }
 

@@ -18,7 +18,7 @@ pub fn create_translation_metadata() -> TranslationMetaData {
         .prompt()
         .expect("Failed to get description");
 
-    let link = CustomType::<String>::new("Enter official website URL:")
+    let link = CustomType::<String>::new("Enter website link (such as Wikipedia):")
         .with_parser(&|input| {
             Url::parse(input)
                 .map(|url| url.to_string())
