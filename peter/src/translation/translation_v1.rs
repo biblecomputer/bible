@@ -1,15 +1,19 @@
 use crate::language::Language;
-use std::collections::BTreeMap;
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, BTreeMap};
+use url::Url;
 
-struct Translation {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Translation {
     meta: TranslationMetaData,
     books: Books,
 }
 
 
-struct Books(BTreeMap<BookName, Book>)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Books(BTreeMap<BookName, Book>);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum BookName {
     // Old Testament - Torah
     Genesis,
@@ -128,12 +132,14 @@ impl From<BookName> for Genre {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 enum Testament {
     Old,
     New,
     Deuterocanonical,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 enum Genre {
     Torah,
     History,
@@ -144,6 +150,7 @@ enum Genre {
     Apocalypse,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct TranslationMetaData {
     name: String,
     description: String,
@@ -152,38 +159,44 @@ struct TranslationMetaData {
     languages: Vec<Language>,
     equivalence_level: EquivalenceLevel,
     /// Describes the organisation or person who funded it.
-    funded_by: String,
+    funded_by: Option<String>,
 }
-
-struct Url(String);
 
 /// describes equivulance of a translation
 /// 0 means extreamly formal - word for word
 /// 255 means extreamly functional - meaning
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 struct EquivalenceLevel(u8);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 struct Year(u16);
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Book {
     name: String,
     chapters: Chapters,
 }
 
-struct Chapters(BTreeMap<ChapterID, Chapter>)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Chapters(BTreeMap<ChapterID, Chapter>);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 struct ChapterID(u32);
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Chapter {
     verses: Vec<Verse>,
     verse_sections: HashMap<VerseID, String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Verse {
     verse_id: VerseID,
     content: String,
     footnotes: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 enum VerseID {
     Single(u32),
     // right should be greater then left.

@@ -1,5 +1,5 @@
 use crate::translation::translation_v0::TranslationV0;
-use crate::translation::translation_v0::TranslationV1;
+use crate::translation::translation_v1::Translation as TranslationV1;
 
 pub enum Translation {
     V0(TranslationV0),
