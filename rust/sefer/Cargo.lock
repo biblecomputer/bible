@@ -599,6 +599,7 @@ dependencies = [
  "clap",
  "inquire",
  "peter",
+ "serde_json",
  "url",
 ]
 

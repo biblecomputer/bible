@@ -7,4 +7,5 @@ edition = "2024"
 clap = "4.5.46"
 inquire = "0.7"
 peter = { path = "../peter" }
+serde_json = "1.0"
 url = "2.5"
