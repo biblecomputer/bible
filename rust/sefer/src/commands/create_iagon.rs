@@ -1,28 +1,37 @@
+use crate::interactive::create_iagon_interactively;
 use crate::metadata::create_translation_metadata;
 use peter::storage::Storage;
 use peter::translation::{Translation, v1::{Books, TranslationV1}};
 use std::process;
 use url::Url;
 
-pub fn create_iagon_translation(iagon_url: &str) {
-    // Validate the URL
-    let url = match Url::parse(iagon_url) {
-        Ok(url) => url,
-        Err(err) => {
-            eprintln!("Error: Invalid URL '{}': {}", iagon_url, err);
-            process::exit(1);
-        }
+pub fn create_iagon_translation(iagon_url_opt: Option<&str>) {
+    let iagon_url = if let Some(url_str) = iagon_url_opt {
+        // Non-interactive mode: URL provided as argument
+        let url = match Url::parse(url_str) {
+            Ok(url) => url,
+            Err(err) => {
+                eprintln!("Error: Invalid URL '{}': {}", url_str, err);
+                process::exit(1);
+            }
+        };
+        
+        println!("Creating new TranslationV1 with Iagon storage...");
+        println!("Iagon URL: {}", url);
+        
+        url
+    } else {
+        // Interactive mode
+        let config = create_iagon_interactively();
+        config.iagon_url
     };
-
-    println!("Creating new TranslationV1 with Iagon storage...");
-    println!("Iagon URL: {}", url);
 
     // Create metadata for this translation
     println!("\nLet's create metadata for this translation:");
     let meta = create_translation_metadata();
 
     // Create Storage pointing to Iagon
-    let books_storage: Storage<Books> = Storage::iagon(url);
+    let books_storage: Storage<Books> = Storage::iagon(iagon_url.clone());
 
     // Store metadata for later use before moving
     let meta_clone = meta.clone();

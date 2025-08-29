@@ -1,5 +1,6 @@
 mod commands;
 mod file_ops;
+mod interactive;
 mod metadata;
 
 use clap::{Arg, Command};
@@ -37,8 +38,8 @@ fn main() {
                 .about("Create a new TranslationV1 with Iagon storage pointing to a remote books.json file.")
                 .arg(
                     Arg::new("url")
-                        .help("URL of the books.json file on Iagon")
-                        .required(true)
+                        .help("URL of the books.json file on Iagon (optional - will prompt if not provided)")
+                        .required(false)
                         .index(1),
                 ),
         )
@@ -58,7 +59,7 @@ fn main() {
             export_books_json(input_file);
         }
         Some(("create-iagon", sub_matches)) => {
-            let iagon_url = sub_matches.get_one::<String>("url").unwrap();
+            let iagon_url = sub_matches.get_one::<String>("url").map(|s| s.as_str());
             create_iagon_translation(iagon_url);
         }
         Some(("metadata", _)) => {
