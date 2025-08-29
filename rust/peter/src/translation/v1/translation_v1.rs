@@ -3,6 +3,7 @@ use super::meta::TranslationMetaData;
 use crate::translation::translation_v0::TranslationV0;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,7 +13,33 @@ pub struct TranslationV1 {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Books(Vec<(BookName, Book)>);
+pub struct Books(#[serde(with = "btreemap_as_tuple_list")] BTreeMap<BookName, Book>);
+
+// Serde helper module for BTreeMap serialization
+mod btreemap_as_tuple_list {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::collections::BTreeMap;
+
+    pub fn serialize<S, K, V>(map: &BTreeMap<K, V>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        K: Serialize + Ord,
+        V: Serialize,
+    {
+        let vec: Vec<(&K, &V)> = map.iter().collect();
+        vec.serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D, K, V>(deserializer: D) -> Result<BTreeMap<K, V>, D::Error>
+    where
+        D: Deserializer<'de>,
+        K: Deserialize<'de> + Ord,
+        V: Deserialize<'de>,
+    {
+        let vec: Vec<(K, V)> = Vec::deserialize(deserializer)?;
+        Ok(vec.into_iter().collect())
+    }
+}
 
 #[derive(Debug, Error)]
 pub enum BooksConversionError {
@@ -102,7 +129,7 @@ impl TryFrom<TranslationV0> for Books {
             return Err(BooksConversionError::DuplicateBook(duplicate));
         }
 
-        let books_vec = books_with_names
+        books_with_names
             .into_iter()
             .map(|(book_name, v0_book)| {
                 if v0_book.chapters.is_empty() {
@@ -149,13 +176,14 @@ impl TryFrom<TranslationV0> for Books {
                             })
                             .collect();
 
-                        let verse_sections: Vec<(VerseID, String)> = converted_verses
-                            .into_iter()
-                            .filter(|(v0_verse, _)| {
-                                !v0_verse.name.is_empty() && v0_verse.name != v0_verse.text
-                            })
-                            .map(|(v0_verse, verse_id)| (verse_id, v0_verse.name))
-                            .collect();
+                        let verse_sections: std::collections::HashMap<VerseID, String> =
+                            converted_verses
+                                .into_iter()
+                                .filter(|(v0_verse, _)| {
+                                    !v0_verse.name.is_empty() && v0_verse.name != v0_verse.text
+                                })
+                                .map(|(v0_verse, verse_id)| (verse_id, v0_verse.name))
+                                .collect();
 
                         Ok((
                             ChapterID(v0_chapter.chapter),
@@ -165,7 +193,7 @@ impl TryFrom<TranslationV0> for Books {
                             },
                         ))
                     })
-                    .collect::<Result<Vec<_>, BooksConversionError>>()?;
+                    .collect::<Result<BTreeMap<_, _>, BooksConversionError>>()?;
 
                 Ok((
                     book_name,
@@ -176,9 +204,8 @@ impl TryFrom<TranslationV0> for Books {
                     },
                 ))
             })
-            .collect::<Result<Vec<_>, BooksConversionError>>()?;
-        
-        Ok(Books(books_vec))
+            .collect::<Result<BTreeMap<_, _>, BooksConversionError>>()
+            .map(Books)
     }
 }
 
@@ -192,7 +219,7 @@ struct Book {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct Chapters(Vec<(ChapterID, Chapter)>);
+struct Chapters(#[serde(with = "btreemap_as_tuple_list")] BTreeMap<ChapterID, Chapter>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 struct ChapterID(u32);
@@ -200,7 +227,35 @@ struct ChapterID(u32);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Chapter {
     verses: Vec<Verse>,
-    verse_sections: Vec<(VerseID, String)>,
+    #[serde(with = "hashmap_as_tuple_list")]
+    verse_sections: std::collections::HashMap<VerseID, String>,
+}
+
+// Serde helper module for HashMap serialization
+mod hashmap_as_tuple_list {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::collections::HashMap;
+    use std::hash::Hash;
+
+    pub fn serialize<S, K, V>(map: &HashMap<K, V>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        K: Serialize + Eq + Hash,
+        V: Serialize,
+    {
+        let vec: Vec<(&K, &V)> = map.iter().collect();
+        vec.serialize(serializer)
+    }
+
+    pub fn deserialize<'de, D, K, V>(deserializer: D) -> Result<HashMap<K, V>, D::Error>
+    where
+        D: Deserializer<'de>,
+        K: Deserialize<'de> + Eq + Hash,
+        V: Deserialize<'de>,
+    {
+        let vec: Vec<(K, V)> = Vec::deserialize(deserializer)?;
+        Ok(vec.into_iter().collect())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
