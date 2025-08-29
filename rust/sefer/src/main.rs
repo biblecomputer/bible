@@ -2,7 +2,11 @@ mod metadata;
 
 use clap::{Arg, Command};
 use metadata::create_translation_metadata;
-use peter::translation::{Translation, translation_v0::TranslationV0};
+use peter::translation::{
+    Translation, 
+    v0::translation_v0::TranslationV0, 
+    v1::{Books, build_v1},
+};
 use std::fs;
 use std::process;
 
@@ -54,17 +58,26 @@ fn migrate_translation(input_path: &str) {
 
     // Parse the JSON as TranslationV0
     let translation_v0 = match TranslationV0::try_from(json_content.as_str()) {
-        Ok(v0) => v0,
+        Ok(v0) => {
+            println!("✓ Successfully parsed .json file as TranslationV0");
+            v0
+        }
         Err(err) => {
             eprintln!("Error parsing JSON: {}", err);
             process::exit(1);
         }
     };
 
-    // Convert to Translation
-    let translation = Translation::from(translation_v0);
+    // v1 parsing
+    let books = Books::try_from(translation_v0).unwrap();
+    println!("Successfully parsed. v0 -> v1.books");
 
-    // Export as btrl format (pretty JSON)
+    println!("\nNow let's add metadata for this translation:");
+    let meta = create_translation_metadata();
+
+    let v1 = build_v1(books, meta);
+    let translation = Translation::V1(v1);
+
     let btrl_content = match translation.export_as_btrl() {
         Ok(output) => output,
         Err(err) => {
@@ -84,7 +97,15 @@ fn migrate_translation(input_path: &str) {
     // Write to file
     match fs::write(&output_path, btrl_content) {
         Ok(_) => {
-            println!("Successfully migrated '{}' to '{}'", input_path, output_path);
+            println!(
+                "✓ Successfully migrated '{}' to '{}'",
+                input_path, output_path
+            );
+            println!("\nMigration complete:");
+            println!("  - Converted from .json to TranslationV0");
+            println!("  - Added metadata");
+            println!("  - Upgraded to TranslationV1");
+            println!("  - Saved as {}", output_path);
         }
         Err(err) => {
             eprintln!("Error writing to file '{}': {}", output_path, err);

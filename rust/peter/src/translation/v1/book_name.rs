@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum BookName {
@@ -107,11 +108,99 @@ pub enum BookName {
     Revelation,
 }
 
+impl fmt::Display for BookName {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use BookName::*;
+        let name = match self {
+            Genesis => "Genesis",
+            Exodus => "Exodus",
+            Leviticus => "Leviticus",
+            Numbers => "Numbers",
+            Deuteronomy => "Deuteronomy",
+            Joshua => "Joshua",
+            Judges => "Judges",
+            Ruth => "Ruth",
+            FirstSamuel => "FirstSamuel",
+            SecondSamuel => "SecondSamuel",
+            FirstKings => "FirstKings",
+            SecondKings => "SecondKings",
+            FirstChronicles => "FirstChronicles",
+            SecondChronicles => "SecondChronicles",
+            Ezra => "Ezra",
+            Nehemiah => "Nehemiah",
+            Tobit => "Tobit",
+            Judith => "Judith",
+            Esther => "Esther",
+            AdditionsToEsther => "AdditionsToEsther",
+            FirstMaccabees => "FirstMaccabees",
+            SecondMaccabees => "SecondMaccabees",
+            Job => "Job",
+            Psalms => "Psalms",
+            Proverbs => "Proverbs",
+            Ecclesiastes => "Ecclesiastes",
+            SongOfSongs => "SongOfSongs",
+            Wisdom => "Wisdom",
+            Sirach => "Sirach",
+            Isaiah => "Isaiah",
+            Jeremiah => "Jeremiah",
+            Lamentations => "Lamentations",
+            Baruch => "Baruch",
+            LetterOfJeremiah => "LetterOfJeremiah",
+            Ezekiel => "Ezekiel",
+            Daniel => "Daniel",
+            PrayerOfAzariah => "PrayerOfAzariah",
+            Susanna => "Susanna",
+            BelAndTheDragon => "BelAndTheDragon",
+            Hosea => "Hosea",
+            Joel => "Joel",
+            Amos => "Amos",
+            Obadiah => "Obadiah",
+            Jonah => "Jonah",
+            Micah => "Micah",
+            Nahum => "Nahum",
+            Habakkuk => "Habakkuk",
+            Zephaniah => "Zephaniah",
+            Haggai => "Haggai",
+            Zechariah => "Zechariah",
+            Malachi => "Malachi",
+            Matthew => "Matthew",
+            Mark => "Mark",
+            Luke => "Luke",
+            John => "John",
+            Acts => "Acts",
+            Romans => "Romans",
+            FirstCorinthians => "FirstCorinthians",
+            SecondCorinthians => "SecondCorinthians",
+            Galatians => "Galatians",
+            Ephesians => "Ephesians",
+            Philippians => "Philippians",
+            Colossians => "Colossians",
+            FirstThessalonians => "FirstThessalonians",
+            SecondThessalonians => "SecondThessalonians",
+            FirstTimothy => "FirstTimothy",
+            SecondTimothy => "SecondTimothy",
+            Titus => "Titus",
+            Philemon => "Philemon",
+            Hebrews => "Hebrews",
+            James => "James",
+            FirstPeter => "FirstPeter",
+            SecondPeter => "SecondPeter",
+            FirstJohn => "FirstJohn",
+            SecondJohn => "SecondJohn",
+            ThirdJohn => "ThirdJohn",
+            Jude => "Jude",
+            Revelation => "Revelation",
+        };
+        write!(f, "{}", name)
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum BookNameParseError {
     #[error("Unknown book name: {0}")]
     UnknownName(String),
 }
+
 
 impl TryFrom<&str> for BookName {
     type Error = BookNameParseError;
@@ -153,7 +242,7 @@ impl TryFrom<&str> for BookName {
             "psalms" => Ok(Psalms),
             "proverbs" => Ok(Proverbs),
             "ecclesiastes" => Ok(Ecclesiastes),
-            "songofsongs" => Ok(SongOfSongs),
+            "songofsongs" | "song of solomon" | "song of songs" => Ok(SongOfSongs),
             "wisdom" => Ok(Wisdom),
             "sirach" => Ok(Sirach),
 

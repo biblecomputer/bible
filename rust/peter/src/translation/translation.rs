@@ -1,5 +1,5 @@
-use crate::translation::translation_v0::TranslationV0;
-use crate::translation::v1::Translation as TranslationV1;
+use crate::translation::v0::translation_v0::TranslationV0;
+use crate::translation::v1::translation_v1::TranslationV1;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -21,10 +21,3 @@ impl From<TranslationV0> for Translation {
     }
 }
 
-impl TryFrom<&str> for Translation {
-    type Error = ();
-
-    fn try_from(_value: &str) -> Result<Self, Self::Error> {
-        todo!()
-    }
-}

@@ -3,17 +3,16 @@ use super::meta::TranslationMetaData;
 use crate::translation::translation_v0::TranslationV0;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, HashMap};
 use thiserror::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Translation {
-    meta: TranslationMetaData,
-    books: Books,
+pub struct TranslationV1 {
+    pub meta: TranslationMetaData,
+    pub books: Books,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Books(BTreeMap<BookName, Book>);
+pub struct Books(Vec<(BookName, Book)>);
 
 #[derive(Debug, Error)]
 pub enum BooksConversionError {
@@ -103,7 +102,7 @@ impl TryFrom<TranslationV0> for Books {
             return Err(BooksConversionError::DuplicateBook(duplicate));
         }
 
-        books_with_names
+        let books_vec = books_with_names
             .into_iter()
             .map(|(book_name, v0_book)| {
                 if v0_book.chapters.is_empty() {
@@ -150,7 +149,7 @@ impl TryFrom<TranslationV0> for Books {
                             })
                             .collect();
 
-                        let verse_sections: HashMap<VerseID, String> = converted_verses
+                        let verse_sections: Vec<(VerseID, String)> = converted_verses
                             .into_iter()
                             .filter(|(v0_verse, _)| {
                                 !v0_verse.name.is_empty() && v0_verse.name != v0_verse.text
@@ -166,7 +165,7 @@ impl TryFrom<TranslationV0> for Books {
                             },
                         ))
                     })
-                    .collect::<Result<BTreeMap<_, _>, BooksConversionError>>()?;
+                    .collect::<Result<Vec<_>, BooksConversionError>>()?;
 
                 Ok((
                     book_name,
@@ -177,8 +176,9 @@ impl TryFrom<TranslationV0> for Books {
                     },
                 ))
             })
-            .collect::<Result<BTreeMap<_, _>, BooksConversionError>>()
-            .map(Books)
+            .collect::<Result<Vec<_>, BooksConversionError>>()?;
+        
+        Ok(Books(books_vec))
     }
 }
 
@@ -192,7 +192,7 @@ struct Book {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct Chapters(BTreeMap<ChapterID, Chapter>);
+struct Chapters(Vec<(ChapterID, Chapter)>);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 struct ChapterID(u32);
@@ -200,7 +200,7 @@ struct ChapterID(u32);
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Chapter {
     verses: Vec<Verse>,
-    verse_sections: HashMap<VerseID, String>,
+    verse_sections: Vec<(VerseID, String)>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -247,14 +247,28 @@ impl PartialOrd for VerseID {
     }
 }
 
-impl TryFrom<TranslationV0> for Translation {
-    type Error = ();
+impl TryFrom<TranslationV0> for TranslationV1 {
+    type Error = BooksConversionError;
 
-    fn try_from(_value: TranslationV0) -> Result<Self, Self::Error> {
-        todo!()
+    fn try_from(value: TranslationV0) -> Result<Self, Self::Error> {
+        let books = Books::try_from(value)?;
+
+        // Create placeholder metadata - this will be replaced in the migration process
+        let meta = TranslationMetaData {
+            full_name: String::from("Placeholder"),
+            short_name: String::from("PH"),
+            description: String::from("Placeholder metadata - to be replaced during migration"),
+            link: url::Url::parse("https://example.com").unwrap(),
+            release: super::meta::Year::new(2000),
+            languages: vec![crate::language::Language::English],
+            equivalence_level: super::meta::EquivalenceLevel::new(128),
+            funded_by: None,
+        };
+
+        Ok(TranslationV1 { meta, books })
     }
 }
 
-pub fn build_v1(books: Books, meta: TranslationMetaData) -> Translation {
-    Translation { meta, books }
+pub fn build_v1(books: Books, meta: TranslationMetaData) -> TranslationV1 {
+    TranslationV1 { meta, books }
 }
