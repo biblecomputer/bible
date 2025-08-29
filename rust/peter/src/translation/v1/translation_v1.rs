@@ -1,5 +1,6 @@
 use super::book_name::{BookName, BookNameParseError};
 use super::meta::TranslationMetaData;
+use crate::storage::Storage;
 use crate::translation::translation_v0::TranslationV0;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -9,7 +10,7 @@ use thiserror::Error;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranslationV1 {
     pub meta: TranslationMetaData,
-    pub books: Books,
+    pub books: Storage<Books>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -320,10 +321,16 @@ impl TryFrom<TranslationV0> for TranslationV1 {
             funded_by: None,
         };
 
-        Ok(TranslationV1 { meta, books })
+        Ok(TranslationV1 {
+            meta,
+            books: Storage::Local(books),
+        })
     }
 }
 
 pub fn build_v1(books: Books, meta: TranslationMetaData) -> TranslationV1 {
-    TranslationV1 { meta, books }
+    TranslationV1 {
+        meta,
+        books: Storage::Local(books),
+    }
 }
