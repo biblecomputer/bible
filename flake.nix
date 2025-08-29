@@ -34,12 +34,12 @@
 
         nativeArgs = commonArgs // {
           src = pkgs.lib.fileset.toSource {
-            root = ./site;
+            root = ./rust/site;
             fileset = pkgs.lib.fileset.unions [
-              (craneLib.fileset.commonCargoSources ./site)
+              (craneLib.fileset.commonCargoSources ./rust/site)
               (pkgs.lib.fileset.fileFilter (
                 file: pkgs.lib.any file.hasExt [ "html" "scss" "css" "js" "json" "txt" "png" ]
-              ) ./site)
+              ) ./rust/site)
               (pkgs.lib.fileset.maybeMissing ./assets)
             ];
           };
@@ -48,7 +48,7 @@
 
         cargoArtifacts = craneLib.buildDepsOnly nativeArgs;
 
-        site = import ./site/site.nix {
+        site = import ./rust/site/site.nix {
           inherit pkgs craneLib rustToolchain;
         };
 
@@ -67,11 +67,11 @@
 
           clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
-            src = ./site;
+            src = ./rust/site;
             cargoClippyExtraArgs = "--all-targets -- --deny warnings";
           });
 
-          fmt = craneLib.cargoFmt (commonArgs // { src = ./site; });
+          fmt = craneLib.cargoFmt (commonArgs // { src = ./rust/site; });
         };
 
         devShells.default = craneLib.devShell {
@@ -99,12 +99,12 @@
               set -e
               
               # Work in the current directory (should be the project root)
-              if [ ! -d "site" ]; then
+              if [ ! -d "rust/site" ]; then
                 echo "Error: Please run this from the project root directory"
                 exit 1
               fi
               
-              cd site
+              cd rust/site
               
               # Ensure output.css exists
               if [ ! -f "style/output.css" ]; then
