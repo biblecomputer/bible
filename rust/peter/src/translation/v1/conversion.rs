@@ -1,6 +1,5 @@
-use super::book::Book;
+use super::book::{Book, Books};
 use super::book_name::{BookName, BookNameParseError};
-use super::books::Books;
 use super::chapter::{Chapter, ChapterNumber, Chapters};
 use super::meta::TranslationMetaData;
 use super::translation_v1::TranslationV1;

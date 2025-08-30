@@ -1,4 +1,4 @@
-use super::books::Books;
+use super::book::Books;
 use super::chapter::{ChapterNumber, Chapters};
 use super::translation_v1::TranslationV1;
 use super::verse::{Verse, VerseNumber, VerseID};

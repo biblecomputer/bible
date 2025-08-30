@@ -1,6 +1,5 @@
 pub mod book;
 pub mod book_name;
-pub mod books;
 pub mod chapter;
 pub mod check;
 pub mod conversion;
@@ -11,9 +10,8 @@ pub mod testament;
 pub mod translation_v1;
 pub mod verse;
 
-pub use book::Book;
+pub use book::{Book, Books};
 pub use book_name::BookName;
-pub use books::Books;
 pub use chapter::{Chapter, ChapterID, ChapterNumber, Chapters};
 pub use check::{
     TranslationV1ValidationError, ValidationResult, ValidationStatistics, is_valid, validate_books,

@@ -1,5 +1,7 @@
+use super::book_name::BookName;
 use super::chapter::Chapters;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Book {
@@ -9,3 +11,8 @@ pub struct Book {
     pub introduction: Option<String>,
     pub chapters: Chapters,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Books(
+    #[serde(with = "super::serde_helpers::btreemap_as_tuple_list")] pub BTreeMap<BookName, Book>,
+);

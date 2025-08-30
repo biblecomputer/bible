@@ -1,4 +1,4 @@
-use super::books::Books;
+use super::book::Books;
 use super::meta::TranslationMetaData;
 use crate::storage::Storage;
 use serde::{Deserialize, Serialize};
