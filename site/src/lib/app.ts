@@ -125,24 +125,24 @@ const formatTimeForTitle = (milliseconds: number): string => {
 	return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-// Helper to format a single reference point as URL segment (e.g., "matt.5v3" or "matt.5")
+// Helper to format a single reference point as URL segment (e.g., "matt5v3" or "matt5")
 const formatReferencePoint = (ref: BibleReference): string => {
 	const bookShort = getShortName(ref.book);
 	return ref.verse !== null
-		? `${bookShort}.${ref.chapter}v${ref.verse}`
-		: `${bookShort}.${ref.chapter}`;
+		? `${bookShort}${ref.chapter}v${ref.verse}`
+		: `${bookShort}${ref.chapter}`;
 };
 
 // Generate URL from selection state
 // URL formats:
-// - matt.5 (single chapter)
-// - matt.5v3 (single verse)
-// - matt.5v1-12 (verse range in same chapter)
-// - matt.5-7 (chapter range in same book)
-// - matt.5-7v30 (chapter range ending at verse)
-// - matt.28v10-mark.1v5 (cross-book range)
-// - matt.28-mark.2 (cross-book chapter range)
-const selectionToUrl = (selection: BibleSelection): string => {
+// - matt5 (single chapter)
+// - matt5v3 (single verse)
+// - matt5v1-12 (verse range in same chapter)
+// - matt5-7 (chapter range in same book)
+// - matt5-7v30 (chapter range ending at verse)
+// - matt28v10-mark1v5 (cross-book range)
+// - matt28-mark2 (cross-book chapter range)
+export const selectionToUrl = (selection: BibleSelection): string => {
 	const { start, end } = selection;
 
 	if (!end) {
@@ -154,17 +154,17 @@ const selectionToUrl = (selection: BibleSelection): string => {
 	const sameChapter = sameBook && start.chapter === end.chapter;
 
 	if (sameChapter) {
-		// Same chapter: matt.5v1-12
+		// Same chapter: matt5v1-12
 		const bookShort = getShortName(start.book);
 		if (start.verse !== null && end.verse !== null) {
-			return `/${bookShort}.${start.chapter}v${start.verse}-${end.verse}`;
+			return `/${bookShort}${start.chapter}v${start.verse}-${end.verse}`;
 		}
 		// Just chapter (no verse range)
-		return `/${bookShort}.${start.chapter}`;
+		return `/${bookShort}${start.chapter}`;
 	}
 
 	if (sameBook) {
-		// Same book, different chapters: matt.5-7 or matt.5-7v30
+		// Same book, different chapters: matt5-7 or matt5-7v30
 		const bookShort = getShortName(start.book);
 		const startPart = start.verse !== null
 			? `${start.chapter}v${start.verse}`
@@ -172,19 +172,19 @@ const selectionToUrl = (selection: BibleSelection): string => {
 		const endPart = end.verse !== null
 			? `${end.chapter}v${end.verse}`
 			: `${end.chapter}`;
-		return `/${bookShort}.${startPart}-${endPart}`;
+		return `/${bookShort}${startPart}-${endPart}`;
 	}
 
-	// Different books: matt.28v10-mark.1v5
+	// Different books: matt28v10-mark1v5
 	return `/${formatReferencePoint(start)}-${formatReferencePoint(end)}`;
 };
 
-// Helper to format scroll position as hash (e.g., "#john.1v1")
-const formatScrollHash = (book: BibleBook, chapter: number, verse: number | null): string => {
+// Helper to format scroll position as hash (e.g., "#john1v1")
+export const formatScrollHash = (book: BibleBook, chapter: number, verse: number | null): string => {
 	const bookShort = getShortName(book);
 	return verse !== null
-		? `#${bookShort}.${chapter}v${verse}`
-		: `#${bookShort}.${chapter}`;
+		? `#${bookShort}${chapter}v${verse}`
+		: `#${bookShort}${chapter}`;
 };
 
 // App namespace - operations on App type

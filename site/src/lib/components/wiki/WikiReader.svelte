@@ -141,7 +141,7 @@
 			return true;
 		}
 
-		// Check for Bible reference (e.g., /ps.100v5, /matt.5, /john.3v16)
+		// Check for Bible reference (e.g., /ps100v5, /matt5, /john3v16)
 		return isBibleLink(url);
 	}
 
