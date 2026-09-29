@@ -98,7 +98,7 @@
 
 <div class="h-full flex flex-col">
 	<!-- Search Input -->
-	<div class="p-4 border-b border-gray-700">
+	<div class="p-4 border-b border-gray-700 light:border-gray-300">
 		<div class="relative">
 			<input
 				bind:this={searchInputRef}
@@ -108,7 +108,7 @@
 				oninput={handleSearchInput}
 				onfocus={handleSearchFocus}
 				onblur={handleSearchBlur}
-				class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-gray-700 transition-colors text-sm"
+				class="w-full px-3 py-2 bg-gray-800 light:bg-white border border-gray-600 light:border-gray-300 rounded-lg text-gray-200 light:text-gray-900 placeholder-gray-400 light:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:bg-gray-700 light:focus:bg-gray-100 transition-colors text-sm"
 			/>
 			{#if searchQuery}
 				<button
@@ -116,7 +116,7 @@
 						searchQuery = "";
 						searchInputRef?.focus();
 					}}
-					class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+					class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 light:text-gray-500 hover:text-gray-200 light:hover:text-gray-700 transition-colors"
 				>
 					&times;
 				</button>

@@ -379,7 +379,7 @@
 	});
 </script>
 
-<div class="h-full flex flex-col bg-gray-900">
+<div class="h-full flex flex-col bg-gray-900 light:bg-gray-50">
 	<TabBar
 		tabs={tabsState.tabs}
 		activeTabId={tabsState.activeTabId}

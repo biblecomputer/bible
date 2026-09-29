@@ -291,7 +291,7 @@
 	</VList>
 {:else}
 	<div class="flex items-center justify-center h-full">
-		<div class="text-center text-gray-400">
+		<div class="text-center text-gray-400 light:text-gray-500">
 			<p>Loading Bible...</p>
 		</div>
 	</div>

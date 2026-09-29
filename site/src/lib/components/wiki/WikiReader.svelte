@@ -153,9 +153,9 @@
 		html = parseWikiLinks(html);
 
 		// Headers
-		html = html.replace(/^### (.+)$/gm, '<h3 class="text-xl font-bold text-gray-100 mt-6 mb-3">$1</h3>');
-		html = html.replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold text-gray-100 mt-8 mb-4">$1</h2>');
-		html = html.replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold text-gray-100 mt-8 mb-4">$1</h1>');
+		html = html.replace(/^### (.+)$/gm, '<h3 class="text-xl font-bold text-gray-100 light:text-gray-900 mt-6 mb-3">$1</h3>');
+		html = html.replace(/^## (.+)$/gm, '<h2 class="text-2xl font-bold text-gray-100 light:text-gray-900 mt-8 mb-4">$1</h2>');
+		html = html.replace(/^# (.+)$/gm, '<h1 class="text-3xl font-bold text-gray-100 light:text-gray-900 mt-8 mb-4">$1</h1>');
 
 		// Bold and italic
 		html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
@@ -180,7 +180,7 @@
 			if (para.startsWith('<h') || para.startsWith('<ul') || para.startsWith('<ol')) {
 				return para;
 			}
-			return `<p class="text-gray-200 leading-relaxed mb-4">${para.replace(/\n/g, '<br>')}</p>`;
+			return `<p class="text-gray-200 light:text-gray-800 leading-relaxed mb-4">${para.replace(/\n/g, '<br>')}</p>`;
 		}).join('\n');
 
 		return html;
@@ -331,11 +331,11 @@
 
 <div class="h-full flex flex-col">
 	<!-- Toolbar -->
-	<div class="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-2 justify-between flex-shrink-0">
+	<div class="bg-gray-800 light:bg-gray-100 border-b border-gray-700 light:border-gray-300 px-4 py-2 flex items-center gap-2 justify-between flex-shrink-0">
 		<div class="flex items-center gap-2">
 			<button
 				onclick={() => onToggleSidebar?.()}
-				class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors flex items-center gap-1"
+				class="px-3 py-1 bg-gray-700 light:bg-gray-200 hover:bg-gray-600 light:hover:bg-gray-300 text-gray-300 light:text-gray-700 text-sm rounded transition-colors flex items-center gap-1"
 				title={showSidebar
 					? (isMobile ? "Show Content" : "Hide Sidebar (b)")
 					: (isMobile ? "Show Entries" : "Show Sidebar (b)")}
@@ -362,13 +362,13 @@
 		<!-- Sidebar -->
 		{#if showSidebar}
 			<div
-				class="bg-gray-800 border-gray-700 h-full overflow-y-auto flex-shrink-0
+				class="bg-gray-800 light:bg-gray-100 border-gray-700 light:border-gray-300 h-full overflow-y-auto flex-shrink-0
 					   {isMobile
 						 ? 'absolute inset-0 z-10 w-full'
 						 : 'w-80 border-r relative'}"
 			>
 				{#if entriesLoading}
-					<div class="flex items-center justify-center h-full text-gray-400">
+					<div class="flex items-center justify-center h-full text-gray-400 light:text-gray-500">
 						<span>Loading entries...</span>
 					</div>
 				{:else}
@@ -384,38 +384,38 @@
 		{/if}
 
 		<!-- Content Viewer -->
-		<div class="flex-1 {isMobile && showSidebar ? 'hidden' : 'block'} overflow-y-auto bg-gray-900">
+		<div class="flex-1 {isMobile && showSidebar ? 'hidden' : 'block'} overflow-y-auto bg-gray-900 light:bg-gray-50">
 			<div class="max-w-3xl mx-auto px-8 py-8">
 				{#if isOverview}
 					<!-- Overview Page -->
-					<header class="mb-8 border-b border-gray-700 pb-4">
-						<h1 class="text-4xl font-bold text-gray-100">Wiki</h1>
+					<header class="mb-8 border-b border-gray-700 light:border-gray-300 pb-4">
+						<h1 class="text-4xl font-bold text-gray-100 light:text-gray-900">Wiki</h1>
 						<p class="text-sm text-gray-500 mt-2">Bible Encyclopedia</p>
 					</header>
 
 					<div class="space-y-6">
-						<p class="text-gray-200 leading-relaxed">
+						<p class="text-gray-200 light:text-gray-800 leading-relaxed">
 							Welcome to the Bible Computer Wiki. Browse entries using the sidebar or search for specific topics.
 						</p>
 
 						{#if entries.length > 0}
-							<div class="bg-gray-800 rounded-lg p-4">
-								<p class="text-gray-300">
-									<span class="text-2xl font-bold text-gray-100">{entries.length}</span> entries available
+							<div class="bg-gray-800 light:bg-gray-100 rounded-lg p-4">
+								<p class="text-gray-300 light:text-gray-700">
+									<span class="text-2xl font-bold text-gray-100 light:text-gray-900">{entries.length}</span> entries available
 								</p>
 							</div>
 						{/if}
 
-						<div class="border-t border-gray-700 pt-6">
-							<h2 class="text-xl font-bold text-gray-100 mb-3">Contribute</h2>
-							<p class="text-gray-300 mb-4">
+						<div class="border-t border-gray-700 light:border-gray-300 pt-6">
+							<h2 class="text-xl font-bold text-gray-100 light:text-gray-900 mb-3">Contribute</h2>
+							<p class="text-gray-300 light:text-gray-700 mb-4">
 								This wiki is open source. You can contribute by editing or adding entries on GitHub.
 							</p>
 							<a
 								href="https://github.com/biblecomputer/wiki"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+								class="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 light:bg-gray-200 hover:bg-gray-600 light:hover:bg-gray-300 text-gray-200 light:text-gray-800 rounded-lg transition-colors"
 							>
 								<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
 									<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -426,16 +426,16 @@
 					</div>
 				{:else}
 					<!-- Page Title -->
-					<header class="mb-8 border-b border-gray-700 pb-4 flex justify-between items-start">
+					<header class="mb-8 border-b border-gray-700 light:border-gray-300 pb-4 flex justify-between items-start">
 						<div>
-							<h1 class="text-4xl font-bold text-gray-100">{findCorrectCase(page) || toDisplayName(page)}</h1>
+							<h1 class="text-4xl font-bold text-gray-100 light:text-gray-900">{findCorrectCase(page) || toDisplayName(page)}</h1>
 							<p class="text-sm text-gray-500 mt-2">Wiki</p>
 						</div>
 						<a
 							href="https://github.com/biblecomputer/wiki/edit/main/source/en/{encodeURIComponent(findCorrectCase(page) || toDisplayName(page))}.md"
 							target="_blank"
 							rel="noopener noreferrer"
-							class="p-2 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-lg transition-colors"
+							class="p-2 text-gray-400 light:text-gray-500 hover:text-gray-200 light:hover:text-gray-800 hover:bg-gray-700 light:hover:bg-gray-200 rounded-lg transition-colors"
 							title="Edit this page on GitHub"
 						>
 							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -447,17 +447,17 @@
 					<!-- Content -->
 					{#if loading}
 						<div class="flex items-center justify-center py-12">
-							<div class="text-gray-400">Loading...</div>
+							<div class="text-gray-400 light:text-gray-500">Loading...</div>
 						</div>
 					{:else if error}
-						<div class="bg-red-900/20 border border-red-700 rounded-lg p-6 text-center">
-							<p class="text-red-400">{error}</p>
+						<div class="bg-red-900/20 light:bg-red-50 border border-red-700 light:border-red-300 rounded-lg p-6 text-center">
+							<p class="text-red-400 light:text-red-600">{error}</p>
 							<p class="text-gray-500 text-sm mt-2">
 								Check that the page exists in the <a href="https://github.com/biblecomputer/wiki" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">wiki repository</a>.
 							</p>
 							<button
 								onclick={() => onToggleSidebar?.()}
-								class="mt-4 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg transition-colors"
+								class="mt-4 px-4 py-2 bg-gray-700 light:bg-gray-200 hover:bg-gray-600 light:hover:bg-gray-300 text-gray-200 light:text-gray-800 rounded-lg transition-colors"
 							>
 								Browse entries
 							</button>
@@ -503,5 +503,13 @@
 	.wiki-content :global(h2),
 	.wiki-content :global(h3) {
 		color: #f3f4f6;
+	}
+
+	@media (prefers-color-scheme: light) {
+		.wiki-content :global(h1),
+		.wiki-content :global(h2),
+		.wiki-content :global(h3) {
+			color: #111827;
+		}
 	}
 </style>

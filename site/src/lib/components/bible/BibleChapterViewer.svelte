@@ -55,13 +55,13 @@
 			<!-- Book header (when crossing book boundaries) -->
 			{#if showBookHeader}
 				<header class="mt-16 mb-24 text-center">
-					<h1 class="text-5xl md:text-7xl font-bold text-gray-100 uppercase tracking-wide">{getDisplayName(book)}</h1>
+					<h1 class="text-5xl md:text-7xl font-bold text-gray-100 light:text-gray-900 uppercase tracking-wide">{getDisplayName(book)}</h1>
 					<div class="h-1 w-32 bg-blue-500 rounded mx-auto mt-3"></div>
 				</header>
 			{/if}
 
 			<!-- Verses as continuous paragraph with drop-cap chapter number -->
-			<div class="text-gray-200 leading-relaxed text-lg">
+			<div class="text-gray-200 light:text-gray-800 leading-relaxed text-lg">
 				{#each chapter.verses as verse, i}
 					{@const isSelected = isVerseInSelection(verse.verse)}
 					<span
@@ -76,7 +76,7 @@
 							}
 						}}
 						role="button"
-					>{#if i === 0}<h2 id="chapter-{book}-{chapterNumber}" tabindex="-1" aria-label="{getDisplayName(book)} {chapterNumber}" class="float-left text-5xl font-bold text-gray-400 mr-2 leading-none mt-1 focus:outline-none">{chapterNumber}</h2>{:else}<sup class="text-blue-400 font-medium text-xs mr-1">{verse.verse}</sup>{/if}<span class="text-gray-200" onclick={handleTextClick}>{@html parseWikiLinks(verse.text)} </span></span>
+					>{#if i === 0}<h2 id="chapter-{book}-{chapterNumber}" tabindex="-1" aria-label="{getDisplayName(book)} {chapterNumber}" class="float-left text-5xl font-bold text-gray-400 light:text-gray-500 mr-2 leading-none mt-1 focus:outline-none">{chapterNumber}</h2>{:else}<sup class="text-blue-400 font-medium text-xs mr-1">{verse.verse}</sup>{/if}<span class="text-gray-200 light:text-gray-800" onclick={handleTextClick}>{@html parseWikiLinks(verse.text)} </span></span>
 				{/each}
 			</div>
 		</div>

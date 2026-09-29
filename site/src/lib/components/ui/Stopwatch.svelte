@@ -135,16 +135,16 @@
 	});
 </script>
 
-<div class="h-full flex items-center justify-center bg-gray-900">
+<div class="h-full flex items-center justify-center bg-gray-900 light:bg-gray-50">
 	<div class="text-center max-w-md w-full mx-4">
 		<!-- Stopwatch Display -->
 		<div class="mb-8">
-			<h1 class="text-2xl font-bold text-gray-100 mb-6">Stopwatch</h1>
-			<div class="bg-gray-800 rounded-2xl p-8 border border-gray-700">
+			<h1 class="text-2xl font-bold text-gray-100 light:text-gray-900 mb-6">Stopwatch</h1>
+			<div class="bg-gray-800 light:bg-white rounded-2xl p-8 border border-gray-700 light:border-gray-300">
 				<div class="text-6xl font-mono font-bold text-blue-400 mb-4">
 					{formatTime(displayTime)}
 				</div>
-				<div class="text-sm text-gray-400">
+				<div class="text-sm text-gray-400 light:text-gray-500">
 					{isRunning ? 'Running' : 'Stopped'}
 				</div>
 			</div>
@@ -167,7 +167,7 @@
 			<button
 				onclick={resetStopwatch}
 				title="Reset stopwatch (r)"
-				class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-lg font-semibold transition-all duration-200"
+				class="px-6 py-3 bg-gray-700 light:bg-gray-200 hover:bg-gray-600 light:hover:bg-gray-300 text-gray-200 light:text-gray-800 rounded-lg font-semibold transition-all duration-200"
 			>
 				Reset (r)
 			</button>

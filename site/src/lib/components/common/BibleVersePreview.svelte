@@ -131,16 +131,16 @@
 </script>
 
 <div
-	class="fixed z-50 max-w-xs bg-gray-800 border border-gray-600 rounded-lg shadow-xl p-3"
+	class="fixed z-50 max-w-xs bg-gray-800 light:bg-white border border-gray-600 light:border-gray-300 rounded-lg shadow-xl p-3"
 	style={tooltipStyle()}
 	onmouseleave={onClose}
 >
 	{#if loading}
-		<div class="text-gray-400 text-sm">Loading...</div>
+		<div class="text-gray-400 light:text-gray-500 text-sm">Loading...</div>
 	{:else if error}
 		<div class="text-red-400 text-sm">{error}</div>
 	{:else}
 		<div class="text-blue-400 text-xs font-semibold mb-1">{reference}</div>
-		<div class="text-gray-200 text-sm leading-relaxed">{verseText}</div>
+		<div class="text-gray-200 light:text-gray-800 text-sm leading-relaxed">{verseText}</div>
 	{/if}
 </div>

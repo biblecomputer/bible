@@ -103,11 +103,11 @@
     });
 </script>
 
-<div class="h-full flex items-center justify-center bg-gray-900">
+<div class="h-full flex items-center justify-center bg-gray-900 light:bg-gray-50">
     <div class="max-w-md w-full mx-4">
         <div class="text-center mb-8">
-            <h2 class="text-2xl font-bold text-gray-100 mb-2">Choose App</h2>
-            <p class="text-gray-400">Type to search or use arrow keys</p>
+            <h2 class="text-2xl font-bold text-gray-100 light:text-gray-900 mb-2">Choose App</h2>
+            <p class="text-gray-400 light:text-gray-500">Type to search or use arrow keys</p>
         </div>
 
         <!-- Search Input -->
@@ -118,7 +118,7 @@
                 placeholder="Search apps..."
                 value={searchQuery}
                 oninput={handleSearchInput}
-                class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:bg-gray-700 transition-colors"
+                class="w-full px-4 py-3 bg-gray-800 light:bg-white border border-gray-600 light:border-gray-300 rounded-lg text-gray-200 light:text-gray-900 placeholder-gray-400 light:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:bg-gray-700 light:focus:bg-gray-100 transition-colors"
             />
             {#if searchQuery}
                 <button
@@ -126,7 +126,7 @@
                         searchQuery = "";
                         searchInputRef?.focus();
                     }}
-                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 light:text-gray-500 hover:text-gray-200 light:hover:text-gray-700 transition-colors"
                 >
                     ×
                 </button>
@@ -142,26 +142,26 @@
                         class="w-full p-4 text-left rounded-lg transition-colors {
                             index === selectedIndex 
                                 ? 'bg-blue-600 text-white border border-blue-500' 
-                                : 'bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 hover:border-gray-500'
+                                : 'bg-gray-800 light:bg-white hover:bg-gray-700 light:hover:bg-gray-100 text-gray-200 light:text-gray-800 border border-gray-600 light:border-gray-300 hover:border-gray-500 light:hover:border-gray-400'
                         }"
                     >
                         <div class="font-medium text-lg mb-1">
                             {app.name}
                         </div>
-                        <div class="text-sm {index === selectedIndex ? 'text-blue-100' : 'text-gray-400'}">
+                        <div class="text-sm {index === selectedIndex ? 'text-blue-100' : 'text-gray-400 light:text-gray-500'}">
                             {app.description}
                         </div>
                     </button>
                 {/each}
             {:else}
-                <div class="text-center text-gray-500 py-8">
+                <div class="text-center text-gray-500 light:text-gray-500 py-8">
                     <div class="text-sm">No apps found</div>
                     <div class="text-xs mt-1">Try "bible", "about", or "stopwatch"</div>
                 </div>
             {/if}
         </div>
 
-        <div class="mt-6 text-center text-xs text-gray-500">
+        <div class="mt-6 text-center text-xs text-gray-500 light:text-gray-500">
             Use ↑↓ arrow keys to navigate, Enter to select
         </div>
     </div>

@@ -73,21 +73,21 @@
 	{#if searchQuery.trim()}
 		{#if filteredResults.length > 0}
 			<div class="space-y-1">
-				<div class="text-xs text-gray-400 mb-2">
+				<div class="text-xs text-gray-400 light:text-gray-500 mb-2">
 					{filteredResults.length} result{filteredResults.length === 1 ? '' : 's'}
 				</div>
 				{#each filteredResults as item, index}
 					<button
 						onclick={() => handleResultClick(item)}
-						class="w-full text-left px-3 py-2 rounded text-gray-200 hover:bg-gray-700 transition-colors
-							{index === selectedIndex ? 'bg-gray-600' : 'bg-gray-800'}"
+						class="w-full text-left px-3 py-2 rounded text-gray-200 light:text-gray-800 hover:bg-gray-700 light:hover:bg-gray-200 transition-colors
+							{index === selectedIndex ? 'bg-gray-600 light:bg-gray-300' : 'bg-gray-800 light:bg-gray-100'}"
 					>
 						{@render resultSnippet({ item, isSelected: index === selectedIndex })}
 					</button>
 				{/each}
 			</div>
 		{:else}
-			<div class="text-center text-gray-500 py-8">
+			<div class="text-center text-gray-500 light:text-gray-500 py-8">
 				<div class="text-sm">{emptyMessage}</div>
 				{#if emptyHint}
 					<div class="text-xs mt-1">{emptyHint}</div>

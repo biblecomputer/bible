@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/*
+ * Dark is the default look-and-feel. The `light:` variant only activates
+ * when the OS explicitly reports a light preference, so an unreadable
+ * system theme (or no support for prefers-color-scheme) falls back to dark.
+ */
+@custom-variant light (@media (prefers-color-scheme: light));
+
 html, body {
 	overflow: hidden;
 	height: 100%;
@@ -7,4 +14,10 @@ html, body {
 	position: fixed;
 	overscroll-behavior: none;
 	background-color: #1f2937; /* gray-800 - matches tab bar for safe area */
+}
+
+@media (prefers-color-scheme: light) {
+	html, body {
+		background-color: #f9fafb; /* gray-50 */
+	}
 }
