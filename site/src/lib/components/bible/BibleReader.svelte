@@ -373,11 +373,11 @@
 
 <div class="h-full flex flex-col">
     <!-- Toolbar -->
-    <div class="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center gap-2 justify-between flex-shrink-0">
+    <div class="bg-gray-800 light:bg-gray-100 border-b border-gray-700 light:border-gray-300 px-4 py-2 flex items-center gap-2 justify-between flex-shrink-0">
         <div class="flex items-center gap-2">
             <button
                 onclick={onToggleCanonExplorer}
-                class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors flex items-center gap-1"
+                class="px-3 py-1 bg-gray-700 light:bg-gray-200 hover:bg-gray-600 light:hover:bg-gray-300 text-gray-300 light:text-gray-700 text-sm rounded transition-colors flex items-center gap-1"
                 title={showCanonExplorer
                     ? (isMobile ? "Show Chapter" : "Hide Canon Explorer (b)")
                     : (isMobile ? "Show Canon Explorer" : "Show Canon Explorer (b)")}
@@ -401,7 +401,7 @@
             <select
                 value={translation.metadata.shortName}
                 onchange={handleTranslationChange}
-                class="px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors border border-gray-600 focus:outline-none focus:border-blue-500"
+                class="px-3 py-1 bg-gray-700 light:bg-gray-200 hover:bg-gray-600 light:hover:bg-gray-300 text-gray-300 light:text-gray-700 text-sm rounded transition-colors border border-gray-600 light:border-gray-300 focus:outline-none focus:border-blue-500"
                 title="Select translation"
             >
                 {#each availableTranslations as trans}
@@ -415,14 +415,14 @@
             <div class="flex items-center gap-1 ml-2">
                 <button
                     onclick={goToPreviousChapter}
-                    class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
+                    class="px-2 py-1 bg-gray-700 light:bg-gray-200 hover:bg-gray-600 light:hover:bg-gray-300 text-gray-300 light:text-gray-700 text-sm rounded transition-colors"
                     title={isMobile ? "Previous chapter" : "Previous chapter (←)"}
                 >
                     ←
                 </button>
                 <button
                     onclick={goToNextChapter}
-                    class="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm rounded transition-colors"
+                    class="px-2 py-1 bg-gray-700 light:bg-gray-200 hover:bg-gray-600 light:hover:bg-gray-300 text-gray-300 light:text-gray-700 text-sm rounded transition-colors"
                     title={isMobile ? "Next chapter" : "Next chapter (→)"}
                 >
                     →
@@ -436,7 +436,7 @@
         <!-- Canon Explorer Sidebar -->
         {#if showCanonExplorer}
             <div
-                class="bg-gray-800 border-gray-700 h-full overflow-y-auto flex-shrink-0 
+                class="bg-gray-800 light:bg-gray-100 border-gray-700 light:border-gray-300 h-full overflow-y-auto flex-shrink-0
                        {isMobile 
                          ? 'absolute inset-0 z-10 w-full' 
                          : 'w-80 border-r relative'}"

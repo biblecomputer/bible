@@ -2,7 +2,7 @@
 </script>
 
 <div class="flex items-center justify-center h-full">
-	<div class="text-center text-gray-300">
+	<div class="text-center text-gray-300 light:text-gray-700">
 		<h1 class="text-3xl font-bold mb-4">About Bible Computer</h1>
 		<p class="text-lg mb-6">
 			A modern Bible reading application built with SvelteKit and

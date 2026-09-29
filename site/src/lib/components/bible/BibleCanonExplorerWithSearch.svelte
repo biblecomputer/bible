@@ -49,7 +49,7 @@
 				onChapterSelect={handleChapterSelect}
 			/>
 		{:else}
-			<div class="flex items-center justify-center h-full text-gray-400">
+			<div class="flex items-center justify-center h-full text-gray-400 light:text-gray-500">
 				<span>Loading...</span>
 			</div>
 		{/if}
