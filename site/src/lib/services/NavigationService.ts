@@ -1,6 +1,11 @@
 /**
  * Navigation utility service for handling URL routing and state management.
+ *
  * Supports the Bible reference URL schema:
+ * - Path = scroll position, a single reference point, e.g. /john1 or /john1v3
+ * - Query `v` = selection (highlighted verse/range), e.g. ?v=john1v3-5
+ *
+ * Reference expression formats (used for both the path and the `v` query value):
  * - matt5 (single chapter)
  * - matt5v3 (single verse)
  * - matt5v1-12 (verse range in same chapter)
@@ -9,13 +14,15 @@
  * - matt28v10-mark1v5 (cross-book range)
  * - matt28-mark2 (cross-book chapter range)
  *
- * For backwards compatibility, a dot between the book and chapter is still
- * accepted when parsing (e.g. "matt.5v3"), but URLs are always generated
- * without it.
+ * For backwards compatibility, older URL shapes are still accepted when
+ * parsing and are silently rewritten to the canonical form:
+ * - a dot between the book and chapter (e.g. "matt.5v3")
+ * - the selection living in the path with the scroll position in the hash
+ *   (e.g. "/matt5-7#matt5", from before the selection moved to `?v=`)
  */
 
 import { BibleBook, toBibleBook, matchBookPrefix } from "$lib/book";
-import { selectionToUrl, formatScrollHash } from "$lib/app";
+import { formatSelectionQuery, formatScrollPath } from "$lib/app";
 import type { BibleReference, BibleSelection } from "$lib/app";
 import { Option } from "effect";
 
@@ -114,21 +121,41 @@ export const navigateToUrl = (url: string): void => {
 };
 
 /**
- * Parse a URL pathname to extract Bible selection.
- * Supports both old format (/book/chapter) and new format (/book.chapter)
- *
- * @param pathname - The URL pathname to parse
- * @returns Option containing BibleSelection if valid, Option.none() otherwise
+ * Parse the URL pathname to extract the scroll position (a single reference
+ * point, e.g. "/john1v1"). Also accepts the legacy dotted form ("/john.1v1").
  */
-export const parseURL = (pathname: string): Option.Option<BibleSelection> => {
-	// Try new format first
-	const selection = parseReferenceUrl(pathname);
-	if (selection) {
-		return Option.some(selection);
+export const parseScrollPath = (pathname: string): BibleReference | null => {
+	const cleanPath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+	if (!cleanPath) return null;
+	return parseReferencePoint(cleanPath);
+};
+
+/**
+ * Extract the current Bible selection (highlighted verse/range) from a URL.
+ *
+ * - New scheme: the `v` query parameter, e.g. "?v=john1v3-5"
+ * - Legacy fallback: a selection used to live directly in the path, e.g.
+ *   "/matt5-7#matt5" (range in the path) or "/book/chapter" (oldest format)
+ *
+ * @param url - The URL to parse
+ * @returns Option containing BibleSelection if present and valid, Option.none() otherwise
+ */
+export const parseURL = (url: URL): Option.Option<BibleSelection> => {
+	const v = url.searchParams.get('v');
+	if (v) {
+		const selection = parseReferenceUrl(v);
+		if (selection) return Option.some(selection);
 	}
 
-	// Try legacy format: /book/chapter or /book/chapterVverse
-	const urlParts = pathname.split('/').filter(Boolean);
+	// Legacy: the selection lived in the path, distinguishable from a plain
+	// scroll-position path by a range dash or a leftover scroll hash
+	if (url.pathname.includes('-') || url.hash) {
+		const legacySelection = parseReferenceUrl(url.pathname);
+		if (legacySelection) return Option.some(legacySelection);
+	}
+
+	// Oldest legacy format: /book/chapter or /book/chapterVverse
+	const urlParts = url.pathname.split('/').filter(Boolean);
 	if (urlParts.length >= 2) {
 		const bookOption = toBibleBook(urlParts[0]);
 		const chapterMatch = urlParts[1].match(/^(\d+)(?:v(\d+))?$/);
@@ -146,7 +173,9 @@ export const parseURL = (pathname: string): Option.Option<BibleSelection> => {
 };
 
 /**
- * Parse the URL hash to extract scroll position (e.g., "#john.1v1")
+ * Parse the URL hash to extract scroll position (e.g., "#john.1v1").
+ * Only used for migrating the legacy hash-based scroll position - the
+ * canonical scheme keeps the scroll position in the path instead.
  */
 export const parseScrollHash = (hash: string): BibleReference | null => {
 	if (!hash || hash === '#') return null;
@@ -156,33 +185,56 @@ export const parseScrollHash = (hash: string): BibleReference | null => {
 };
 
 /**
- * If the current URL uses the legacy dot-separated Bible reference format
- * (e.g. "/matt.5v3#matt.5v3"), rewrite it in place to the canonical
- * dot-less form (e.g. "/matt5v3#matt5v3"), without adding a history entry
- * or reloading the page.
+ * If the current URL uses an older Bible reference URL shape, rewrite it in
+ * place to the canonical form, without adding a history entry or reloading
+ * the page. Handles, in combination:
+ * - a dot between the book and chapter (e.g. "matt.5v3" -> "matt5v3")
+ * - the selection living in the path with scroll position in the hash
+ *   (e.g. "/matt5-7#matt5" -> "/matt5?v=matt5-7")
  */
 export const normalizeLegacyUrl = (): void => {
 	if (typeof window === 'undefined') return;
 
-	const { pathname, search, hash } = window.location;
-	if (!pathname.includes('.') && !hash.includes('.')) return;
+	const { pathname, hash, search } = window.location;
 
-	const selection = parseReferenceUrl(pathname);
-	const newPathname = selection ? selectionToUrl(selection) : pathname;
+	// Only the Bible reader uses this reference scheme
+	if (pathname === '/about' || pathname === '/stopwatch' ||
+		pathname.startsWith('/wiki') || pathname.startsWith('/library')) {
+		return;
+	}
 
-	const scrollPosition = parseScrollHash(hash);
-	const newHash = scrollPosition
-		? formatScrollHash(scrollPosition.book, scrollPosition.chapter, scrollPosition.verse)
-		: hash;
+	const looksLegacy = hash !== '' || pathname.includes('-') || pathname.includes('.') || search.includes('.');
+	if (!looksLegacy) return;
 
-	if (newPathname === pathname && newHash === hash) return;
+	// Old scheme: the path held the selection (possibly a range), the hash held scroll position
+	const isOldScheme = pathname.includes('-') || hash !== '';
 
-	window.history.replaceState(window.history.state, '', newPathname + search + newHash);
+	let scrollRef: BibleReference | null;
+	let selection: BibleSelection | null;
+
+	if (isOldScheme) {
+		selection = parseReferenceUrl(pathname);
+		scrollRef = parseScrollHash(hash) ?? selection?.start ?? null;
+	} else {
+		// Already a scroll-only path, may just have a leftover dot
+		scrollRef = parseScrollPath(pathname);
+		const v = new URLSearchParams(search).get('v');
+		selection = v ? parseReferenceUrl(v) : null;
+	}
+
+	if (!scrollRef) return; // not a Bible reference path we understand
+
+	const newPathname = formatScrollPath(scrollRef.book, scrollRef.chapter, scrollRef.verse);
+	const newSearch = selection ? `?v=${formatSelectionQuery(selection)}` : '';
+
+	if (newPathname === pathname && newSearch === search && hash === '') return;
+
+	window.history.replaceState(window.history.state, '', newPathname + newSearch);
 };
 
 /**
  * Get the initial application state based on the current URL.
- * Path = selection, Hash = scroll position
+ * Path = scroll position, `v` query param = selection
  *
  * @returns Object containing the initial book, chapter, verse, selection, and app type flags
  */
@@ -213,11 +265,10 @@ export const getInitialState = (): {
 		};
 	}
 
-	// Rewrite any legacy dot-separated reference in the URL to the canonical form
+	// Rewrite any legacy URL shape (dot-separated, selection-in-path) to the canonical form
 	normalizeLegacyUrl();
 
 	const pathname = window.location.pathname;
-	const hash = window.location.hash;
 
 	// Check if it's the about page
 	if (pathname === '/about') {
@@ -315,14 +366,14 @@ export const getInitialState = (): {
 		};
 	}
 
-	// Parse selection from path
-	const selectionOption = parseURL(pathname);
+	// Parse selection from the `v` query param (with legacy fallbacks)
+	const selectionOption = parseURL(new URL(window.location.href));
 	const selection = Option.isSome(selectionOption) ? selectionOption.value : null;
 
-	// Parse scroll position from hash
-	const scrollPosition = parseScrollHash(hash);
+	// Parse scroll position from the path
+	const scrollPosition = parseScrollPath(pathname);
 
-	// If we have a scroll position in hash, use it
+	// If we have a scroll position in the path, use it
 	if (scrollPosition) {
 		return {
 			book: scrollPosition.book,
@@ -338,7 +389,7 @@ export const getInitialState = (): {
 		};
 	}
 
-	// If we have a selection but no scroll hash, scroll to selection start
+	// If we have a selection but no scroll position in the path, scroll to selection start
 	if (selection) {
 		return {
 			book: selection.start.book,
@@ -373,6 +424,7 @@ export const NavigationService = {
 	navigateToUrl,
 	parseURL,
 	parseReferenceUrl,
+	parseScrollPath,
 	parseScrollHash,
 	normalizeLegacyUrl,
 	getInitialState

@@ -76,12 +76,12 @@
 	let activeTabOption = $derived(TabsStateNS.getActiveTab(tabsState));
 
 
-	// Update tab state (for scroll/view position - updates hash in URL)
+	// Update tab state (for scroll/view position - updates the URL path)
 	function updateTabState(updatedTab: TabState) {
 		console.log('📝 updateTabState called with:', updatedTab);
 		tabsState = TabsStateNS.updateTab(tabsState, updatedTab);
 
-		// Update URL hash for scroll position (Bible) or full URL (Wiki/Library)
+		// Update URL path for scroll position (Bible) or full URL (Wiki/Library)
 		if (updatedTab.id === tabsState.activeTabId) {
 			if (updatedTab.app._tag === "Bible" || updatedTab.app._tag === "Wiki" || updatedTab.app._tag === "Library") {
 				const url = App.getUrl(updatedTab.app);
@@ -313,7 +313,7 @@
 		}
 
 		const currentPage = $page;
-		const urlStateOption = NavigationService.parseURL(currentPage.url.pathname);
+		const urlStateOption = NavigationService.parseURL(currentPage.url);
 
 		if (Option.isNone(urlStateOption)) return;
 		if (Option.isNone(activeTabOption)) return;
