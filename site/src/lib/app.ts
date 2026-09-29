@@ -133,8 +133,8 @@ const formatReferencePoint = (ref: BibleReference): string => {
 		: `${bookShort}${ref.chapter}`;
 };
 
-// Generate URL from selection state
-// URL formats:
+// Format a selection as a reference-range expression for the `v` query param
+// Formats:
 // - matt5 (single chapter)
 // - matt5v3 (single verse)
 // - matt5v1-12 (verse range in same chapter)
@@ -142,12 +142,12 @@ const formatReferencePoint = (ref: BibleReference): string => {
 // - matt5-7v30 (chapter range ending at verse)
 // - matt28v10-mark1v5 (cross-book range)
 // - matt28-mark2 (cross-book chapter range)
-export const selectionToUrl = (selection: BibleSelection): string => {
+export const formatSelectionQuery = (selection: BibleSelection): string => {
 	const { start, end } = selection;
 
 	if (!end) {
 		// Single point
-		return `/${formatReferencePoint(start)}`;
+		return formatReferencePoint(start);
 	}
 
 	const sameBook = start.book === end.book;
@@ -157,10 +157,10 @@ export const selectionToUrl = (selection: BibleSelection): string => {
 		// Same chapter: matt5v1-12
 		const bookShort = getShortName(start.book);
 		if (start.verse !== null && end.verse !== null) {
-			return `/${bookShort}${start.chapter}v${start.verse}-${end.verse}`;
+			return `${bookShort}${start.chapter}v${start.verse}-${end.verse}`;
 		}
 		// Just chapter (no verse range)
-		return `/${bookShort}${start.chapter}`;
+		return `${bookShort}${start.chapter}`;
 	}
 
 	if (sameBook) {
@@ -172,19 +172,19 @@ export const selectionToUrl = (selection: BibleSelection): string => {
 		const endPart = end.verse !== null
 			? `${end.chapter}v${end.verse}`
 			: `${end.chapter}`;
-		return `/${bookShort}${startPart}-${endPart}`;
+		return `${bookShort}${startPart}-${endPart}`;
 	}
 
 	// Different books: matt28v10-mark1v5
-	return `/${formatReferencePoint(start)}-${formatReferencePoint(end)}`;
+	return `${formatReferencePoint(start)}-${formatReferencePoint(end)}`;
 };
 
-// Helper to format scroll position as hash (e.g., "#john1v1")
-export const formatScrollHash = (book: BibleBook, chapter: number, verse: number | null): string => {
+// Helper to format scroll position as the URL path (e.g., "/john1v1")
+export const formatScrollPath = (book: BibleBook, chapter: number, verse: number | null): string => {
 	const bookShort = getShortName(book);
 	return verse !== null
-		? `#${bookShort}${chapter}v${verse}`
-		: `#${bookShort}${chapter}`;
+		? `/${bookShort}${chapter}v${verse}`
+		: `/${bookShort}${chapter}`;
 };
 
 // App namespace - operations on App type
@@ -192,18 +192,17 @@ export namespace App {
 	export const getUrl = (app: App): string => {
 		return $match(app, {
 			Bible: ({ bibleState }) => {
-				// Build URL: path is selection, hash is scroll position
-				const scrollHash = formatScrollHash(
+				// Path is the scroll position; selection (if any) is the `v` query param
+				const scrollPath = formatScrollPath(
 					bibleState.currentBook,
 					bibleState.currentChapter,
 					bibleState.currentVerse
 				);
 
 				if (bibleState.selection) {
-					return selectionToUrl(bibleState.selection) + scrollHash;
+					return `${scrollPath}?v=${formatSelectionQuery(bibleState.selection)}`;
 				}
-				// No selection = just hash for scroll position
-				return "/" + scrollHash;
+				return scrollPath;
 			},
 			About: () => "/about",
 			ChooseApp: () => "/",
