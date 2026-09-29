@@ -1,38 +1,46 @@
 /**
  * Navigation utility service for handling URL routing and state management.
- * Supports the new Bible reference URL schema:
- * - matt.5 (single chapter)
- * - matt.5v3 (single verse)
- * - matt.5v1-12 (verse range in same chapter)
- * - matt.5-7 (chapter range in same book)
- * - matt.5-7v30 (chapter range ending at verse)
- * - matt.28v10-mark.1v5 (cross-book range)
- * - matt.28-mark.2 (cross-book chapter range)
+ * Supports the Bible reference URL schema:
+ * - matt5 (single chapter)
+ * - matt5v3 (single verse)
+ * - matt5v1-12 (verse range in same chapter)
+ * - matt5-7 (chapter range in same book)
+ * - matt5-7v30 (chapter range ending at verse)
+ * - matt28v10-mark1v5 (cross-book range)
+ * - matt28-mark2 (cross-book chapter range)
+ *
+ * For backwards compatibility, a dot between the book and chapter is still
+ * accepted when parsing (e.g. "matt.5v3"), but URLs are always generated
+ * without it.
  */
 
-import { BibleBook, toBibleBook } from "$lib/book";
+import { BibleBook, toBibleBook, matchBookPrefix } from "$lib/book";
+import { selectionToUrl, formatScrollHash } from "$lib/app";
 import type { BibleReference, BibleSelection } from "$lib/app";
 import { Option } from "effect";
 
 /**
- * Parse a single reference point like "matt.5" or "matt.5v3"
+ * Parse a single reference point like "matt5" or "matt5v3"
+ * (also accepts the legacy "matt.5" / "matt.5v3" form).
  * Returns { book, chapter, verse } or null if invalid
  */
 const parseReferencePoint = (str: string): BibleReference | null => {
-	// Pattern: book.chapterVverse or book.chapter
-	const match = str.match(/^([a-z0-9]+)\.(\d+)(?:v(\d+))?$/i);
+	const bookMatch = matchBookPrefix(str);
+	if (!bookMatch) return null;
+
+	// Legacy URLs separated the chapter from the book with a dot
+	const rest = bookMatch.rest.startsWith('.') ? bookMatch.rest.slice(1) : bookMatch.rest;
+
+	const match = rest.match(/^(\d+)(?:v(\d+))?$/i);
 	if (!match) return null;
 
-	const bookOption = toBibleBook(match[1].toLowerCase());
-	if (Option.isNone(bookOption)) return null;
-
-	const chapter = parseInt(match[2]);
-	const verse = match[3] ? parseInt(match[3]) : null;
+	const chapter = parseInt(match[1]);
+	const verse = match[2] ? parseInt(match[2]) : null;
 
 	if (isNaN(chapter) || chapter < 1) return null;
 	if (verse !== null && (isNaN(verse) || verse < 1)) return null;
 
-	return { book: bookOption.value, chapter, verse };
+	return { book: bookMatch.book, chapter, verse };
 };
 
 /**
@@ -43,55 +51,46 @@ export const parseReferenceUrl = (path: string): BibleSelection | null => {
 	// Remove leading slash if present
 	const cleanPath = path.startsWith('/') ? path.slice(1) : path;
 
-	// Check for cross-book range: contains book abbreviation after the dash
-	// Pattern: book.chapterVverse-book.chapterVverse
-	const crossBookMatch = cleanPath.match(/^([a-z0-9]+\.\d+(?:v\d+)?)-([a-z0-9]+\.\d+(?:v\d+)?)$/i);
-	if (crossBookMatch) {
-		const start = parseReferencePoint(crossBookMatch[1]);
-		const end = parseReferencePoint(crossBookMatch[2]);
-		if (start && end) {
-			return { start, end };
+	// Check for a range (single reference points never contain a dash)
+	const dashIndex = cleanPath.indexOf('-');
+	if (dashIndex !== -1) {
+		const leftPart = cleanPath.slice(0, dashIndex);
+		const rightPart = cleanPath.slice(dashIndex + 1);
+
+		const start = parseReferencePoint(leftPart);
+		if (start) {
+			// Cross-book range: the part after the dash has its own book abbreviation
+			const crossBookEnd = parseReferencePoint(rightPart);
+			if (crossBookEnd) {
+				return { start, end: crossBookEnd };
+			}
+
+			// Same-book range: the part after the dash is just chapter[vVerse]
+			const sameBookMatch = rightPart.match(/^(\d+)(?:v(\d+))?$/i);
+			if (sameBookMatch) {
+				const endNum = parseInt(sameBookMatch[1]);
+				const endVerse = sameBookMatch[2] ? parseInt(sameBookMatch[2]) : null;
+
+				// Determine if end is a chapter or a verse
+				// If start has a verse and end is a small number without a v prefix, treat as verse
+				if (start.verse !== null && !sameBookMatch[2] && endNum <= start.verse + 100) {
+					// Same chapter verse range: matt5v1-12 means verses 1-12 of chapter 5
+					return {
+						start,
+						end: { book: start.book, chapter: start.chapter, verse: endNum }
+					};
+				}
+
+				// Chapter range (with optional verse): matt5-7 or matt5-7v30
+				return {
+					start,
+					end: { book: start.book, chapter: endNum, verse: endVerse }
+				};
+			}
 		}
 	}
 
-	// Check for same-book range patterns
-	// Pattern: book.start-end where end can be chapter, chapterVverse, or just verse
-	const sameBookMatch = cleanPath.match(/^([a-z0-9]+)\.(\d+(?:v\d+)?)-(\d+(?:v\d+)?)$/i);
-	if (sameBookMatch) {
-		const bookOption = toBibleBook(sameBookMatch[1].toLowerCase());
-		if (Option.isNone(bookOption)) return null;
-		const book = bookOption.value;
-
-		// Parse start part
-		const startMatch = sameBookMatch[2].match(/^(\d+)(?:v(\d+))?$/);
-		if (!startMatch) return null;
-		const startChapter = parseInt(startMatch[1]);
-		const startVerse = startMatch[2] ? parseInt(startMatch[2]) : null;
-
-		// Parse end part
-		const endMatch = sameBookMatch[3].match(/^(\d+)(?:v(\d+))?$/);
-		if (!endMatch) return null;
-		const endNum = parseInt(endMatch[1]);
-		const endVerse = endMatch[2] ? parseInt(endMatch[2]) : null;
-
-		// Determine if end is chapter or verse
-		// If start has verse and end is small number without v prefix, treat as verse
-		if (startVerse !== null && !endMatch[2] && endNum <= startVerse + 100) {
-			// Same chapter verse range: matt.5v1-12 means verses 1-12 of chapter 5
-			return {
-				start: { book, chapter: startChapter, verse: startVerse },
-				end: { book, chapter: startChapter, verse: endNum }
-			};
-		}
-
-		// Chapter range (with optional verse): matt.5-7 or matt.5-7v30
-		return {
-			start: { book, chapter: startChapter, verse: startVerse },
-			end: { book, chapter: endNum, verse: endVerse }
-		};
-	}
-
-	// Single reference: book.chapter or book.chapterVverse
+	// Single reference: book+chapter or book+chapterVverse
 	const singleRef = parseReferencePoint(cleanPath);
 	if (singleRef) {
 		return { start: singleRef, end: null };
@@ -157,6 +156,31 @@ export const parseScrollHash = (hash: string): BibleReference | null => {
 };
 
 /**
+ * If the current URL uses the legacy dot-separated Bible reference format
+ * (e.g. "/matt.5v3#matt.5v3"), rewrite it in place to the canonical
+ * dot-less form (e.g. "/matt5v3#matt5v3"), without adding a history entry
+ * or reloading the page.
+ */
+export const normalizeLegacyUrl = (): void => {
+	if (typeof window === 'undefined') return;
+
+	const { pathname, search, hash } = window.location;
+	if (!pathname.includes('.') && !hash.includes('.')) return;
+
+	const selection = parseReferenceUrl(pathname);
+	const newPathname = selection ? selectionToUrl(selection) : pathname;
+
+	const scrollPosition = parseScrollHash(hash);
+	const newHash = scrollPosition
+		? formatScrollHash(scrollPosition.book, scrollPosition.chapter, scrollPosition.verse)
+		: hash;
+
+	if (newPathname === pathname && newHash === hash) return;
+
+	window.history.replaceState(window.history.state, '', newPathname + search + newHash);
+};
+
+/**
  * Get the initial application state based on the current URL.
  * Path = selection, Hash = scroll position
  *
@@ -188,6 +212,9 @@ export const getInitialState = (): {
 			libraryDocument: null
 		};
 	}
+
+	// Rewrite any legacy dot-separated reference in the URL to the canonical form
+	normalizeLegacyUrl();
 
 	const pathname = window.location.pathname;
 	const hash = window.location.hash;
@@ -347,5 +374,6 @@ export const NavigationService = {
 	parseURL,
 	parseReferenceUrl,
 	parseScrollHash,
+	normalizeLegacyUrl,
 	getInitialState
 };

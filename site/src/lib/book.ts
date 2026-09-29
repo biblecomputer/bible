@@ -178,6 +178,27 @@ export const getShortName = (book: BibleBook): string => {
     return BOOK_TAG_TO_SHORT_NAME[book];
 };
 
+// Short names sorted longest-first so a book like "1john" is matched before "john"
+const BOOK_SHORT_NAMES_BY_LENGTH = Object.keys(SHORT_NAME_TO_BOOK_TAG).sort(
+    (a, b) => b.length - a.length
+);
+
+/**
+ * Match a book abbreviation at the start of a string (case-insensitive),
+ * e.g. "john1v1" -> { book: "John", rest: "1v1" }.
+ * Used to split URL segments like "john1v1" without a separator between
+ * the book and the chapter.
+ */
+export const matchBookPrefix = (value: string): { book: BibleBook; rest: string } | null => {
+    const lower = value.toLowerCase();
+    for (const shortName of BOOK_SHORT_NAMES_BY_LENGTH) {
+        if (lower.startsWith(shortName)) {
+            return { book: SHORT_NAME_TO_BOOK_TAG[shortName], rest: value.slice(shortName.length) };
+        }
+    }
+    return null;
+};
+
 const BOOK_TAG_TO_DISPLAY_NAME: Record<BibleBook, string> = {
     // Old Testament
     Genesis: "Genesis",
